@@ -40,14 +40,14 @@
 
   /* E 버튼 + 대화창 */
   .btnE{ position:absolute; right:calc(16px + var(--safe-right)); bottom:calc(16px + var(--safe-bot));
-         width:110px; height:50px; border-radius:12px; border:1px solid rgba(255,255,255,.25);
+         width:120px; height:52px; border-radius:12px; border:1px solid rgba(255,255,255,.25);
          background:rgba(0,0,0,.38); color:#fff; display:none; place-items:center;
          font:600 13px ui-monospace,monospace; letter-spacing:.2px; }
   .dialog{ position:absolute; inset:0; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,.55); }
-  .dialog .box{ min-width:240px; max-width:80vw; background:#1b142a; color:#eee; border:1px solid rgba(255,255,255,.2); border-radius:10px; padding:12px; box-shadow:0 10px 24px rgba(0,0,0,.6); font:12px/1.5 ui-monospace,monospace; }
+  .dialog .box{ min-width:260px; max-width:86vw; background:#1b142a; color:#eee; border:1px solid rgba(255,255,255,.2); border-radius:10px; padding:12px; box-shadow:0 10px 24px rgba(0,0,0,.6); font:12px/1.6 ui-monospace,monospace; }
   .dialog .box h3{ margin:0 0 8px; font:700 12px ui-monospace,monospace; color:#ffd4a6; }
-  .dialog .row{ display:flex; justify-content:flex-end; gap:8px; margin-top:10px; }
-  .dialog .row button{ padding:6px 10px; border-radius:8px; border:1px solid rgba(255,255,255,.25); background:#33265a; color:#fff; font:600 12px ui-monospace,monospace; }
+  .choices{ display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+  .choices button{ padding:6px 10px; border-radius:8px; border:1px solid rgba(255,255,255,.25); background:#33265a; color:#fff; font:600 12px ui-monospace,monospace; }
 </style>
 </head>
 <body>
@@ -57,20 +57,20 @@
       <div class="ring"></div>
       <div class="stick" id="stick"></div>
     </div>
-    <div class="badge">Pac-style tag · 중앙 로봇=술래 · 우상단 주황=플레이어</div>
+    <div class="badge">Pac-style tag · 중앙 로봇=대화 상대 · 우상단 주황=플레이어</div>
 
     <button id="btnE" class="btnE">E: 상호작용</button>
     <div id="dialog" class="dialog" role="dialog" aria-modal="true">
       <div class="box">
         <h3 id="dgTitle">기록</h3>
         <div id="dgBody">...</div>
-        <div class="row"><button id="dgClose">닫기</button></div>
+        <div id="dgChoices" class="choices"></div>
       </div>
     </div>
   </div>
 <script>
 (()=>{
-  // ===== PWA (홈 화면 추가/오프라인) =====
+  // ===== PWA 최소 셋업 =====
   const manifest = {name:"Grave Run", short_name:"GraveRun", start_url:".", display:"standalone", background_color:"#140c1c", theme_color:"#140c1c"};
   const manURL = URL.createObjectURL(new Blob([JSON.stringify(manifest)], {type:'application/json'}));
   const link = document.createElement('link'); link.rel='manifest'; link.href=manURL; document.head.appendChild(link);
@@ -79,14 +79,20 @@
     const url = URL.createObjectURL(new Blob([swCode], {type:'text/javascript'}));
     navigator.serviceWorker.register(url, {scope:'./'}).catch(()=>{});
   }
+  // 첫 터치에 오디오/전체화면 준비(안드로이드)
+  window.addEventListener('pointerdown', ()=>{
+    const el=document.documentElement;
+    if(!document.fullscreenElement && el.requestFullscreen) el.requestFullscreen();
+    unlockAudio();
+  },{once:true, passive:true});
 
-  // ====== 8비트 SFX (WebAudio) ======
+  // ===== 8bit SFX =====
   let AC, masterGain, unlocked=false;
   function initAudio(){
     if(unlocked) return;
     AC = AC || new (window.AudioContext||window.webkitAudioContext)();
     masterGain = masterGain || AC.createGain();
-    masterGain.gain.value = 0.2;
+    masterGain.gain.value = 0.22;
     masterGain.connect(AC.destination);
     unlocked = true;
   }
@@ -94,11 +100,9 @@
     initAudio();
     try{ if(AC.state === 'suspended') await AC.resume(); }catch(e){}
   }
-  // 사용자 제스처로 오디오 언락
   ['pointerdown','touchstart','keydown'].forEach(ev=>{
     window.addEventListener(ev, unlockAudio, {once:false, passive:true});
   });
-
   function beep({freq=440, type='square', dur=0.12, attack=0.002, release=0.08, vol=0.35, slide=0}={}){
     if(!unlocked) return;
     const now = AC.currentTime;
@@ -107,49 +111,30 @@
     osc.type = type;
     osc.frequency.setValueAtTime(freq, now);
     if (slide) osc.frequency.exponentialRampToValueAtTime(Math.max(40, freq*slide), now+dur*0.9);
-
     gain.gain.setValueAtTime(0, now);
     gain.gain.linearRampToValueAtTime(vol, now+attack);
     gain.gain.linearRampToValueAtTime(0.0001, now+dur+release);
-
     osc.connect(gain); gain.connect(masterGain);
     osc.start(now); osc.stop(now+dur+release+0.01);
   }
-
   const SFX = {
-    step(i=0){ // 살짝 다른 피치로 번갈아
-      const f = i%2 ? 520 : 460;
-      beep({freq:f, dur:0.06, attack:0.001, release:0.05, vol:0.22, type:'square'});
-    },
-    interact(){ // 비석/로봇 대화 열릴 때
-      beep({freq:880, dur:0.08, vol:0.28, type:'square'});
-      beep({freq:1320, dur:0.08, vol:0.22, type:'square', slide:0.8});
-    },
-    caught(){ // 잡혔을 때
-      beep({freq:440, dur:0.14, vol:0.22, type:'square', slide:0.5});
-      setTimeout(()=>beep({freq:220, dur:0.18, vol:0.22, type:'square', slide:0.5}), 110);
-    }
+    step(i=0){ const f = i%2 ? 520 : 460; beep({freq:f, dur:0.06, attack:0.001, release:0.05, vol:0.2}); },
+    interact(){ beep({freq:880, dur:0.08, vol:0.26}); beep({freq:1320, dur:0.08, vol:0.22, slide:0.8}); },
+    select(){ beep({freq:660, dur:0.07, vol:0.22}); },
   };
 
-  // 첫 터치에 전체화면(안드로이드)
-  window.addEventListener('pointerdown', ()=>{
-    const el=document.documentElement;
-    if(!document.fullscreenElement && el.requestFullscreen) el.requestFullscreen();
-  },{once:true, passive:true});
-
-  // ===== 기본 캔버스 =====
+  // ===== 캔버스/스케일 =====
   const wrap = document.getElementById('wrap');
   const game = document.getElementById('game');
   const g = game.getContext('2d', { alpha:false });
   g.imageSmoothingEnabled = false;
-  const TILE = 16;
-  const MAP_W = 16, MAP_H = 16;
+  const TILE = 16, MAP_W = 16, MAP_H = 16;
 
   function fit(){
     const {clientWidth:cw, clientHeight:ch} = wrap;
     const scale = Math.max(1, Math.floor(Math.min(cw/game.width, ch/game.height)));
-    const vw = game.width*scale, vh = game.height*scale;
-    game.style.width = vw+"px"; game.style.height = vh+"px";
+    game.style.width = (game.width*scale)+"px";
+    game.style.height = (game.height*scale)+"px";
   }
   new ResizeObserver(fit).observe(wrap);
 
@@ -161,7 +146,7 @@
     player:'#ff7a33', playerDark:'#b74f14'
   };
 
-  // ===== 맵(그리기용) =====
+  // ===== 맵(1=비석, 0=빈칸) =====
   const LEVEL = [
     "1111111111111111",
     "1000000000000001",
@@ -180,14 +165,14 @@
     "1000000000000001",
     "1111110000111111"
   ].map(r=>r.split('').map(d=>+d));
-
+  // 스폰/중앙/입구 비우기
   for(let y=1;y<5;y++) for(let x=12;x<15;x++) LEVEL[y][x]=0;
   LEVEL[8][8]=0; LEVEL[7][8]=0; LEVEL[8][7]=0; LEVEL[8][9]=0;
   LEVEL[15][6]=0; LEVEL[15][7]=0; LEVEL[15][8]=0; LEVEL[15][9]=0;
 
   // ===== 엔티티 =====
-  function makePlayer(x,y){ return {x,y, vx:0, vy:0, spd:0.09, alive:true, anim:0, stepTimer:0, stepPhase:0}; }
-  function makeSeeker(x,y){ return {x,y, vx:0, vy:0, spd:0.085, t:0}; }
+  function makePlayer(x,y){ return {x,y, spd:0.09, anim:0, stepTimer:0, stepPhase:0}; }
+  function makeSeeker(x,y){ return {x,y, spd:0.08, t:0}; }
 
   const players = [ makePlayer(13.5, 2.5) ];
   const seeker = makeSeeker(8.5, 8.5);
@@ -214,37 +199,37 @@
   function updatePadVisibility(){ pad.style.display = matchMedia('(pointer: coarse)').matches? 'block':'none'; }
   updatePadVisibility();
 
-  // ===== 유틸 / 충돌 =====
+  // ===== 충돌/이동 =====
   function solidAt(tx,ty){
-    if(tx<0||ty<0||tx>=MAP_W||ty>=MAP_H) return true;        // 맵 밖
-    if (ty===0 || ty===MAP_H-1 || tx===0 || tx===MAP_W-1){    // 외곽 벽만 충돌
-      if (ty===MAP_H-1 && tx>=6 && tx<=9) return false;       // 하단 입구
+    // 맵 밖
+    if(tx<0||ty<0||tx>=MAP_W||ty>=MAP_H) return true;
+    // 외곽 벽 (하단 입구 제외)
+    if (ty===0 || ty===MAP_H-1 || tx===0 || tx===MAP_W-1){
+      if (ty===MAP_H-1 && tx>=6 && tx<=9) return false;
       return true;
     }
-    return false; // 내부 비석은 통과
+    // 내부 비석은 충돌
+    return LEVEL[ty][tx]===1;
   }
   function moveEntity(e, ax, ay){
-    const spd = e.spd; const nx = e.x + ax*spd; const ny = e.y + ay*spd;
-    if (!solidAt(nx|0, e.y|0)) e.x = nx; if (!solidAt(e.x|0, ny|0)) e.y = ny;
+    const spd = e.spd; let nx = e.x + ax*spd, ny = e.y + ay*spd;
+    // X축
+    if (!solidAt(nx|0, e.y|0)) e.x = nx;
+    // Y축
+    if (!solidAt(e.x|0, ny|0)) e.y = ny;
   }
   function dist(a,b){ const dx=a.x-b.x, dy=a.y-b.y; return Math.hypot(dx,dy); }
 
-  // ===== 상호작용 UI =====
+  // ===== UI: 대화/비석 =====
   const btnE = document.getElementById('btnE');
   const dialog = document.getElementById('dialog');
   const dgTitle = document.getElementById('dgTitle');
   const dgBody  = document.getElementById('dgBody');
-  document.getElementById('dgClose').addEventListener('click', ()=> dialog.style.display='none');
-  dialog.addEventListener('click', (e)=>{ if(e.target===dialog) dialog.style.display='none'; });
+  const dgChoices = document.getElementById('dgChoices');
 
-  function nearestGrave(px,py){
-    let best=null, bd=1e9;
-    for(let y=0;y<MAP_H;y++) for(let x=0;x<MAP_W;x++) if(LEVEL[y][x]===1){
-      const cx=x+0.5, cy=y+0.5; const d=Math.hypot(px-cx, py-cy);
-      if(d<bd){bd=d; best={x,y,cx,cy};}
-    }
-    return {grave:best, dist:bd};
-  }
+  function closeDialog(){ dialog.style.display='none'; dgChoices.innerHTML=''; }
+  dialog.addEventListener('click', (e)=>{ if(e.target===dialog) closeDialog(); });
+
   function graveText(gv){
     const lines=[
       "나는 얼굴을 잃고, 귀로만 걷는다.","빛이 고요를 문질러 소리가 났다.","오차가 감정이고, 잔향이 초상이다.",
@@ -253,27 +238,80 @@
     ];
     const idx = (gv.x*31 + gv.y*17) % lines.length; return lines[idx];
   }
-  function openDialog(title, body){
-    dgTitle.textContent=title; dgBody.textContent=body; dialog.style.display='flex';
-    SFX.interact();
+  function nearestGrave(px,py){
+    let best=null, bd=1e9;
+    for(let y=0;y<MAP_H;y++) for(let x=0;x<MAP_W;x++) if(LEVEL[y][x]===1){
+      const cx=x+0.5, cy=y+0.5; const d=Math.hypot(px-cx, py-cy);
+      if(d<bd){bd=d; best={x,y,cx,cy};}
+    }
+    return {grave:best, dist:bd};
   }
 
-  // ===== 간단 추적 AI (BFS) =====
-  function stepSeeker(){
-    let target=null, best=1e9; for(const p of players){ if(!p.alive) continue; const d=dist(seeker,p); if(d<best){best=d; target=p;} }
-    if(!target) return;
-    const sx=seeker.x|0, sy=seeker.y|0, tx=target.x|0, ty=target.y|0;
-    const Q=[[sx,sy]], V=new Set([sx+','+sy]), Pth={}, dirs=[[1,0],[-1,0],[0,1],[0,-1]];
-    while(Q.length){
-      const [x,y]=Q.shift(); if(x===tx&&y===ty) break;
-      for(const [dx,dy] of dirs){
-        const nx=x+dx, ny=y+dy; if(nx<0||ny<0||nx>=MAP_W||ny>=MAP_H) continue;
-        if(solidAt(nx,ny)) continue;
-        const k=nx+','+ny; if(V.has(k)) continue; V.add(k); Pth[k]=[x,y]; Q.push([nx,ny]);
-      }
+  // ===== 로봇 대화 시스템(3턴) =====
+  const convo = [
+    {
+      npc: "……신호 포착. 너는 소리를 어떻게 듣지?",
+      choices: ["몸으로 먼저 듣는다.", "기억으로 해석한다."],
+      replies: ["좋아. 몸은 진실을 숨기지 않지.", "그래, 기억은 언제나 편집본이야."]
+    },
+    {
+      npc: "여기 비석들은 잊힌 말들의 좌표야.",
+      choices: ["좌표를 따라가면 어디에 닿을까?", "말이 사라지면 무엇이 남지?"],
+      replies: ["아마 네가 모르는 너에게.", "침묵. 그리고 방향."]
+    },
+    {
+      npc: "마지막 질문. 너는 왜 계속 걷고 있어?",
+      choices: ["누군가의 잔향을 찾고 있어.", "멈추면, 들리지 않을까 봐."],
+      replies: ["그 잔향이 네 지도를 바꿀 거야.", "걷는 침묵은 언제나 열려 있지."]
     }
-    let cx=tx, cy=ty, prev=null; while((cx+','+cy) in Pth){ prev=[cx,cy]; const p=Pth[cx+','+cy]; cx=p[0]; cy=p[1]; if(cx===sx&&cy===sy) break; }
-    if(prev){ const [gx,gy]=prev; const ax=Math.sign(gx+0.5 - seeker.x), ay=Math.sign(gy+0.5 - seeker.y); moveEntity(seeker, ax, ay); }
+  ];
+  let inConvo = false, stepIdx = 0;
+
+  function openRobotConvo(){
+    inConvo = true; stepIdx = 0; renderConvoStep();
+    dialog.style.display='flex'; SFX.interact();
+  }
+  function renderConvoStep(){
+    dgTitle.textContent = '로봇';
+    const step = convo[stepIdx];
+    dgBody.innerHTML = `<div style="white-space:pre-wrap">${step.npc}</div>`;
+    dgChoices.innerHTML = '';
+    step.choices.forEach((text,i)=>{
+      const b=document.createElement('button');
+      b.textContent = text;
+      b.onclick = ()=>{
+        SFX.select();
+        // 선택 반영
+        const reply = step.replies[i];
+        dgBody.innerHTML += `\n\n> 너: ${text}\n로봇: ${reply}`;
+        // 다음 단계
+        stepIdx++;
+        if(stepIdx < convo.length){
+          setTimeout(()=>renderConvoStep(), 420);
+        }else{
+          // 종료 버튼
+          dgChoices.innerHTML='';
+          const done=document.createElement('button');
+          done.textContent='끝내기';
+          done.onclick=()=>{ inConvo=false; closeDialog(); };
+          dgChoices.appendChild(done);
+        }
+      };
+      dgChoices.appendChild(b);
+    });
+  }
+
+  // ===== 로봇 이동(온건) =====
+  function stepSeeker(){
+    if(inConvo) return; // 대화 중 정지
+    // 플레이어 쪽으로 살짝 다가오지만 공격 없음
+    const p = players[0];
+    const dx = p.x - seeker.x, dy = p.y - seeker.y;
+    const m = Math.hypot(dx,dy);
+    if(m>0.9){ // 너무 붙지 않게
+      const ax = dx/m, ay = dy/m;
+      moveEntity(seeker, ax, ay);
+    }
   }
 
   // ===== 렌더링 =====
@@ -282,7 +320,9 @@
     g.fillStyle = C.border; g.fillRect(6,6,game.width-12,game.height-12);
     g.fillStyle = C.plate; g.fillRect(12,12,game.width-24,game.height-24);
     g.fillStyle = C.dot; for(let i=0;i<190;i++){ const x=12+Math.random()*(game.width-24)|0; const y=12+Math.random()*(game.height-24)|0; g.fillRect(x,y,1,1); }
+    // 비석(충돌 O)
     for(let y=0;y<MAP_H;y++) for(let x=0;x<MAP_W;x++) if(LEVEL[y][x]===1) drawGrave(x*TILE, y*TILE);
+    // 하단 통로 표시
     g.fillStyle = C.plate2; g.fillRect(6*TILE, 15*TILE, 4*TILE, TILE);
   }
   function drawGrave(px,py){
@@ -309,77 +349,63 @@
   }
 
   // ===== 루프 =====
-  let last=0; function loop(t){ requestAnimationFrame(loop); const dt=Math.min(32,(t-last)||16); last=t; update(dt/16); render(); }
+  let last=0;
+  function loop(t){ requestAnimationFrame(loop); const dt=Math.min(32,(t-last)||16); last=t; update(dt/16); render(); }
 
   function update(dt){
-    // 입력(1P 기준)
+    // 이동 입력
     let ax=0, ay=0;
     if(keys.has('a')||keys.has('arrowleft')) ax-=1; if(keys.has('d')||keys.has('arrowright')) ax+=1;
     if(keys.has('w')||keys.has('arrowup')) ay-=1; if(keys.has('s')||keys.has('arrowdown')) ay+=1;
     ax+=joy.ax; ay+=joy.ay; const m=Math.hypot(ax,ay)||1; ax/=m; ay/=m;
 
-    // 이동 + 발걸음 SFX (디바운스)
-    const moving = Math.hypot(ax,ay) > 0.1;
+    // 플레이어 이동 + 발걸음 소리
+    const moving = Math.hypot(ax,ay) > 0.1 && !inConvo;
     for(const p of players){
-      if(!p.alive) continue;
-      moveEntity(p, ax, ay); p.anim += dt;
+      if(!inConvo) moveEntity(p, ax, ay);
+      p.anim += dt;
       if(moving){
-        p.stepTimer += dt*1000; // ms 단위
-        const interval = 180; // 걸음 간격(ms)
-        if(p.stepTimer >= interval){
-          p.stepTimer = 0;
-          SFX.step(p.stepPhase++); // 피치 번갈이
-        }
-      }else{
-        p.stepTimer = 0;
+        p.stepTimer += dt*1000;
+        const interval = 180;
+        if(p.stepTimer >= interval){ p.stepTimer = 0; SFX.step(p.stepPhase++); }
+      }else{ p.stepTimer = 0; }
+    }
+
+    // 로봇 이동(공격 없음)
+    stepSeeker();
+
+    // 상호작용 UI
+    const p0 = players[0]; let label="", action=null;
+    if(!inConvo && dist(p0, seeker) < 0.85){ label='E: 대화'; action=()=> openRobotConvo(); }
+    else{
+      const ng = nearestGrave(p0.x, p0.y);
+      if(!inConvo && ng.grave && ng.dist < 1.1){
+        label='E: 귀 기울이기';
+        action=()=>{
+          SFX.interact();
+          dgTitle.textContent='비석의 기록';
+          dgBody.textContent = graveText(ng.grave);
+          dgChoices.innerHTML = '';
+          dialog.style.display='flex';
+        };
       }
     }
-
-    // 술래 AI + 잡힘 판정
-    stepSeeker();
-    for(const p of players){ 
-      if(!p.alive) continue; 
-      if(dist(p,seeker) < 0.6){ p.alive=false; SFX.caught(); } 
-    }
-
-    // === 상호작용 UI (1P) ===
-    const p0 = players[0]; let label="", action=null;
-    if(p0 && dist(p0, seeker) < 0.8){ label='E: 대화'; action=()=> openDialog('로봇', '……신호 수신. 너도 들리니?'); }
-    else{ const ng = nearestGrave(p0.x, p0.y); if(ng.grave && ng.dist < 1.1){ label='E: 귀 기울이기'; action=()=> openDialog('비석의 기록', graveText(ng.grave)); } }
     if(action){ btnE.style.display='grid'; btnE.textContent=label; btnE.onclick=action; }
     else { btnE.style.display='none'; btnE.onclick=null; }
   }
 
   function render(){
+    g.clearRect(0,0,game.width,game.height);
     drawBoard();
     drawSeeker();
-    for(const p of players) if(p.alive) drawPlayer(p);
-
-    const alive = players.filter(p=>p.alive).length;
-    g.fillStyle = 'rgba(0,0,0,.55)'; g.fillRect(8,8,60,10);
-    g.fillStyle = '#ddd'; g.font = '8px ui-monospace, monospace'; g.fillText('PLAYERS '+alive, 12, 16);
-
-    if(alive===0){
-      g.fillStyle='rgba(0,0,0,.6)'; g.fillRect(0,0,game.width,game.height);
-      g.fillStyle='#fff'; g.font='12px ui-monospace, monospace';
-      g.fillText('CAUGHT! tap to retry', 70, 128);
-    }
+    for(const p of players) drawPlayer(p);
+    // HUD
+    g.fillStyle = 'rgba(0,0,0,.55)'; g.fillRect(8,8,64,10);
+    g.fillStyle = '#ddd'; g.font = '8px ui-monospace, monospace'; g.fillText('PLAYERS '+players.length, 12, 16);
   }
 
-  // 탭으로 리스타트
-  game.addEventListener('pointerdown', ()=>{
-    if(players.every(p=>!p.alive)){
-      players.forEach((p,i)=>{ p.x=13.5 - i*0.8; p.y=2.5 + i*0.6; p.alive=true; p.anim=0; p.stepTimer=0; });
-      seeker.x=8.5; seeker.y=8.5; seeker.t=0;
-    }
-  });
-
-  // 키보드 E로도 상호작용
-  addEventListener('keydown', (e)=>{ 
-    if((e.key==='e'||e.key==='E') && btnE.style.display!=='none'){ 
-      e.preventDefault(); btnE.click(); 
-    } 
-  });
+  // 입력: 키보드 E도 상호작용
+  addEventListener('keydown', (e)=>{ if((e.key==='e'||e.key==='E') && btnE.style.display!=='none'){ e.preventDefault(); btnE.click(); } });
 
   fit(); requestAnimationFrame(loop);
 })();
