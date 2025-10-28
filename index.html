@@ -24,7 +24,7 @@
     position:relative; width:100vw; height:100svh; overflow:hidden; background:var(--bg);
     padding:var(--safe-top) var(--safe-right) var(--safe-bot) var(--safe-left);
   }
-  /* ✅ 중앙 정렬: left/top 50% + translate */
+  /* 중앙 고정 */
   canvas{
     position:absolute; left:50%; top:50%;
     transform: translate(-50%, -50%);
@@ -79,8 +79,63 @@
     const url = URL.createObjectURL(new Blob([swCode], {type:'text/javascript'}));
     navigator.serviceWorker.register(url, {scope:'./'}).catch(()=>{});
   }
+
+  // ====== 8비트 SFX (WebAudio) ======
+  let AC, masterGain, unlocked=false;
+  function initAudio(){
+    if(unlocked) return;
+    AC = AC || new (window.AudioContext||window.webkitAudioContext)();
+    masterGain = masterGain || AC.createGain();
+    masterGain.gain.value = 0.2;
+    masterGain.connect(AC.destination);
+    unlocked = true;
+  }
+  async function unlockAudio(){
+    initAudio();
+    try{ if(AC.state === 'suspended') await AC.resume(); }catch(e){}
+  }
+  // 사용자 제스처로 오디오 언락
+  ['pointerdown','touchstart','keydown'].forEach(ev=>{
+    window.addEventListener(ev, unlockAudio, {once:false, passive:true});
+  });
+
+  function beep({freq=440, type='square', dur=0.12, attack=0.002, release=0.08, vol=0.35, slide=0}={}){
+    if(!unlocked) return;
+    const now = AC.currentTime;
+    const osc = AC.createOscillator();
+    const gain = AC.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, now);
+    if (slide) osc.frequency.exponentialRampToValueAtTime(Math.max(40, freq*slide), now+dur*0.9);
+
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(vol, now+attack);
+    gain.gain.linearRampToValueAtTime(0.0001, now+dur+release);
+
+    osc.connect(gain); gain.connect(masterGain);
+    osc.start(now); osc.stop(now+dur+release+0.01);
+  }
+
+  const SFX = {
+    step(i=0){ // 살짝 다른 피치로 번갈아
+      const f = i%2 ? 520 : 460;
+      beep({freq:f, dur:0.06, attack:0.001, release:0.05, vol:0.22, type:'square'});
+    },
+    interact(){ // 비석/로봇 대화 열릴 때
+      beep({freq:880, dur:0.08, vol:0.28, type:'square'});
+      beep({freq:1320, dur:0.08, vol:0.22, type:'square', slide:0.8});
+    },
+    caught(){ // 잡혔을 때
+      beep({freq:440, dur:0.14, vol:0.22, type:'square', slide:0.5});
+      setTimeout(()=>beep({freq:220, dur:0.18, vol:0.22, type:'square', slide:0.5}), 110);
+    }
+  };
+
   // 첫 터치에 전체화면(안드로이드)
-  window.addEventListener('pointerdown', ()=>{const el=document.documentElement; if(!document.fullscreenElement && el.requestFullscreen) el.requestFullscreen();},{once:true, passive:true});
+  window.addEventListener('pointerdown', ()=>{
+    const el=document.documentElement;
+    if(!document.fullscreenElement && el.requestFullscreen) el.requestFullscreen();
+  },{once:true, passive:true});
 
   // ===== 기본 캔버스 =====
   const wrap = document.getElementById('wrap');
@@ -95,7 +150,6 @@
     const scale = Math.max(1, Math.floor(Math.min(cw/game.width, ch/game.height)));
     const vw = game.width*scale, vh = game.height*scale;
     game.style.width = vw+"px"; game.style.height = vh+"px";
-    // 중앙정렬은 CSS transform으로 처리 중 (left/top 50%).
   }
   new ResizeObserver(fit).observe(wrap);
 
@@ -127,21 +181,17 @@
     "1111110000111111"
   ].map(r=>r.split('').map(d=>+d));
 
-  // 우상단 플레이어 스폰 영역 비우기(표시용)
   for(let y=1;y<5;y++) for(let x=12;x<15;x++) LEVEL[y][x]=0;
-  // 중앙 술래 자리 비우기(표시용)
   LEVEL[8][8]=0; LEVEL[7][8]=0; LEVEL[8][7]=0; LEVEL[8][9]=0;
-  // 하단 통로(입구, 표시용)
   LEVEL[15][6]=0; LEVEL[15][7]=0; LEVEL[15][8]=0; LEVEL[15][9]=0;
 
   // ===== 엔티티 =====
-  function makePlayer(x,y){ return {x,y, vx:0, vy:0, spd:0.09, alive:true, anim:0}; }
+  function makePlayer(x,y){ return {x,y, vx:0, vy:0, spd:0.09, alive:true, anim:0, stepTimer:0, stepPhase:0}; }
   function makeSeeker(x,y){ return {x,y, vx:0, vy:0, spd:0.085, t:0}; }
 
   const players = [ makePlayer(13.5, 2.5) ];
   const seeker = makeSeeker(8.5, 8.5);
 
-  // URL 파라미터로 플레이어 추가 (?p=3)
   const P = Math.max(1, Math.min(4, +(new URLSearchParams(location.search).get('p')||1)));
   while (players.length < P) players.push(makePlayer(14.5-(players.length*0.8), 3.2+(players.length*0.6)));
 
@@ -161,22 +211,17 @@
     stick.style.left=(r.width/2+dx-33)+'px'; stick.style.top=(r.height/2+dy-33)+'px'; joy.ax = dx/max; joy.ay = dy/max;
   }
   for (const ev of ['pointerdown','pointermove','pointerup','pointercancel']) pad.addEventListener(ev, {pointerdown:padStart,pointermove:padMove,pointerup:padEnd,pointercancel:padEnd}[ev]);
-
   function updatePadVisibility(){ pad.style.display = matchMedia('(pointer: coarse)').matches? 'block':'none'; }
   updatePadVisibility();
 
-  // ===== 유틸 =====
-  // ✅ 충돌 그리드는 "외곽 벽만" 막고, 내부 비석은 전부 통과 가능
+  // ===== 유틸 / 충돌 =====
   function solidAt(tx,ty){
     if(tx<0||ty<0||tx>=MAP_W||ty>=MAP_H) return true;        // 맵 밖
-    // 외곽 벽
-    if (ty===0 || ty===MAP_H-1 || tx===0 || tx===MAP_W-1){
-      // 하단 입구(6~9)는 통로
-      if (ty===MAP_H-1 && tx>=6 && tx<=9) return false;
+    if (ty===0 || ty===MAP_H-1 || tx===0 || tx===MAP_W-1){    // 외곽 벽만 충돌
+      if (ty===MAP_H-1 && tx>=6 && tx<=9) return false;       // 하단 입구
       return true;
     }
-    // 내부는 전부 통과 (비석은 장식 전용)
-    return false;
+    return false; // 내부 비석은 통과
   }
   function moveEntity(e, ax, ay){
     const spd = e.spd; const nx = e.x + ax*spd; const ny = e.y + ay*spd;
@@ -184,7 +229,7 @@
   }
   function dist(a,b){ const dx=a.x-b.x, dy=a.y-b.y; return Math.hypot(dx,dy); }
 
-  // ===== 상호작용 후보(비석/로봇) =====
+  // ===== 상호작용 UI =====
   const btnE = document.getElementById('btnE');
   const dialog = document.getElementById('dialog');
   const dgTitle = document.getElementById('dgTitle');
@@ -208,11 +253,13 @@
     ];
     const idx = (gv.x*31 + gv.y*17) % lines.length; return lines[idx];
   }
-  function openDialog(title, body){ dgTitle.textContent=title; dgBody.textContent=body; dialog.style.display='flex'; }
+  function openDialog(title, body){
+    dgTitle.textContent=title; dgBody.textContent=body; dialog.style.display='flex';
+    SFX.interact();
+  }
 
   // ===== 간단 추적 AI (BFS) =====
   function stepSeeker(){
-    // 가장 가까운 살아있는 플레이어 추적
     let target=null, best=1e9; for(const p of players){ if(!p.alive) continue; const d=dist(seeker,p); if(d<best){best=d; target=p;} }
     if(!target) return;
     const sx=seeker.x|0, sy=seeker.y|0, tx=target.x|0, ty=target.y|0;
@@ -235,11 +282,7 @@
     g.fillStyle = C.border; g.fillRect(6,6,game.width-12,game.height-12);
     g.fillStyle = C.plate; g.fillRect(12,12,game.width-24,game.height-24);
     g.fillStyle = C.dot; for(let i=0;i<190;i++){ const x=12+Math.random()*(game.width-24)|0; const y=12+Math.random()*(game.height-24)|0; g.fillRect(x,y,1,1); }
-
-    // 비석(장식 전용, 충돌 없음)
     for(let y=0;y<MAP_H;y++) for(let x=0;x<MAP_W;x++) if(LEVEL[y][x]===1) drawGrave(x*TILE, y*TILE);
-
-    // 하단 통로 표시
     g.fillStyle = C.plate2; g.fillRect(6*TILE, 15*TILE, 4*TILE, TILE);
   }
   function drawGrave(px,py){
@@ -274,11 +317,30 @@
     if(keys.has('a')||keys.has('arrowleft')) ax-=1; if(keys.has('d')||keys.has('arrowright')) ax+=1;
     if(keys.has('w')||keys.has('arrowup')) ay-=1; if(keys.has('s')||keys.has('arrowdown')) ay+=1;
     ax+=joy.ax; ay+=joy.ay; const m=Math.hypot(ax,ay)||1; ax/=m; ay/=m;
-    for(const p of players){ if(!p.alive) continue; moveEntity(p, ax, ay); p.anim += dt; }
+
+    // 이동 + 발걸음 SFX (디바운스)
+    const moving = Math.hypot(ax,ay) > 0.1;
+    for(const p of players){
+      if(!p.alive) continue;
+      moveEntity(p, ax, ay); p.anim += dt;
+      if(moving){
+        p.stepTimer += dt*1000; // ms 단위
+        const interval = 180; // 걸음 간격(ms)
+        if(p.stepTimer >= interval){
+          p.stepTimer = 0;
+          SFX.step(p.stepPhase++); // 피치 번갈이
+        }
+      }else{
+        p.stepTimer = 0;
+      }
+    }
 
     // 술래 AI + 잡힘 판정
     stepSeeker();
-    for(const p of players){ if(!p.alive) continue; if(dist(p,seeker) < 0.6) p.alive=false; }
+    for(const p of players){ 
+      if(!p.alive) continue; 
+      if(dist(p,seeker) < 0.6){ p.alive=false; SFX.caught(); } 
+    }
 
     // === 상호작용 UI (1P) ===
     const p0 = players[0]; let label="", action=null;
@@ -307,13 +369,17 @@
   // 탭으로 리스타트
   game.addEventListener('pointerdown', ()=>{
     if(players.every(p=>!p.alive)){
-      players.forEach((p,i)=>{ p.x=13.5 - i*0.8; p.y=2.5 + i*0.6; p.alive=true; p.anim=0; });
+      players.forEach((p,i)=>{ p.x=13.5 - i*0.8; p.y=2.5 + i*0.6; p.alive=true; p.anim=0; p.stepTimer=0; });
       seeker.x=8.5; seeker.y=8.5; seeker.t=0;
     }
   });
 
   // 키보드 E로도 상호작용
-  addEventListener('keydown', (e)=>{ if((e.key==='e'||e.key==='E') && btnE.style.display!=='none'){ e.preventDefault(); btnE.click(); } });
+  addEventListener('keydown', (e)=>{ 
+    if((e.key==='e'||e.key==='E') && btnE.style.display!=='none'){ 
+      e.preventDefault(); btnE.click(); 
+    } 
+  });
 
   fit(); requestAnimationFrame(loop);
 })();
