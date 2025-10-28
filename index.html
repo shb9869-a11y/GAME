@@ -20,8 +20,16 @@
   }
   html,body{height:100%;margin:0;background:var(--bg);color:var(--fg);}
   body{display:grid;place-items:center;font-family: ui-monospace,"SF Mono",Menlo,Consolas,monospace;}
-  #wrap{position:relative; width:100vw; height:100svh; overflow:hidden; background:var(--bg); padding:var(--safe-top) var(--safe-right) var(--safe-bot) var(--safe-left);}
-  canvas{ position:absolute; inset:0; margin:auto; image-rendering:pixelated; image-rendering:crisp-edges; touch-action:none; }
+  #wrap{
+    position:relative; width:100vw; height:100svh; overflow:hidden; background:var(--bg);
+    padding:var(--safe-top) var(--safe-right) var(--safe-bot) var(--safe-left);
+  }
+  /* ✅ 중앙 정렬: left/top 50% + translate */
+  canvas{
+    position:absolute; left:50%; top:50%;
+    transform: translate(-50%, -50%);
+    image-rendering:pixelated; image-rendering:crisp-edges; touch-action:none;
+  }
 
   /* 조이스틱 */
   .pad{ position:absolute; bottom:calc(16px + var(--safe-bot)); left:calc(16px + var(--safe-left)); width:150px; height:150px; opacity:.95; filter: drop-shadow(0 2px 8px rgba(0,0,0,.6)); }
@@ -79,15 +87,15 @@
   const game = document.getElementById('game');
   const g = game.getContext('2d', { alpha:false });
   g.imageSmoothingEnabled = false;
-  const TILE = 16;                   // 타일 사이즈
-  const MAP_W = 16, MAP_H = 16;      // 16x16 맵
+  const TILE = 16;
+  const MAP_W = 16, MAP_H = 16;
 
   function fit(){
     const {clientWidth:cw, clientHeight:ch} = wrap;
     const scale = Math.max(1, Math.floor(Math.min(cw/game.width, ch/game.height)));
     const vw = game.width*scale, vh = game.height*scale;
     game.style.width = vw+"px"; game.style.height = vh+"px";
-    game.style.left = ((cw-vw)/2|0)+"px"; game.style.top = ((ch-vh)/2|0)+"px";
+    // 중앙정렬은 CSS transform으로 처리 중 (left/top 50%).
   }
   new ResizeObserver(fit).observe(wrap);
 
@@ -99,7 +107,7 @@
     player:'#ff7a33', playerDark:'#b74f14'
   };
 
-  // ===== 맵 (무덤=벽, 빈곳=0) =====
+  // ===== 맵(그리기용) =====
   const LEVEL = [
     "1111111111111111",
     "1000000000000001",
@@ -118,19 +126,20 @@
     "1000000000000001",
     "1111110000111111"
   ].map(r=>r.split('').map(d=>+d));
-  // 우상단 플레이어 스폰 영역 비우기
+
+  // 우상단 플레이어 스폰 영역 비우기(표시용)
   for(let y=1;y<5;y++) for(let x=12;x<15;x++) LEVEL[y][x]=0;
-  // 중앙 술래 자리 비우기
+  // 중앙 술래 자리 비우기(표시용)
   LEVEL[8][8]=0; LEVEL[7][8]=0; LEVEL[8][7]=0; LEVEL[8][9]=0;
-  // 하단 통로(입구)
+  // 하단 통로(입구, 표시용)
   LEVEL[15][6]=0; LEVEL[15][7]=0; LEVEL[15][8]=0; LEVEL[15][9]=0;
 
   // ===== 엔티티 =====
   function makePlayer(x,y){ return {x,y, vx:0, vy:0, spd:0.09, alive:true, anim:0}; }
   function makeSeeker(x,y){ return {x,y, vx:0, vy:0, spd:0.085, t:0}; }
 
-  const players = [ makePlayer(13.5, 2.5) ]; // 기본 1플레이어
-  const seeker = makeSeeker(8.5, 8.5);      // 중앙 로봇
+  const players = [ makePlayer(13.5, 2.5) ];
+  const seeker = makeSeeker(8.5, 8.5);
 
   // URL 파라미터로 플레이어 추가 (?p=3)
   const P = Math.max(1, Math.min(4, +(new URLSearchParams(location.search).get('p')||1)));
@@ -157,10 +166,21 @@
   updatePadVisibility();
 
   // ===== 유틸 =====
-  function solidAt(tx,ty){ return LEVEL[ty] && LEVEL[ty][tx]===1; }
+  // ✅ 충돌 그리드는 "외곽 벽만" 막고, 내부 비석은 전부 통과 가능
+  function solidAt(tx,ty){
+    if(tx<0||ty<0||tx>=MAP_W||ty>=MAP_H) return true;        // 맵 밖
+    // 외곽 벽
+    if (ty===0 || ty===MAP_H-1 || tx===0 || tx===MAP_W-1){
+      // 하단 입구(6~9)는 통로
+      if (ty===MAP_H-1 && tx>=6 && tx<=9) return false;
+      return true;
+    }
+    // 내부는 전부 통과 (비석은 장식 전용)
+    return false;
+  }
   function moveEntity(e, ax, ay){
     const spd = e.spd; const nx = e.x + ax*spd; const ny = e.y + ay*spd;
-    if (!solidAt(nx|0, e.y|0)) e.x = nx; if (!solidAt(e.x|0, ny|0)) e.y = ny; // 벽 충돌
+    if (!solidAt(nx|0, e.y|0)) e.x = nx; if (!solidAt(e.x|0, ny|0)) e.y = ny;
   }
   function dist(a,b){ const dx=a.x-b.x, dy=a.y-b.y; return Math.hypot(dx,dy); }
 
@@ -192,7 +212,7 @@
 
   // ===== 간단 추적 AI (BFS) =====
   function stepSeeker(){
-    // 가장 가까운 살아있는 플레이어를 따라감
+    // 가장 가까운 살아있는 플레이어 추적
     let target=null, best=1e9; for(const p of players){ if(!p.alive) continue; const d=dist(seeker,p); if(d<best){best=d; target=p;} }
     if(!target) return;
     const sx=seeker.x|0, sy=seeker.y|0, tx=target.x|0, ty=target.y|0;
@@ -200,7 +220,8 @@
     while(Q.length){
       const [x,y]=Q.shift(); if(x===tx&&y===ty) break;
       for(const [dx,dy] of dirs){
-        const nx=x+dx, ny=y+dy; if(nx<0||ny<0||nx>=MAP_W||ny>=MAP_H) continue; if(solidAt(nx,ny)) continue;
+        const nx=x+dx, ny=y+dy; if(nx<0||ny<0||nx>=MAP_W||ny>=MAP_H) continue;
+        if(solidAt(nx,ny)) continue;
         const k=nx+','+ny; if(V.has(k)) continue; V.add(k); Pth[k]=[x,y]; Q.push([nx,ny]);
       }
     }
@@ -214,7 +235,11 @@
     g.fillStyle = C.border; g.fillRect(6,6,game.width-12,game.height-12);
     g.fillStyle = C.plate; g.fillRect(12,12,game.width-24,game.height-24);
     g.fillStyle = C.dot; for(let i=0;i<190;i++){ const x=12+Math.random()*(game.width-24)|0; const y=12+Math.random()*(game.height-24)|0; g.fillRect(x,y,1,1); }
+
+    // 비석(장식 전용, 충돌 없음)
     for(let y=0;y<MAP_H;y++) for(let x=0;x<MAP_W;x++) if(LEVEL[y][x]===1) drawGrave(x*TILE, y*TILE);
+
+    // 하단 통로 표시
     g.fillStyle = C.plate2; g.fillRect(6*TILE, 15*TILE, 4*TILE, TILE);
   }
   function drawGrave(px,py){
