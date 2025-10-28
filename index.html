@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
-<title>Grave Run — 방 전환</title>
+<title>Grave Run — 방 전환(프리렌더 최적화)</title>
 <meta name="theme-color" content="#140c1c" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -38,7 +38,7 @@
   <div id="wrap">
     <canvas id="game" width="256" height="256"></canvas>
     <div class="pad" id="pad" aria-hidden="true"><div class="ring"></div><div class="stick" id="stick"></div></div>
-    <div class="badge" id="badge">ROOM: 비석의 방 · 하단 출구로 이동 → 전화기의 방</div>
+    <div class="badge" id="badge">ROOM: 비석의 방 · 하단 출구 → 전화기의 방</div>
     <button id="btnE" class="btnE">E: 상호작용</button>
     <div id="dialog" class="dialog" role="dialog" aria-modal="true">
       <div class="box">
@@ -50,7 +50,7 @@
   </div>
 <script>
 (()=>{
-  // ===== 8bit SFX =====
+  // ===== SFX =====
   let AC, masterGain, unlocked=false;
   function initAudio(){ if(unlocked) return; AC=new (window.AudioContext||window.webkitAudioContext)(); masterGain=AC.createGain(); masterGain.gain.value=0.22; masterGain.connect(AC.destination); unlocked=true; }
   async function unlockAudio(){ initAudio(); try{ if(AC.state==='suspended') await AC.resume(); }catch(e){} }
@@ -65,71 +65,48 @@
     step(i=0){beep({freq:i%2?520:460,dur:0.06,vol:0.2});},
     interact(){beep({freq:900,dur:0.08,vol:0.26});beep({freq:1300,dur:0.08,vol:0.22,slide:0.8});},
     select(){beep({freq:660,dur:0.07,vol:0.22});},
-    ring(){ // 전화 벨
-      beep({freq:660,type:'square',dur:0.12,vol:0.28});
-      setTimeout(()=>beep({freq:660,type:'square',dur:0.12,vol:0.28}),140);
-    }
+    ring(){beep({freq:660,type:'square',dur:0.12,vol:0.28}); setTimeout(()=>beep({freq:660,type:'square',dur:0.12,vol:0.28}),140);}
   };
 
-  // ===== 캔버스/스케일 =====
+  // ===== Canvas / scale =====
   const wrap=document.getElementById('wrap'), game=document.getElementById('game'), badge=document.getElementById('badge');
   const g=game.getContext('2d',{alpha:false}); g.imageSmoothingEnabled=false;
   const TILE=16, MAP_W=16, MAP_H=16;
   function fit(){ const {clientWidth:cw,clientHeight:ch}=wrap; const s=Math.max(1,Math.floor(Math.min(cw/game.width,ch/game.height))); game.style.width=(game.width*s)+'px'; game.style.height=(game.height*s)+'px'; }
   new ResizeObserver(fit).observe(wrap);
 
-  // ===== 팔레트 =====
+  // ===== Colors =====
   const C={ bg:'#201335', plate:'#6d58a5', plate2:'#584787', border:'#2a2144', dot:'#3a2c5d',
             grave:'#7c6ac0', graveDark:'#362a56', shadow:'rgba(0,0,0,.55)',
-            seeker:'#cfe6ff', seekerEye:'#37a5ff', seekerBody:'#aab9cc',
+            seekerBody:'#aab9cc', seekerEye:'#37a5ff',
             player:'#ff7a33', playerDark:'#b74f14',
             brick:'#70322a', brickDark:'#3a1713', phone:'#d63c2f', phoneDial:'#e9c8a8' };
 
-  // ===== 공통 유틸 =====
-  function dist(a,b){ return Math.hypot(a.x-b.x, a.y-b.y); }
-
-  // ===== 룸 정의 =====
-  // 룸0: 비석의 방
-  const LEVEL0 = Array.from({length:MAP_H},()=>Array(MAP_W).fill(1));
-  // 통로(2칸 간격 가로/세로)
+  // ===== Levels =====
+  // Room 0: Graves grid with corridors
+  const LEVEL0=Array.from({length:MAP_H},()=>Array(MAP_W).fill(1));
   for(let y=2;y<MAP_H-1;y+=2){ for(let x=1;x<MAP_W-1;x++) LEVEL0[y][x]=0; }
   for(let x=2;x<MAP_W-1;x+=2){ for(let y=1;y<MAP_H-1;y++) LEVEL0[y][x]=0; }
-  // 외곽 벽 유지, 스폰/중앙/하단 출구
-  for(let x=0;x<MAP_W;x++){ LEVEL0[0][x]=1; LEVEL0[MAP_H-1][x]=1; }
-  for(let y=0;y<MAP_H;y++){ LEVEL0[y][0]=1; LEVEL0[y][MAP_W-1]=1; }
   for(let y=1;y<5;y++) for(let x=12;x<15;x++) LEVEL0[y][x]=0;
   LEVEL0[8][8]=0; LEVEL0[7][8]=0; LEVEL0[8][7]=0; LEVEL0[8][9]=0;
-  // 하단 중앙 출구(양방향)
-  for(let x=6;x<=9;x++) LEVEL0[MAP_H-1][x]=0;
+  for(let x=6;x<=9;x++) LEVEL0[MAP_H-1][x]=0; // exit
 
-  // 룸1: 전화기의 방 — 벽으로 둘러싸고 하단 중앙에 좁은 입구
-  const LEVEL1 = Array.from({length:MAP_H},()=>Array(MAP_W).fill(0));
+  // Room 1: Phones room (walls all around, bottom gap)
+  const LEVEL1=Array.from({length:MAP_H},()=>Array(MAP_W).fill(0));
   for(let x=0;x<MAP_W;x++){ LEVEL1[0][x]=1; LEVEL1[MAP_H-1][x]=1; }
   for(let y=0;y<MAP_H;y++){ LEVEL1[y][0]=1; LEVEL1[y][MAP_W-1]=1; }
-  // 하단 입구(중앙 3칸 개방)
   for(let x=6;x<=9;x++) LEVEL1[MAP_H-1][x]=0;
 
-  // 전화기 좌표(타일 기준) — 이미지 구성처럼 배치
-  const PHONES = [
-    // 왼열
-    [1,3],[1,6],[1,9],[1,12],
-    // 상단
-    [4,1],[7,1],[10,1],
-    // 우열
-    [14,3],[14,6],[14,9],
-    // 하단 내부
-    [4,13],[7,13],[10,13],[13,13]
-  ];
-  const phoneSet = new Set(PHONES.map(([x,y])=>`${x},${y}`));
+  const PHONES=[[1,3],[1,6],[1,9],[1,12],[4,1],[7,1],[10,1],[14,3],[14,6],[14,9],[4,13],[7,13],[10,13],[13,13]];
+  const phoneSet=new Set(PHONES.map(([x,y])=>`${x},${y}`));
 
-  // ===== 엔티티 =====
+  // ===== Entities =====
   function makePlayer(x,y){ return {x,y,spd:0.09,anim:0,stepTimer:0,stepPhase:0}; }
   function makeSeeker(x,y){ return {x,y,spd:0.07,path:[],target:null,repathAt:0}; }
-
   const player=makePlayer(13.5,2.5);
-  const seeker=makeSeeker(8.5,8.5); // 로봇은 룸0에서만 존재
+  const seeker=makeSeeker(8.5,8.5);
 
-  // ===== 입력(키+조이스틱) =====
+  // ===== Input (keys + joystick) =====
   const keys=new Set(); addEventListener('keydown',e=>{const k=e.key.toLowerCase(); if(['arrowup','arrowdown','arrowleft','arrowright','w','a','s','d','e'].includes(k)) e.preventDefault(); keys.add(k);});
   addEventListener('keyup',e=> keys.delete(e.key.toLowerCase()));
   const pad=document.getElementById('pad'), stick=document.getElementById('stick');
@@ -137,21 +114,19 @@
   function padStart(e){ joy.active=true; moveStick(e); } function padMove(e){ if(joy.active) moveStick(e); }
   function padEnd(){ joy.active=false; stick.style.left='42px'; stick.style.top='42px'; joy.ax=0; joy.ay=0; }
   function moveStick(e){ const r=pad.getBoundingClientRect(); const cx=r.left+r.width/2, cy=r.top+r.height/2; const p=e.touches?e.touches[0]:e; let dx=p.clientX-cx, dy=p.clientY-cy; const m=Math.hypot(dx,dy), max=44; if(m>max){dx*=max/m;dy*=max/m;} stick.style.left=(r.width/2+dx-33)+'px'; stick.style.top=(r.height/2+dy-33)+'px'; joy.ax=dx/max; joy.ay=dy/max; }
-  for (const ev of ['pointerdown','pointermove','pointerup','pointercancel']) pad.addEventListener(ev,{pointerdown:padStart,pointermove:padMove,pointerup:padEnd,pointercancel:padEnd}[ev]);
+  for(const ev of ['pointerdown','pointermove','pointerup','pointercancel']) pad.addEventListener(ev,{pointerdown:padStart,pointermove:padMove,pointerup:padEnd,pointercancel:padEnd}[ev]);
   function updatePadVisibility(){ pad.style.display = matchMedia('(pointer: coarse)').matches? 'block':'none'; } updatePadVisibility();
 
-  // ===== 룸 상태 =====
-  let room = 0; // 0=비석의 방, 1=전화기의 방
+  // ===== Room state =====
+  let room=0; // 0 graves, 1 phones
 
-  // 충돌판정
+  // ===== Collision =====
   function solidAt(tx,ty){
     if(tx<0||ty<0||tx>=MAP_W||ty>=MAP_H) return true;
     if(room===0){
-      // 외곽은 LEVEL0 값으로, 내부 비석(=1)은 충돌
-      if(ty===0||ty===MAP_H-1||tx===0||tx===MAP_W-1) return LEVEL0[ty][tx]===1;
+      // 외곽 포함해서 LEVEL0의 1은 모두 충돌, 단 하단 출구는 0 상태라 통과
       return LEVEL0[ty][tx]===1;
     }else{
-      // 룸1: 벽(=1) 충돌, 전화기 타일도 충돌
       if(LEVEL1[ty][tx]===1) return true;
       if(phoneSet.has(`${tx},${ty}`)) return true;
       return false;
@@ -163,14 +138,12 @@
     if(!solidAt(e.x|0, ny|0)) e.y=ny;
   }
 
-  // ===== UI: 대화/상호작용 =====
+  // ===== UI =====
   const btnE=document.getElementById('btnE'), dialog=document.getElementById('dialog');
   const dgTitle=document.getElementById('dgTitle'), dgBody=document.getElementById('dgBody'), dgChoices=document.getElementById('dgChoices');
-
   function closeDialog(){ dialog.style.display='none'; dgChoices.innerHTML=''; }
-  dialog.addEventListener('click',(e)=>{ if(e.target===dialog) closeDialog(); });
+  dialog.addEventListener('click', (e)=>{ if(e.target===dialog) closeDialog(); });
 
-  // 비석 텍스트 / 전화기 텍스트
   function graveText(x,y){
     const lines=["나는 얼굴을 잃고, 귀로만 걷는다.","빛이 고요를 문질러 소리가 났다.","오차가 감정이고, 잔향이 초상이다.","돌은 서 있고, 이야기는 흘러간다.","너와 나 사이, 빈칸이 숨을 쉰다.","시간의 모서리에 귀를 댔다.","여기 눕힌 건 말들이다.","망각의 틈에서 작은 불이 켜진다."];
     const idx=(x*31+y*17)%lines.length; return lines[idx];
@@ -192,7 +165,7 @@
     return {phone:best, dist:bd};
   }
 
-  // 로봇 대화(룸0)
+  // ===== Robot convo (room 0 only) =====
   const convo=[
     {npc:"……신호 포착. 너는 소리를 어떻게 듣지?",choices:["몸으로 먼저 듣는다.","기억으로 해석한다."],replies:["좋아. 몸은 진실을 숨기지 않지.","그래, 기억은 언제나 편집본이야."]},
     {npc:"여기 비석들은 잊힌 말들의 좌표야.",choices:["좌표를 따라가면 어디에 닿을까?","말이 사라지면 무엇이 남지?"],replies:["아마 네가 모르는 너에게.","침묵. 그리고 방향."]},
@@ -209,11 +182,9 @@
     });
   }
 
-  // ===== 로봇 순찰 AI(룸0만) =====
-  function randomWalkableTile0(){
-    let tx,ty; do{ tx=(Math.random()*MAP_W)|0; ty=(Math.random()*MAP_H)|0; }while(LEVEL0[ty]?.[tx]!==0);
-    return {tx,ty};
-  }
+  // ===== Robot patrol (room 0) =====
+  function dist(a,b){ return Math.hypot(a.x-b.x, a.y-b.y); }
+  function randomWalkableTile0(){ let tx,ty; do{ tx=(Math.random()*MAP_W)|0; ty=(Math.random()*MAP_H)|0; }while(LEVEL0[ty]?.[tx]!==0); return {tx,ty}; }
   function bfsPath(level, fromX,fromY,toX,toY){
     const Q=[[fromX,fromY]], V=new Set([fromX+','+fromY]), P={}, dirs=[[1,0],[-1,0],[0,1],[0,-1]];
     const solid=(x,y)=>{ if(x<0||y<0||x>=MAP_W||y>=MAP_H) return true; return level===0 ? (LEVEL0[y][x]===1) : (LEVEL1[y][x]===1 || phoneSet.has(`${x},${y}`)); };
@@ -252,53 +223,52 @@
     }else ensurePatrolTarget(true);
   }
 
-  // ===== 렌더링 =====
-  function drawBoard(){
-    // 공통 배경판
-    g.fillStyle=C.bg; g.fillRect(0,0,game.width,game.height);
-    g.fillStyle=C.border; g.fillRect(6,6,game.width-12,game.height-12);
-    g.fillStyle=C.plate;  g.fillRect(12,12,game.width-24,game.height-24);
-    g.fillStyle=C.dot; for(let i=0;i<190;i++){ const x=12+Math.random()*(game.width-24)|0; const y=12+Math.random()*(game.height-24)|0; g.fillRect(x,y,1,1); }
+  // ===== Pre-render room layers (중요!) =====
+  function makeLayer(drawFn){
+    const off=document.createElement('canvas'); off.width=game.width; off.height=game.height;
+    const gg=off.getContext('2d'); gg.imageSmoothingEnabled=false;
+    drawFn(gg);
+    return off;
+  }
+  function drawCommonBoard(gg){
+    gg.fillStyle=C.bg; gg.fillRect(0,0,game.width,game.height);
+    gg.fillStyle=C.border; gg.fillRect(6,6,game.width-12,game.height-12);
+    gg.fillStyle=C.plate;  gg.fillRect(12,12,game.width-24,game.height-24);
+    // 점 패턴: 프리렌더 시 한 번만
+    gg.fillStyle=C.dot;
+    for(let i=0;i<190;i++){ const x=12+((i*73)% (game.width-24)); const y=12+((i*97)% (game.height-24)); gg.fillRect(x,y,1,1); }
+  }
+  function drawGrave(gg,px,py){
+    gg.fillStyle=C.shadow; gg.fillRect(px+2,py+TILE-3,TILE-2,2);
+    gg.fillStyle=C.graveDark; gg.fillRect(px+3,py+3,TILE-6,TILE-6);
+    gg.fillStyle=C.grave; gg.fillRect(px+2,py+4,TILE-6,TILE-7);
+    gg.fillStyle='rgba(255,255,255,.08)'; gg.fillRect(px+3,py+4,TILE-8,1);
+  }
+  function drawBrick(gg,px,py){
+    gg.fillStyle=C.brickDark; gg.fillRect(px,py,TILE,TILE);
+    gg.fillStyle=C.brick; gg.fillRect(px+1,py+1,TILE-2,TILE-2);
+    gg.fillStyle='rgba(0,0,0,.25)'; gg.fillRect(px+1,py+TILE-4,TILE-2,3);
+  }
+  function drawPhone(gg,px,py){
+    gg.fillStyle=C.phone; gg.fillRect(px+2,py+5,12,8);
+    gg.fillStyle=C.phoneDial; gg.fillRect(px+5,py+7,6,4);
+    gg.fillStyle='rgba(255,255,255,.12)'; gg.fillRect(px+3,py+6,8,1);
+    gg.fillStyle=C.shadow; gg.fillRect(px+2,py+TILE-2,12,2);
+  }
 
-    if(room===0){
-      // 비석
-      for(let y=0;y<MAP_H;y++) for(let x=0;x<MAP_W;x++) if(LEVEL0[y][x]===1) drawGrave(x*TILE,y*TILE);
-      // 하단 출구 시각
-      g.fillStyle=C.plate2; g.fillRect(6*TILE,15*TILE,4*TILE,TILE);
-    }else{
-      // 벽(벽돌 느낌)
-      for(let y=0;y<MAP_H;y++){
-        for(let x=0;x<MAP_W;x++){
-          if(LEVEL1[y][x]===1) drawBrick(x*TILE,y*TILE);
-        }
-      }
-      // 전화기
-      for(const [x,y] of PHONES){ drawPhone(x*TILE,y*TILE); }
-      // 하단 출구
-      g.fillStyle=C.plate2; g.fillRect(6*TILE,15*TILE,4*TILE,TILE);
-    }
-  }
-  function drawGrave(px,py){
-    g.fillStyle=C.shadow; g.fillRect(px+2,py+TILE-3,TILE-2,2);
-    g.fillStyle=C.graveDark; g.fillRect(px+3,py+3,TILE-6,TILE-6);
-    g.fillStyle=C.grave; g.fillRect(px+2,py+4,TILE-6,TILE-7);
-    g.fillStyle='rgba(255,255,255,.08)'; g.fillRect(px+3,py+4,TILE-8,1);
-  }
-  function drawBrick(px,py){
-    g.fillStyle=C.brickDark; g.fillRect(px,py,TILE,TILE);
-    g.fillStyle=C.brick; g.fillRect(px+1,py+1,TILE-2,TILE-2);
-    g.fillStyle='rgba(0,0,0,.25)'; g.fillRect(px+1,py+TILE-4,TILE-2,3);
-  }
-  function drawPhone(px,py){
-    // 본체
-    g.fillStyle=C.phone; g.fillRect(px+2,py+5,12,8);
-    // 다이얼
-    g.fillStyle=C.phoneDial; g.fillRect(px+5,py+7,6,4);
-    // 광택
-    g.fillStyle='rgba(255,255,255,.12)'; g.fillRect(px+3,py+6,8,1);
-    // 그림자
-    g.fillStyle=C.shadow; g.fillRect(px+2,py+TILE-2,12,2);
-  }
+  const layer0 = makeLayer((gg)=>{
+    drawCommonBoard(gg);
+    for(let y=0;y<MAP_H;y++) for(let x=0;x<MAP_W;x++) if(LEVEL0[y][x]===1) drawGrave(gg,x*TILE,y*TILE);
+    gg.fillStyle=C.plate2; gg.fillRect(6*TILE,15*TILE,4*TILE,TILE); // exit marker
+  });
+  const layer1 = makeLayer((gg)=>{
+    drawCommonBoard(gg);
+    for(let y=0;y<MAP_H;y++) for(let x=0;x<MAP_W;x++) if(LEVEL1[y][x]===1) drawBrick(gg,x*TILE,y*TILE);
+    for(const [x,y] of PHONES) drawPhone(gg,x*TILE,y*TILE);
+    gg.fillStyle=C.plate2; gg.fillRect(6*TILE,15*TILE,4*TILE,TILE); // exit marker
+  });
+
+  // ===== Render helpers =====
   function drawSeeker(){
     if(room!==0) return;
     const px=Math.round(seeker.x*TILE - TILE/2), py=Math.round(seeker.y*TILE - TILE/2);
@@ -312,71 +282,63 @@
     g.fillStyle=C.shadow; g.fillRect(px+2,py+TILE-2,TILE-4,2);
     g.fillStyle=C.player; g.fillRect(px+4,py+5,8,7);
     g.fillStyle=C.playerDark; g.fillRect(px+4,py+4,8,2);
-    if(((p.anim*10)|0)%20<10){ g.fillStyle='#000'; g.fillRect(px+6,py+7,1,1); g.fillRect(px+9,py+7,1,1); }
+    if(((p.anim*10)|0)%20<10){ g.fillStyle='#000'; g.fillRect(px+6, py+7, 1,1); g.fillRect(px+9, py+7, 1,1); }
   }
 
-  // ===== 루프 =====
+  // ===== Loop =====
   let last=0; function loop(t){ requestAnimationFrame(loop); const dt=Math.min(32,(t-last)||16); last=t; update(dt/16); render(); }
 
   function update(dt){
-    // 입력
+    // input
     let ax=0, ay=0;
     if(keys.has('a')||keys.has('arrowleft')) ax-=1; if(keys.has('d')||keys.has('arrowright')) ax+=1;
     if(keys.has('w')||keys.has('arrowup')) ay-=1; if(keys.has('s')||keys.has('arrowdown')) ay+=1;
     ax+=joy.ax; ay+=joy.ay; const m=Math.hypot(ax,ay)||1; ax/=m; ay/=m;
 
-    // 플레이어 이동 + 발소리
+    // player
     const moving=Math.hypot(ax,ay)>0.1 && !inConvo;
     if(!inConvo) moveEntity(player,ax,ay);
     player.anim+=dt;
     if(moving){ player.stepTimer+=dt*1000; if(player.stepTimer>=180){ player.stepTimer=0; SFX.step(player.stepPhase++); } } else player.stepTimer=0;
 
-    // 로봇 순찰(룸0만, 살해 없음)
+    // robot patrol
     stepSeeker();
 
-    // 출구 체크(하단 중앙 6..9)
-    if(player.y|0 === MAP_H-1 && player.x|0 >=6 && player.x|0 <=9){
-      if(room===0){ // 룸1로 이동
-        room=1; badge.textContent='ROOM: 전화기의 방 · 하단 출구로 나가면 비석의 방';
-        // 진입 위치(입구 바로 위)
-        player.x=8.5; player.y=14.2;
-      }else{ // 룸0로 복귀
-        room=0; badge.textContent='ROOM: 비석의 방 · 하단 출구로 이동 → 전화기의 방';
-        player.x=8.5; player.y=14.2;
-      }
-      // 대화/버튼 리셋
+    // room transition at bottom gap (6..9)
+    if((player.y|0)===MAP_H-1 && (player.x|0)>=6 && (player.x|0)<=9){
+      room = room===0 ? 1 : 0;
+      badge.textContent = room===0 ? 'ROOM: 비석의 방 · 하단 출구 → 전화기의 방' : 'ROOM: 전화기의 방 · 하단 출구 → 비석의 방';
+      // spawn just inside the doorway
+      player.x=8.5; player.y=14.2;
+      // close dialog when switching
       inConvo=false; dialog.style.display='none'; dgChoices.innerHTML='';
     }
 
-    // 상호작용 버튼
+    // interaction button
     let label="", action=null;
     if(room===0){
-      if(!inConvo && dist(player,seeker)<0.85){ label='E: 로봇과 대화'; action=()=> openRobotConvo(); }
+      if(!inConvo && Math.hypot(player.x-seeker.x, player.y-seeker.y)<0.85){ label='E: 로봇과 대화'; action=()=> openRobotConvo(); }
       else{
         const ng=nearestGrave(player.x,player.y);
-        if(ng.grave && ng.dist<1.1){
-          label='E: 비석에 귀 기울이기';
-          action=()=>{ SFX.interact(); dgTitle.textContent='비석의 기록'; dgBody.textContent=graveText(ng.grave.x,ng.grave.y); dgChoices.innerHTML=''; dialog.style.display='flex'; };
-        }
+        if(ng.grave && ng.dist<1.1){ label='E: 비석에 귀 기울이기'; action=()=>{ SFX.interact(); dgTitle.textContent='비석의 기록'; dgBody.textContent=graveText(ng.grave.x,ng.grave.y); dgChoices.innerHTML=''; dialog.style.display='flex'; }; }
       }
     }else{
       const np=nearestPhone(player.x,player.y);
-      if(np.phone && np.dist<1.1){
-        label='E: 수화기 들기';
-        action=()=>{ SFX.ring(); dgTitle.textContent='전화기의 방'; dgBody.textContent='...여보세요? (침묵 속의 목소리가 미세하게 울린다)'; dgChoices.innerHTML=''; dialog.style.display='flex'; };
-      }
+      if(np.phone && np.dist<1.1){ label='E: 수화기 들기'; action=()=>{ SFX.ring(); dgTitle.textContent='전화기의 방'; dgBody.textContent='...여보세요? (침묵 속의 목소리가 미세하게 울린다)'; dgChoices.innerHTML=''; dialog.style.display='flex'; }; }
     }
-    const btn=document.getElementById('btnE');
-    if(action){ btn.style.display='grid'; btn.textContent=label; btn.onclick=action; } else { btn.style.display='none'; btn.onclick=null; }
+    if(action){ btnE.style.display='grid'; btnE.textContent=label; btnE.onclick=action; } else { btnE.style.display='none'; btnE.onclick=null; }
   }
 
   function render(){
     g.clearRect(0,0,game.width,game.height);
-    drawBoard(); drawSeeker(); drawPlayer(player);
+    // 현재 방 레이어 하나만 그리기 (겹침 방지)
+    g.drawImage(room===0 ? layer0 : layer1, 0, 0);
+    drawSeeker();
+    drawPlayer(player);
   }
 
-  // 키보드 E 상호작용
-  addEventListener('keydown', e=>{ if((e.key==='e'||e.key==='E')){ const btn=document.getElementById('btnE'); if(btn.style.display!=='none'){ e.preventDefault(); btn.click(); }}});
+  // keyboard E shortcut
+  addEventListener('keydown', e=>{ if((e.key==='e'||e.key==='E')){ if(btnE.style.display!=='none'){ e.preventDefault(); btnE.click(); }}});
 
   fit(); requestAnimationFrame(loop);
 })();
