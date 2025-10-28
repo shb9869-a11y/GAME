@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+<title>BaconBot — 비석 사이를 걷는 로봇</title>
+<style>
+  :root{
+    --bg:#0a0a0d;             /* 어두운 밤색 */
+    --fg:#f5f5f7;             /* UI 글자 */
+    --accent:#ff3355;         /* 로봇 포인트 */
+    --stone:#6d6b87;          /* 비석 기본 */
+    --stone2:#3a394d;         /* 비석 음영 */
+    --hud:#111218;
+  }
+  html,body{height:100%;margin:0;background:var(--bg);color:var(--fg);}
+  body{display:grid;place-items:center;font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;}
+  #wrap{position:relative; width:100vw; height:100svh; overflow:hidden; background:var(--bg);} 
+  canvas{ 
+    position:absolute; inset:0; margin:auto; 
+    image-rendering: pixelated; /* 픽셀 아트처럼 또렷하게 */
+    image-rendering: crisp-edges;
+    touch-action:none;
+  }
+  /* 상단 HUD */
+  .hud{
+    position:absolute; left:0; top:0; right:0; display:flex; gap:8px; align-items:center; padding:8px 10px;
+    background: linear-gradient( to bottom, rgba(0,0,0,.45), rgba(0,0,0,0));
+    font-size:12px; letter-spacing:.2px; pointer-events:none; user-select:none;
+  }
+  .chip{ background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.12); padding:4px 8px; border-radius:8px; }
+  .logo{font-weight:700; color:var(--accent);} 
+
+  /* 하단 컨트롤 (모바일용) */
+  .pad{ position:absolute; bottom:16px; left:16px; width:140px; height:140px; opacity:.8; filter: drop-shadow(0 2px 8px rgba(0,0,0,.5)); }
+  .pad .ring{ position:absolute; inset:0; border-radius:50%; border:2px dashed rgba(255,255,255,.18); }
+  .pad .stick{ position:absolute; width:64px; height:64px; left:38px; top:38px; border-radius:50%; background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.25);} 
+  .btnE{ position:absolute; right:16px; bottom:28px; width:76px; height:76px; border-radius:50%; background:rgba(255,51,85,.15); border:2px solid var(--accent); color:var(--fg); font-weight:700; display:grid;place-items:center; opacity:.9; }
+  .btnE span{ transform: translateY(1px); }
+  .hint{ position:absolute; left:50%; bottom:14px; transform:translateX(-50%); opacity:.8; font-size:12px; text-align:center; background:rgba(0,0,0,.35); border:1px solid rgba(255,255,255,.12); padding:4px 8px; border-radius:8px; }
+
+  @media (min-aspect-ratio: 16/9){ .hint{ bottom:8px; } }
+</style>
+</head>
+<body>
+  <div id="wrap">
+    <canvas id="game" width="320" height="180"></canvas>
+    <canvas id="fx" width="320" height="180"></canvas>
+    <div class="hud">
+      <div class="chip logo">BaconBot</div>
+      <div class="chip">WASD / ←→↑↓ 이동</div>
+      <div class="chip">E: 경청(listen)</div>
+      <div class="chip">Shift: 달리기</div>
+    </div>
+    <div class="pad" id="pad" aria-hidden="true">
+      <div class="ring"></div>
+      <div class="stick" id="stick"></div>
+    </div>
+    <button class="btnE" id="btnE" aria-label="listen"><span>E</span></button>
+    <div class="hint">비석에 가까이 가서 <strong>E</strong>를 눌러보세요</div>
+  </div>
+<script>
+(()=>{
+  // ===== 기본 세팅 =====
+  const DPR = Math.max(1, Math.min(3, Math.round(window.devicePixelRatio||1)));
+  const wrap = document.getElementById('wrap');
+  const game = document.getElementById('game');
+  const fx = document.getElementById('fx');
+  const g = game.getContext('2d', { alpha:false });
+  const gx = fx.getContext('2d');
+  g.imageSmoothingEnabled = false; gx.imageSmoothingEnabled = false;
+
+  const W = game.width, H = game.height; // 논리 해상도 (픽셀아트 베이스)
+
+  // 크기 맞춤: 화면에 꽉 차되, 픽셀 배율 유지
+  function fit(){
+    const {clientWidth:cw, clientHeight:ch} = wrap;
+    const scale = Math.max(1, Math.floor(Math.min(cw/W, ch/H)));
+    const vw = W*scale, vh = H*scale;
+    for (const c of [game, fx]){
+      c.style.width = vw+"px"; c.style.height = vh+"px"; c.style.left = ((cw-vw)/2|0) + "px"; c.style.top = ((ch-vh)/2|0) + "px";
+    }
+  }
+  new ResizeObserver(fit).observe(wrap);
+  window.addEventListener('orientationchange', ()=>setTimeout(fit, 200));
+
+  // ===== 월드 데이터 =====
+  const world = {
+    w: 1024, h: 1024,              // 월드 크기 (타일 아님, 논리 픽셀 기준이 아님)
+    stones: [],                     // 비석들
+    fog: new Set(),                 // 방문 흔적 (타일 단위 저장)
+    seed: Math.random()*1e9|0,
+  };
+
+  // 의사 난수 (재현가능)
+  function rng(seed){
+    return ()=> (seed = (seed*1664525 + 1013904223)>>>0)/4294967296;
+  }
+  const R = rng(world.seed);
+
+  // 비석 생성
+  const STONE_CT = 140; // 개수
+  for (let i=0;i<STONE_CT;i++){
+    const x = (R()*world.w)|0, y = (R()*world.h)|0;
+    const w = 10 + (R()*18|0); // 폭
+    const h2 = 16 + (R()*36|0); // 높이
+    const rot = (R()*0.4 - 0.2); // 약간 기운 느낌 (베이컨의 뒤틀림 암시)
+    world.stones.push({x,y,w,h:h2,rot, id:i});
+  }
+
+  // 플레이어 (로봇)
+  const player = {
+    x: world.w/2, y: world.h/2, vx:0, vy:0, spd: 0.9, run:1.6, dir:1,
+    pulse:0,
+  };
+
+  // 입력
+  const keys = new Set();
+  window.addEventListener('keydown', e=>{ keys.add(e.key.toLowerCase()); if(['arrowup','arrowdown','arrowleft','arrowright'].includes(e.key.toLowerCase())) e.preventDefault(); });
+  window.addEventListener('keyup', e=> keys.delete(e.key.toLowerCase()));
+
+  // 모바일 가상 조이스틱
+  const pad = document.getElementById('pad');
+  const stick = document.getElementById('stick');
+  const btnE = document.getElementById('btnE');
+  let joy = {ax:0, ay:0, active:false};
+  function padStart(e){ joy.active=true; moveStick(e); }
+  function padMove(e){ if(joy.active) moveStick(e); }
+  function padEnd(){ joy.active=false; stick.style.left = '38px'; stick.style.top='38px'; joy.ax=0; joy.ay=0; }
+  function moveStick(e){
+    const rect = pad.getBoundingClientRect();
+    const cx = rect.left + rect.width/2;
+    const cy = rect.top + rect.height/2;
+    const p = (e.touches? e.touches[0]:e);
+    let dx = p.clientX - cx, dy = p.clientY - cy;
+    const mag = Math.hypot(dx,dy);
+    const max = 40; if (mag>max){ dx*=max/mag; dy*=max/mag; }
+    stick.style.left = (rect.width/2 + dx - 32) + 'px';
+    stick.style.top  = (rect.height/2 + dy - 32) + 'px';
+    joy.ax = dx/max; joy.ay = dy/max;
+  }
+  pad.addEventListener('pointerdown', padStart);
+  pad.addEventListener('pointermove', padMove);
+  pad.addEventListener('pointerup', padEnd);
+  pad.addEventListener('pointercancel', padEnd);
+  btnE.addEventListener('click', ()=> tryListen());
+
+  // 단순 WebAudio 8-bit 느낌 사운드
+  const AudioCtx = window.AudioContext || window.webkitAudioContext; 
+  const actx = new AudioCtx();
+  let audioReady=false; 
+  function resumeAudio(){ if(!audioReady){ actx.resume(); audioReady=true; beep(220, .04); }}
+  window.addEventListener('pointerdown', resumeAudio, {once:true, passive:true});
+  function beep(freq=440, dur=.06, type='square', gain=0.08){
+    const o = actx.createOscillator();
+    const g = actx.createGain();
+    o.type = type; o.frequency.value=freq; g.gain.value=gain; 
+    o.connect(g).connect(actx.destination);
+    o.start(); o.stop(actx.currentTime+dur);
+  }
+  function drone(near){ // 비석 근처 저역 험
+    const t = actx.currentTime;
+    if (!drone.g){
+      drone.o = actx.createOscillator();
+      drone.g = actx.createGain();
+      drone.o.type='triangle';
+      drone.o.frequency.value=50;
+      drone.g.gain.value=0.0;
+      drone.o.connect(drone.g).connect(actx.destination);
+      drone.o.start();
+    }
+    const target = Math.min(.15, near*.12);
+    drone.g.gain.cancelScheduledValues(t);
+    drone.g.gain.linearRampToValueAtTime(target, t+.2);
+  }
+
+  // 충돌 체크 (단순 AABB + 회전 근사)
+  function collides(nx, ny){
+    for(const s of world.stones){
+      // 회전 근사: 비석 중심으로 되돌리고 약간의 패딩
+      const cx=s.x+s.w/2, cy=s.y+s.h/2; 
+      const dx=nx-cx, dy=ny-cy;
+      const c=Math.cos(-s.rot), si=Math.sin(-s.rot);
+      const rx = dx*c - dy*si, ry = dx*si + dy*c;
+      const hw=(s.w/2)+3, hh=(s.h/2)+3;
+      if (Math.abs(rx)<hw && Math.abs(ry)<hh) return true;
+    }
+    return false;
+  }
+
+  // 비석 근접도 및 상호작용
+  function nearestStone(px,py){
+    let best=null, bd=1e9;
+    for(const s of world.stones){
+      const cx=s.x+s.w/2, cy=s.y+s.h/2;
+      const d = Math.hypot(px-cx, py-cy);
+      if (d<bd){ bd=d; best=s; }
+    }
+    return {stone:best, dist:bd};
+  }
+  function tryListen(){
+    const n = nearestStone(player.x, player.y);
+    if (n.dist<38){
+      beep(880,.08,'square',.1); setTimeout(()=>beep(660,.08,'square',.08),60);
+      showWhisper(n.stone);
+    } else {
+      beep(140,.05,'square',.05);
+    }
+  }
+
+  // 속삭임(텍스트) — 베이컨의 뒤틀린 초상처럼, 의미가 비껴가는 문장들
+  const whispers = [
+    "나는 얼굴을 잃고, 귀로만 걷는다.",
+    "기억의 살결이 돌 사이에서 뒤틀린다.",
+    "빛은 고요를 문질러, 소리를 만든다.",
+    "오차가 감정이고, 잔향이 초상이다.",
+    "돌은 서 있고, 이야기는 흘러간다.",
+    "네가 듣는 동안, 나는 보이지 않는다.",
+    "움푹 팬 시간 속에서 심장이 파형으로 뛴다.",
+    "유령 같은 프레임이 나를 붙잡는다.",
+  ];
+  let whisperTimer=0, whisperText="", whisperAlpha=0;
+  function showWhisper(stone){
+    whisperText = whispers[(stone.id + (Math.random()*whispers.length|0)) % whispers.length];
+    whisperAlpha = 1; whisperTimer = 180; // 3초
+  }
+
+  // 카메라 (플레이어 중심), 가장자리 비네팅/왜곡
+  const cam = {x:0,y:0, shake:0};
+
+  // 메인 루프
+  let last=0; function loop(t){
+    requestAnimationFrame(loop);
+    const dt = Math.min(32, (t-last)||16); last=t;
+    update(dt/16); render();
+  }
+
+  function update(dt){
+    // 입력 → 속도
+    let ax=0, ay=0;
+    if (keys.has('a')||keys.has('arrowleft')) ax-=1;
+    if (keys.has('d')||keys.has('arrowright')) ax+=1;
+    if (keys.has('w')||keys.has('arrowup')) ay-=1;
+    if (keys.has('s')||keys.has('arrowdown')) ay+=1;
+    ax += joy.ax; ay += joy.ay;
+
+    const mag = Math.hypot(ax,ay);
+    let spd = player.spd * (keys.has('shift')? player.run:1);
+    if (mag>0){ ax/=mag; ay/=mag; player.vx = ax*spd; player.vy = ay*spd; player.dir = (Math.abs(ax)>Math.abs(ay)? (ax>=0?1:-1) : player.dir); } 
+    else { player.vx*=0.6; player.vy*=0.6; }
+
+    // 이동 + 충돌 간단 처리
+    let nx = player.x + player.vx*dt*3;
+    let ny = player.y + player.vy*dt*3;
+    if (!collides(nx, player.y)) player.x = clamp(nx, 8, world.w-8); else player.vx=0;
+    if (!collides(player.x, ny)) player.y = clamp(ny, 8, world.h-8); else player.vy=0;
+
+    // 카메라 추적 + 사소한 뒤틀림(베이컨풍) → 줄단위 슬라이스에서 사용
+    cam.x += ((player.x - W/2) - cam.x)*0.08;
+    cam.y += ((player.y - H/2) - cam.y)*0.08;
+
+    // 근접한 비석 측정하여 드론 레벨/카메라 흔들림
+    const n = nearestStone(player.x, player.y);
+    const near = Math.max(0, 1 - (n.dist/140));
+    drone(near);
+    cam.shake = Math.max( cam.shake*0.9, near*1.6 );
+
+    // 방문 흔적(안개 제거) — 타일 8px 기준 저장
+    const tx = (player.x/8|0), ty=(player.y/8|0);
+    world.fog.add(tx+","+ty);
+
+    // 속삭임 업데이트
+    if (whisperTimer>0){ whisperTimer-=1; if (whisperTimer<32) whisperAlpha = whisperTimer/32; }
+
+    // 발소리
+    if (mag>0.1){ if (!update.stepT) update.stepT=0; update.stepT+=dt; if (update.stepT>0.18){ update.stepT=0; beep(220+Math.random()*40, .04, 'square', .06); } }
+
+    // 모바일 UI 가시성 (손가락 있으면 보이게)
+    pad.style.display = matchMedia('(pointer: coarse)').matches? 'block':'none';
+    btnE.style.display = pad.style.display;
+  }
+
+  function clamp(v,min,max){ return v<min?min:(v>max?max:v); }
+
+  // 로봇 그리기 (작은 픽셀 행렬로 도트)
+  function drawRobot(x,y,dir){
+    // 11x12 도트 매트릭스 (간단한 로봇 형태)
+    const sprite = [
+      "..111....111",
+      "..111....111",
+      "...11..11..",
+      "..22222222.",
+      ".2222222222",
+      ".2223ff3222",
+      ".222f..f222",
+      ".2222..2222",
+      "..22.22.22",
+      "...2.22.2.",
+      "...2....2.",
+      "..22....22",
+    ];
+    const px = 1; // 1px 스케일
+    for(let j=0;j<sprite.length;j++){
+      for(let i=0;i<sprite[j].length;i++){
+        const c=sprite[j][i]; if(c==='.') continue;
+        if (c==='1') g.fillStyle='#ff667a';
+        if (c==='2') g.fillStyle='#ff3355';
+        if (c==='3') g.fillStyle='#ffe7ea';
+        if (c==='f') g.fillStyle='#ffffff';
+        g.fillRect((x+i*px)|0, (y+j*px)|0, px, px);
+      }
+    }
+    // 눈 깜빡임 / 방향
+    if (Math.sin(perfNow()*0.005)>0.6){ g.fillStyle='#111'; g.fillRect(x+6, y+5, 2,1); g.fillRect(x+2, y+5, 2,1); }
+  }
+
+  // 비석 그리기 (살짝 기운 직사각형, 내측 라인)
+  function drawStone(s, cx, cy){
+    g.save();
+    g.translate(s.x-cx, s.y-cy);
+    g.translate(s.w/2, s.h/2); g.rotate(s.rot); g.translate(-s.w/2, -s.h/2);
+    // 본체
+    g.fillStyle= (s.id%2? '#514e6b':'#6d6b87');
+    g.fillRect(0,0,s.w,s.h);
+    // 내측 윤곽
+    g.strokeStyle='rgba(255,255,255,.08)'; g.lineWidth=1;
+    g.strokeRect(2,2,s.w-4,s.h-4);
+    // 바닥 그림자
+    g.fillStyle='rgba(0,0,0,.25)'; g.fillRect(-3, s.h-1, s.w+6, 2);
+    g.restore();
+  }
+
+  // 안개(미탐색) — 방문한 8px 타일만 비가림 제거
+  function drawFog(cx,cy){
+    g.save(); g.globalCompositeOperation='source-over';
+    g.fillStyle='rgba(0,0,0,.6)'; g.fillRect(0,0,W,H);
+    g.globalCompositeOperation='destination-out';
+    g.fillStyle='rgba(0,0,0,1)';
+    const sx = (cx/8|0)-24, sy=(cy/8|0)-24;
+    for(let ty=sy; ty<sy+48; ty++){
+      for(let tx=sx; tx<sx+64; tx++){
+        if (world.fog.has(tx+","+ty)){
+          g.fillRect((tx*8 - cx)|0, (ty*8 - cy)|0, 8, 8);
+        }
+      }
+    }
+    g.restore();
+  }
+
+  function perfNow(){ return performance.now(); }
+
+  // 베이컨풍 슬라이스 왜곡 + 비네팅 (FX 캔버스 → 최종 출력)
+  function postProcess(){
+    // base를 fx에 복사
+    gx.clearRect(0,0,W,H);
+    gx.drawImage(game,0,0);
+
+    // 가로 슬라이스를 소폭 오프셋 (불안한 살결 느낌)
+    const lines = 26;
+    for (let i=0;i<lines;i++){
+      const y0 = (H/lines*i)|0;
+      const y1 = (H/lines*(i+1)|0) - y0;
+      const off = Math.sin((perfNow()*0.002 + i*0.9)) * (cam.shake*2 + 1);
+      gx.drawImage(game, 0, y0, W, y1, off|0, y0, W, y1);
+    }
+
+    // 주변 비네팅
+    const grad = gx.createRadialGradient(W/2,H/2, H*0.1, W/2,H/2, H*0.66);
+    grad.addColorStop(0, 'rgba(0,0,0,0)');
+    grad.addColorStop(1, 'rgba(0,0,0,.38)');
+    gx.fillStyle=grad; gx.fillRect(0,0,W,H);
+
+    // 속삭임 텍스트 오버레이
+    if (whisperAlpha>0 && whisperText){
+      gx.save();
+      gx.globalAlpha = Math.max(0, Math.min(1, whisperAlpha));
+      gx.font='8px ui-monospace, monospace'; gx.textAlign='center'; gx.textBaseline='bottom';
+      const lines = wrapText(gx, whisperText, W*0.7);
+      for (let i=0;i<lines.length;i++){
+        const y = H-12 - (lines.length-1-i)*10;
+        gx.fillStyle='rgba(0,0,0,.55)'; gx.fillRect(W/2- (gx.measureText(lines[i]).width/2 +6), y-9, gx.measureText(lines[i]).width+12, 12);
+        gx.fillStyle='#e6e2e8'; gx.fillText(lines[i], W/2, y);
+      }
+      gx.restore();
+    }
+  }
+
+  function wrapText(ctx, text, max){
+    const words = text.split(/\s+/); const out=[]; let line='';
+    for (const w of words){
+      const test = line? line+" "+w : w;
+      if (ctx.measureText(test).width>max){ out.push(line); line=w; } else line=test;
+    }
+    if (line) out.push(line); return out;
+  }
+
+  function render(){
+    // 배경 (약간의 노이즈 번짐)
+    g.fillStyle= '#0a0b10'; g.fillRect(0,0,W,H);
+
+    // 카메라 원근/흔들림 적용된 월드 오프셋
+    const jitterX = (Math.random()-0.5)*cam.shake; const jitterY=(Math.random()-0.5)*cam.shake;
+    const cx = (cam.x|0)+jitterX; const cy=(cam.y|0)+jitterY;
+
+    // 별 같은 노이즈 (죽은 픽셀 느낌)
+    for(let i=0;i<80;i++){
+      g.fillStyle = (i%7? 'rgba(255,255,255,.03)':'rgba(255,180,200,.03)');
+      const nx = ((Math.random()*W)|0), ny=((Math.random()*H)|0);
+      g.fillRect(nx,ny,1,1);
+    }
+
+    // 비석들
+    const view = {x:cx, y:cy, w:W, h:H};
+    for(const s of world.stones){ if (rectsOverlap(s.x-6, s.y-6, s.w+12, s.h+12, view.x, view.y, view.w, view.h)) drawStone(s, cx, cy); }
+
+    // 로봇
+    const rx = (player.x - cx - 6)|0; // 스프라이트 오프셋 조정
+    const ry = (player.y - cy - 10)|0;
+    drawRobot(rx, ry, player.dir);
+
+    // 안개
+    drawFog(cx,cy);
+
+    // 최종 FX
+    postProcess();
+
+    // fx를 화면에 보여주기: 게임 캔버스 위에 fx를 덮어써서 최종 출력처럼 보이게
+    // (여기선 DOM 레이어로 이미 위에 있으므로 별도 draw 불필요)
+  }
+
+  function rectsOverlap(x,y,w,h, X,Y,Wd,Hd){ return !(x+w < X || x > X+Wd || y+h < Y || y > Y+Hd); }
+
+  // 상호작용 키
+  window.addEventListener('keydown', (e)=>{ if(e.key.toLowerCase()==='e') tryListen(); });
+
+  // 시작!
+  fit(); requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
