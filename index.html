@@ -3,61 +3,44 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
-<title>Grave Run — 술래잡기</title>
+<title>Grave Run — 비석의 방</title>
 <meta name="theme-color" content="#140c1c" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <meta name="apple-mobile-web-app-title" content="Grave Run" />
 <style>
   :root{
-    --bg:#0a0812; --fg:#eae6ff;
-    --accent:#ff7a33;
+    --bg:#0a0812; --fg:#eae6ff; --accent:#ff7a33;
     --safe-top: env(safe-area-inset-top, 0px);
     --safe-bot: env(safe-area-inset-bottom, 0px);
     --safe-left: env(safe-area-inset-left, 0px);
     --safe-right: env(safe-area-inset-right, 0px);
   }
   html,body{height:100%;margin:0;background:var(--bg);color:var(--fg);}
-  body{display:grid;place-items:center;font-family: ui-monospace,"SF Mono",Menlo,Consolas,monospace;}
-  #wrap{position:relative; width:100vw; height:100svh; overflow:hidden; background:var(--bg);
+  body{display:grid;place-items:center;font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;}
+  #wrap{position:relative;width:100vw;height:100svh;overflow:hidden;background:var(--bg);
         padding:var(--safe-top) var(--safe-right) var(--safe-bot) var(--safe-left);}
   /* 중앙 고정 */
-  canvas{ position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
-          image-rendering:pixelated; image-rendering:crisp-edges; touch-action:none; }
-
-  .pad{ position:absolute; bottom:calc(16px + var(--safe-bot)); left:calc(16px + var(--safe-left));
-        width:150px; height:150px; opacity:.95; }
-  .pad .ring{ position:absolute; inset:0; border-radius:50%; border:2px dashed rgba(255,255,255,.18); }
-  .pad .stick{ position:absolute; width:66px; height:66px; left:42px; top:42px; border-radius:50%;
-               background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.3);}
-
-  .badge{ position:absolute; right:calc(10px + var(--safe-right)); top:calc(8px + var(--safe-top));
-          font-size:12px; opacity:.8; background:rgba(0,0,0,.35); border:1px solid rgba(255,255,255,.15);
-          padding:4px 8px; border-radius:8px; }
-
-  .btnE{ position:absolute; right:calc(16px + var(--safe-right)); bottom:calc(16px + var(--safe-bot));
-         width:120px; height:52px; border-radius:12px; border:1px solid rgba(255,255,255,.25);
-         background:rgba(0,0,0,.38); color:#fff; display:none; place-items:center;
-         font:600 13px ui-monospace,monospace; }
-  .dialog{ position:absolute; inset:0; display:none; align-items:center; justify-content:center;
-           background:rgba(0,0,0,.55); }
-  .dialog .box{ min-width:260px; max-width:86vw; background:#1b142a; color:#eee;
-                border:1px solid rgba(255,255,255,.2); border-radius:10px; padding:12px;
-                box-shadow:0 10px 24px rgba(0,0,0,.6); font:12px/1.6 ui-monospace,monospace; }
-  .dialog .box h3{ margin:0 0 8px; font:700 12px ui-monospace,monospace; color:#ffd4a6; }
-  .choices{ display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
-  .choices button{ padding:6px 10px; border-radius:8px; border:1px solid rgba(255,255,255,.25);
-                   background:#33265a; color:#fff; font:600 12px ui-monospace,monospace; }
+  canvas{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+         image-rendering:pixelated;image-rendering:crisp-edges;touch-action:none;}
+  /* 조이스틱 */
+  .pad{position:absolute;bottom:calc(16px + var(--safe-bot));left:calc(16px + var(--safe-left));width:150px;height:150px;opacity:.95;}
+  .pad .ring{position:absolute;inset:0;border-radius:50%;border:2px dashed rgba(255,255,255,.18);}
+  .pad .stick{position:absolute;width:66px;height:66px;left:42px;top:42px;border-radius:50%;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.3);}
+  .badge{position:absolute;right:calc(10px + var(--safe-right));top:calc(8px + var(--safe-top));font-size:12px;opacity:.8;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.15);padding:4px 8px;border-radius:8px;}
+  .btnE{position:absolute;right:calc(16px + var(--safe-right));bottom:calc(16px + var(--safe-bot));width:120px;height:52px;border-radius:12px;border:1px solid rgba(255,255,255,.25);background:rgba(0,0,0,.38);color:#fff;display:none;place-items:center;font:600 13px ui-monospace,monospace;}
+  .dialog{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.55);}
+  .dialog .box{min-width:260px;max-width:86vw;background:#1b142a;color:#eee;border:1px solid rgba(255,255,255,.2);border-radius:10px;padding:12px;box-shadow:0 10px 24px rgba(0,0,0,.6);font:12px/1.6 ui-monospace,monospace;}
+  .dialog .box h3{margin:0 0 8px;font:700 12px ui-monospace,monospace;color:#ffd4a6;}
+  .choices{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;}
+  .choices button{padding:6px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.25);background:#33265a;color:#fff;font:600 12px ui-monospace,monospace;}
 </style>
 </head>
 <body>
   <div id="wrap">
     <canvas id="game" width="256" height="256"></canvas>
-    <div class="pad" id="pad" aria-hidden="true">
-      <div class="ring"></div><div class="stick" id="stick"></div>
-    </div>
-    <div class="badge">격자 통로를 따라 비석 사이 이동 · 로봇=대화만</div>
-
+    <div class="pad" id="pad" aria-hidden="true"><div class="ring"></div><div class="stick" id="stick"></div></div>
+    <div class="badge">비석의 방 · 비석 사이를 지나가세요 · 로봇은 순찰 중(대화만)</div>
     <button id="btnE" class="btnE">E: 상호작용</button>
     <div id="dialog" class="dialog" role="dialog" aria-modal="true">
       <div class="box">
@@ -69,40 +52,24 @@
   </div>
 <script>
 (()=>{
-  // ===== 8bit SFX (간단 버전) =====
+  // ===== 8bit SFX =====
   let AC, masterGain, unlocked=false;
-  function initAudio(){
-    if(unlocked) return;
-    AC = AC || new (window.AudioContext||window.webkitAudioContext)();
-    masterGain = masterGain || AC.createGain();
-    masterGain.gain.value = 0.22; masterGain.connect(AC.destination);
-    unlocked = true;
-  }
+  function initAudio(){ if(unlocked) return; AC=new (window.AudioContext||window.webkitAudioContext)(); masterGain=AC.createGain(); masterGain.gain.value=0.22; masterGain.connect(AC.destination); unlocked=true; }
   async function unlockAudio(){ initAudio(); try{ if(AC.state==='suspended') await AC.resume(); }catch(e){} }
   ['pointerdown','touchstart','keydown'].forEach(ev=> addEventListener(ev, unlockAudio, {passive:true}));
-
-  function beep({freq=440, type='square', dur=0.1, attack=0.002, release=0.06, vol=0.3, slide=0}={}){
-    if(!unlocked) return;
-    const t=AC.currentTime, o=AC.createOscillator(), g=AC.createGain();
-    o.type=type; o.frequency.setValueAtTime(freq,t);
-    if(slide) o.frequency.exponentialRampToValueAtTime(Math.max(40,freq*slide), t+dur*0.9);
-    g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(vol, t+attack);
-    g.gain.linearRampToValueAtTime(0.0001, t+dur+release);
+  function beep({freq=440,type='square',dur=0.1,attack=0.002,release=0.06,vol=0.3,slide=0}={}){
+    if(!unlocked) return; const t=AC.currentTime, o=AC.createOscillator(), g=AC.createGain();
+    o.type=type; o.frequency.setValueAtTime(freq,t); if(slide) o.frequency.exponentialRampToValueAtTime(Math.max(40,freq*slide), t+dur*0.9);
+    g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(vol,t+attack); g.gain.linearRampToValueAtTime(0.0001,t+dur+release);
     o.connect(g); g.connect(masterGain); o.start(t); o.stop(t+dur+release+0.01);
   }
-  const SFX={ step(i=0){beep({freq: i%2?520:460, dur:0.06, vol:0.2});}, interact(){beep({freq:900,dur:0.08,vol:0.26});beep({freq:1300,dur:0.08,vol:0.22,slide:0.8});}, select(){beep({freq:660,dur:0.07,vol:0.22});} };
+  const SFX={ step(i=0){beep({freq:i%2?520:460,dur:0.06,vol:0.2});}, interact(){beep({freq:900,dur:0.08,vol:0.26});beep({freq:1300,dur:0.08,vol:0.22,slide:0.8});}, select(){beep({freq:660,dur:0.07,vol:0.22});} };
 
-  // ===== 기본 캔버스/스케일 =====
-  const wrap=document.getElementById('wrap');
-  const game=document.getElementById('game');
+  // ===== 캔버스/스케일 =====
+  const wrap=document.getElementById('wrap'), game=document.getElementById('game');
   const g=game.getContext('2d',{alpha:false}); g.imageSmoothingEnabled=false;
   const TILE=16, MAP_W=16, MAP_H=16;
-
-  function fit(){
-    const {clientWidth:cw, clientHeight:ch}=wrap;
-    const scale=Math.max(1, Math.floor(Math.min(cw/game.width, ch/game.height)));
-    game.style.width=(game.width*scale)+'px'; game.style.height=(game.height*scale)+'px';
-  }
+  function fit(){ const {clientWidth:cw,clientHeight:ch}=wrap; const s=Math.max(1,Math.floor(Math.min(cw/game.width,ch/game.height))); game.style.width=(game.width*s)+'px'; game.style.height=(game.height*s)+'px'; }
   new ResizeObserver(fit).observe(wrap);
 
   // ===== 팔레트 =====
@@ -111,144 +78,143 @@
             seeker:'#cfe6ff', seekerEye:'#37a5ff', seekerBody:'#aab9cc',
             player:'#ff7a33', playerDark:'#b74f14' };
 
-  // ===== 맵 생성: 비석(1) + 격자 통로(0) =====
-  // 외곽 벽은 막되, 내부는 2칸 간격으로 가로/세로 통로를 파서 비석 사이를 오가게 함.
-  const LEVEL = Array.from({length:MAP_H}, (_,y)=>
-    Array.from({length:MAP_W}, (_,x)=>{
-      // 외곽 기본 벽
-      if (y===0 || y===MAP_H-1 || x===0 || x===MAP_W-1) return 1;
-      // 내부 기본은 비석
-      return 1;
-    })
-  );
-  // 통로 파기: y=2,4,6,... / x=2,4,6,...
-  for(let y=2; y<MAP_H-1; y+=2){ for(let x=1; x<MAP_W-1; x++) LEVEL[y][x]=0; }
-  for(let x=2; x<MAP_W-1; x+=2){ for(let y=1; y<MAP_H-1; y++) LEVEL[y][x]=0; }
-  // 스폰/중앙/입구 정리
-  for(let y=1;y<5;y++) for(let x=12;x<15;x++) LEVEL[y][x]=0;           // 우상단 스폰
-  LEVEL[8][8]=0; LEVEL[7][8]=0; LEVEL[8][7]=0; LEVEL[8][9]=0;           // 중앙
-  LEVEL[MAP_H-1][6]=0; LEVEL[MAP_H-1][7]=0; LEVEL[MAP_H-1][8]=0; LEVEL[MAP_H-1][9]=0; // 하단 입구
+  // ===== 맵: 비석 격자 + 통로 =====
+  const LEVEL=Array.from({length:MAP_H},(_,y)=>Array.from({length:MAP_W},(_,x)=>{
+    if(y===0||y===MAP_H-1||x===0||x===MAP_W-1) return 1; // 외곽 벽
+    return 1; // 내부 기본: 비석
+  }));
+  // 통로 파기(2칸 간격 가로/세로)
+  for(let y=2;y<MAP_H-1;y+=2){ for(let x=1;x<MAP_W-1;x++) LEVEL[y][x]=0; }
+  for(let x=2;x<MAP_W-1;x+=2){ for(let y=1;y<MAP_H-1;y++) LEVEL[y][x]=0; }
+  // 스폰/중앙/입구
+  for(let y=1;y<5;y++) for(let x=12;x<15;x++) LEVEL[y][x]=0;
+  LEVEL[8][8]=0; LEVEL[7][8]=0; LEVEL[8][7]=0; LEVEL[8][9]=0;
+  LEVEL[MAP_H-1][6]=0; LEVEL[MAP_H-1][7]=0; LEVEL[MAP_H-1][8]=0; LEVEL[MAP_H-1][9]=0;
 
   // ===== 엔티티 =====
-  function makePlayer(x,y){ return {x,y, spd:0.09, anim:0, stepTimer:0, stepPhase:0}; }
-  function makeSeeker(x,y){ return {x,y, spd:0.075, t:0}; }
-
-  const players=[ makePlayer(13.5,2.5) ];
+  function makePlayer(x,y){ return {x,y,spd:0.09,anim:0,stepTimer:0,stepPhase:0}; }
+  function makeSeeker(x,y){ return {x,y,spd:0.07,t:0, path:[], target:null, repathAt:0}; } // path: 타일 경로
+  const players=[makePlayer(13.5,2.5)];
   const seeker=makeSeeker(8.5,8.5);
 
-  const P=Math.max(1, Math.min(4, +(new URLSearchParams(location.search).get('p')||1)));
-  while(players.length<P) players.push(makePlayer(14.5-(players.length*0.8), 3.2+(players.length*0.6)));
-
-  // ===== 입력(키보드+조이스틱) =====
-  const keys=new Set();
-  addEventListener('keydown', e=>{ const k=e.key.toLowerCase(); if(['arrowup','arrowdown','arrowleft','arrowright','w','a','s','d','e'].includes(k)) e.preventDefault(); keys.add(k); });
-  addEventListener('keyup', e=> keys.delete(e.key.toLowerCase()));
+  // ===== 입력(키+조이스틱) =====
+  const keys=new Set(); addEventListener('keydown',e=>{const k=e.key.toLowerCase(); if(['arrowup','arrowdown','arrowleft','arrowright','w','a','s','d','e'].includes(k)) e.preventDefault(); keys.add(k);});
+  addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));
   const pad=document.getElementById('pad'), stick=document.getElementById('stick');
   let joy={ax:0,ay:0,active:false};
-  function padStart(e){ joy.active=true; moveStick(e); }
-  function padMove(e){ if(joy.active) moveStick(e); }
-  function padEnd(){ joy.active=false; stick.style.left='42px'; stick.style.top='42px'; joy.ax=0; joy.ay=0; }
-  function moveStick(e){
-    const r=pad.getBoundingClientRect(); const cx=r.left+r.width/2, cy=r.top+r.height/2; const p=e.touches?e.touches[0]:e;
-    let dx=p.clientX-cx, dy=p.clientY-cy; const m=Math.hypot(dx,dy), max=44; if(m>max){dx*=max/m; dy*=max/m;}
-    stick.style.left=(r.width/2+dx-33)+'px'; stick.style.top=(r.height/2+dy-33)+'px'; joy.ax=dx/max; joy.ay=dy/max;
-  }
-  for (const ev of ['pointerdown','pointermove','pointerup','pointercancel']) pad.addEventListener(ev, {pointerdown:padStart,pointermove:padMove,pointerup:padEnd,pointercancel:padEnd}[ev]);
+  function padStart(e){joy.active=true;moveStick(e);} function padMove(e){if(joy.active)moveStick(e);} function padEnd(){joy.active=false;stick.style.left='42px';stick.style.top='42px';joy.ax=0;joy.ay=0;}
+  function moveStick(e){const r=pad.getBoundingClientRect();const cx=r.left+r.width/2, cy=r.top+r.height/2; const p=e.touches?e.touches[0]:e; let dx=p.clientX-cx, dy=p.clientY-cy; const m=Math.hypot(dx,dy), max=44; if(m>max){dx*=max/m;dy*=max/m;} stick.style.left=(r.width/2+dx-33)+'px'; stick.style.top=(r.height/2+dy-33)+'px'; joy.ax=dx/max; joy.ay=dy/max;}
+  for(const ev of ['pointerdown','pointermove','pointerup','pointercancel']) pad.addEventListener(ev,{pointerdown:padStart,pointermove:padMove,pointerup:padEnd,pointercancel:padEnd}[ev]);
   function updatePadVisibility(){ pad.style.display = matchMedia('(pointer: coarse)').matches? 'block':'none'; } updatePadVisibility();
 
-  // ===== 충돌/이동 (비석 위로 X, 사이 통로 O) =====
+  // ===== 충돌/이동 =====
   function solidAt(tx,ty){
-    if(tx<0||ty<0||tx>=MAP_W||ty>=MAP_H) return true;         // 맵 밖
-    // 외곽 벽 (하단 입구 제외)
-    if (ty===0 || ty===MAP_H-1 || tx===0 || tx===MAP_W-1){
-      if(ty===MAP_H-1 && tx>=6 && tx<=9) return false;        // 하단 입구 통로
-      return true;
-    }
-    return LEVEL[ty][tx]===1; // 내부 비석 충돌
+    if(tx<0||ty<0||tx>=MAP_W||ty>=MAP_H) return true;
+    if(ty===0||ty===MAP_H-1||tx===0||tx===MAP_W-1){ if(ty===MAP_H-1 && tx>=6 && tx<=9) return false; return true; }
+    return LEVEL[ty][tx]===1;
   }
-  function moveEntity(e, ax, ay){
+  function moveEntity(e,ax,ay){
     const spd=e.spd; let nx=e.x+ax*spd, ny=e.y+ay*spd;
     if(!solidAt(nx|0, e.y|0)) e.x=nx;
     if(!solidAt(e.x|0, ny|0)) e.y=ny;
   }
-  function dist(a,b){ return Math.hypot(a.x-b.x, a.y-b.y); }
+  function dist(a,b){return Math.hypot(a.x-b.x,a.y-b.y);}
 
-  // ===== UI(대화/비석) =====
-  const btnE=document.getElementById('btnE');
-  const dialog=document.getElementById('dialog');
-  const dgTitle=document.getElementById('dgTitle');
-  const dgBody=document.getElementById('dgBody');
-  const dgChoices=document.getElementById('dgChoices');
+  // ===== UI: 대화/비석 =====
+  const btnE=document.getElementById('btnE'), dialog=document.getElementById('dialog');
+  const dgTitle=document.getElementById('dgTitle'), dgBody=document.getElementById('dgBody'), dgChoices=document.getElementById('dgChoices');
   function closeDialog(){ dialog.style.display='none'; dgChoices.innerHTML=''; }
   dialog.addEventListener('click',(e)=>{ if(e.target===dialog) closeDialog(); });
 
   function nearestGrave(px,py){
-    let best=null, bd=1e9;
-    for(let y=0;y<MAP_H;y++) for(let x=0;x<MAP_W;x++) if(LEVEL[y][x]===1){
-      const cx=x+0.5, cy=y+0.5; const d=Math.hypot(px-cx, py-cy);
-      if(d<bd){bd=d; best={x,y,cx,cy};}
-    }
+    let best=null,bd=1e9;
+    for(let y=0;y<MAP_H;y++) for(let x=0;x<MAP_W;x++) if(LEVEL[y][x]===1){ const cx=x+0.5, cy=y+0.5; const d=Math.hypot(px-cx,py-cy); if(d<bd){bd=d; best={x,y,cx,cy};}}
     return {grave:best, dist:bd};
   }
   function graveText(gv){
-    const lines=[
-      "나는 얼굴을 잃고, 귀로만 걷는다.","빛이 고요를 문질러 소리가 났다.","오차가 감정이고, 잔향이 초상이다.",
-      "돌은 서 있고, 이야기는 흘러간다.","너와 나 사이, 빈칸이 숨을 쉰다.","시간의 모서리에 귀를 댔다.",
-      "여기 눕힌 건 말들이다.","망각의 틈에서 작은 불이 켜진다."
-    ];
+    const lines=["나는 얼굴을 잃고, 귀로만 걷는다.","빛이 고요를 문질러 소리가 났다.","오차가 감정이고, 잔향이 초상이다.","돌은 서 있고, 이야기는 흘러간다.","너와 나 사이, 빈칸이 숨을 쉰다.","시간의 모서리에 귀를 댔다.","여기 눕힌 건 말들이다.","망각의 틈에서 작은 불이 켜진다."];
     const idx=(gv.x*31+gv.y*17)%lines.length; return lines[idx];
   }
 
-  // ===== 로봇 대화(죽이지 않음) =====
-  const convo=[ // 3턴
-    { npc:"……신호 포착. 너는 소리를 어떻게 듣지?",
-      choices:["몸으로 먼저 듣는다.","기억으로 해석한다."],
-      replies:["좋아. 몸은 진실을 숨기지 않지.","그래, 기억은 언제나 편집본이야."] },
-    { npc:"여기 비석들은 잊힌 말들의 좌표야.",
-      choices:["좌표를 따라가면 어디에 닿을까?","말이 사라지면 무엇이 남지?"],
-      replies:["아마 네가 모르는 너에게.","침묵. 그리고 방향."] },
-    { npc:"마지막 질문. 너는 왜 계속 걷고 있어?",
-      choices:["누군가의 잔향을 찾고 있어.","멈추면, 들리지 않을까 봐."],
-      replies:["그 잔향이 네 지도를 바꿀 거야.","걷는 침묵은 언제나 열려 있지."] }
+  // ===== 로봇 대화(3턴) =====
+  const convo=[
+    {npc:"……신호 포착. 너는 소리를 어떻게 듣지?",choices:["몸으로 먼저 듣는다.","기억으로 해석한다."],replies:["좋아. 몸은 진실을 숨기지 않지.","그래, 기억은 언제나 편집본이야."]},
+    {npc:"여기 비석들은 잊힌 말들의 좌표야.",choices:["좌표를 따라가면 어디에 닿을까?","말이 사라지면 무엇이 남지?"],replies:["아마 네가 모르는 너에게.","침묵. 그리고 방향."]},
+    {npc:"마지막 질문. 너는 왜 계속 걷고 있어?",choices:["누군가의 잔향을 찾고 있어.","멈추면, 들리지 않을까 봐."],replies:["그 잔향이 네 지도를 바꿀 거야.","걷는 침묵은 언제나 열려 있지."]}
   ];
   let inConvo=false, stepIdx=0;
-
   function openRobotConvo(){ inConvo=true; stepIdx=0; renderConvoStep(); dialog.style.display='flex'; SFX.interact(); }
   function renderConvoStep(){
-    dgTitle.textContent='로봇';
-    const step=convo[stepIdx];
-    dgBody.innerHTML=`<div style="white-space:pre-wrap">${step.npc}</div>`;
-    dgChoices.innerHTML='';
-    step.choices.forEach((text,i)=>{
-      const b=document.createElement('button'); b.textContent=text;
-      b.onclick=()=>{ SFX.select();
-        const reply=step.replies[i];
-        dgBody.innerHTML+=`\n\n> 너: ${text}\n로봇: ${reply}`;
-        stepIdx++;
-        if(stepIdx<convo.length){ setTimeout(()=>renderConvoStep(),420); }
-        else{ dgChoices.innerHTML=''; const done=document.createElement('button'); done.textContent='끝내기';
-              done.onclick=()=>{ inConvo=false; closeDialog(); }; dgChoices.appendChild(done); }
-      };
-      dgChoices.appendChild(b);
-    });
+    dgTitle.textContent='로봇(비석의 방 순찰)';
+    const step=convo[stepIdx]; dgBody.innerHTML=`<div style="white-space:pre-wrap">${step.npc}</div>`; dgChoices.innerHTML='';
+    step.choices.forEach((text,i)=>{ const b=document.createElement('button'); b.textContent=text; b.onclick=()=>{ SFX.select(); const reply=step.replies[i]; dgBody.innerHTML+=`\n\n> 너: ${text}\n로봇: ${reply}`; stepIdx++; if(stepIdx<convo.length){ setTimeout(()=>renderConvoStep(),420);} else{ dgChoices.innerHTML=''; const done=document.createElement('button'); done.textContent='끝내기'; done.onclick=()=>{ inConvo=false; dialog.style.display='none'; }; dgChoices.appendChild(done);} }; dgChoices.appendChild(b);});
   }
 
-  // ===== 로봇 이동(온건·공격 없음) =====
+  // ===== 로봇 순찰 AI (무작위 목적지 + BFS 경로) =====
+  function randomWalkableTile(){
+    // 통로(LEVEL[y][x]===0) 중 하나를 무작위 선택
+    let tx,ty; do{ tx=(Math.random()*MAP_W)|0; ty=(Math.random()*MAP_H)|0; }while(solidAt(tx,ty));
+    return {tx,ty};
+  }
+  function bfsPath(fromX,fromY,toX,toY){
+    const Q=[[fromX,fromY]], V=new Set([fromX+','+fromY]), P={}, dirs=[[1,0],[-1,0],[0,1],[0,-1]];
+    while(Q.length){
+      const [x,y]=Q.shift(); if(x===toX&&y===toY) break;
+      for(const [dx,dy] of dirs){
+        const nx=x+dx, ny=y+dy;
+        if(nx<0||ny<0||nx>=MAP_W||ny>=MAP_H) continue;
+        if(solidAt(nx,ny)) continue;
+        const k=nx+','+ny; if(V.has(k)) continue;
+        V.add(k); P[k]=[x,y]; Q.push([nx,ny]);
+      }
+    }
+    const key=toX+','+toY; if(!(key in P) && !(fromX===toX && fromY===toY)) return [];
+    // 역추적
+    let path=[[toX,toY]]; let cx=toX, cy=toY;
+    while(!(cx===fromX && cy===fromY)){
+      const prev=P[cx+','+cy]; if(!prev) break; path.push(prev); cx=prev[0]; cy=prev[1];
+    }
+    path.reverse(); return path; // 타일 좌표 리스트
+  }
+  function ensurePatrolTarget(force=false){
+    const now=performance.now();
+    if(force || !seeker.target || now>seeker.repathAt || seeker.path.length===0){
+      // 새로운 목적지: 플레이어와 너무 가까운 곳은 피하려고 몇 번 재시도
+      let t=randomWalkableTile(), tries=0;
+      while(dist({x:t.tx+0.5,y:t.ty+0.5}, players[0])<3 && tries++<10) t=randomWalkableTile();
+      seeker.target=t;
+      const sx=seeker.x|0, sy=seeker.y|0;
+      seeker.path=bfsPath(sx,sy,t.tx,t.ty);
+      seeker.repathAt=now+5000+Math.random()*5000; // 5~10초마다 재계획
+    }
+  }
   function stepSeeker(){
-    if(inConvo) return;
-    const p=players[0], dx=p.x-seeker.x, dy=p.y-seeker.y, m=Math.hypot(dx,dy);
-    // 너무 붙지 않게 0.9타일 거리 유지
-    if(m>0.9){ const ax=dx/m, ay=dy/m; moveEntity(seeker, ax, ay); }
+    if(inConvo) return; // 대화 중 멈춤
+    ensurePatrolTarget();
+    if(seeker.path.length>0){
+      // 다음 타일까지 이동
+      const [nx,ny]=seeker.path[0];
+      const tx=nx+0.5, ty=ny+0.5;
+      const dx=tx-seeker.x, dy=ty-seeker.y, m=Math.hypot(dx,dy);
+      if(m<0.05){
+        seeker.x=tx; seeker.y=ty; seeker.path.shift();
+      }else{
+        const ax=dx/m, ay=dy/m; moveEntity(seeker, ax, ay);
+      }
+    }else{
+      // 목적지 도달 → 새 목적지
+      ensurePatrolTarget(true);
+    }
   }
 
-  // ===== 그리기 =====
+  // ===== 렌더링 =====
   function drawBoard(){
     g.fillStyle=C.bg; g.fillRect(0,0,game.width,game.height);
     g.fillStyle=C.border; g.fillRect(6,6,game.width-12,game.height-12);
     g.fillStyle=C.plate;  g.fillRect(12,12,game.width-24,game.height-24);
     g.fillStyle=C.dot; for(let i=0;i<190;i++){ const x=12+Math.random()*(game.width-24)|0; const y=12+Math.random()*(game.height-24)|0; g.fillRect(x,y,1,1); }
     for(let y=0;y<MAP_H;y++) for(let x=0;x<MAP_W;x++) if(LEVEL[y][x]===1) drawGrave(x*TILE,y*TILE);
-    g.fillStyle=C.plate2; g.fillRect(6*TILE,15*TILE,4*TILE,TILE); // 하단 통로 시각 표시
+    g.fillStyle=C.plate2; g.fillRect(6*TILE,15*TILE,4*TILE,TILE); // 하단 통로 표시
   }
   function drawGrave(px,py){
     g.fillStyle=C.shadow; g.fillRect(px+2,py+TILE-3,TILE-2,2);
@@ -265,30 +231,34 @@
   }
   function drawPlayer(p){
     const px=Math.round(p.x*TILE - TILE/2), py=Math.round(p.y*TILE - TILE/2);
-    g.fillStyle=C.shadow; g.fillRect(px+2, py+TILE-2, TILE-4, 2);
-    g.fillStyle=C.player; g.fillRect(px+4, py+5, 8, 7);
-    g.fillStyle=C.playerDark; g.fillRect(px+4, py+4, 8, 2);
-    if(((p.anim*10)|0)%20<10){ g.fillStyle='#000'; g.fillRect(px+6, py+7, 1,1); g.fillRect(px+9, py+7, 1,1); }
+    g.fillStyle=C.shadow; g.fillRect(px+2,py+TILE-2,TILE-4,2);
+    g.fillStyle=C.player; g.fillRect(px+4,py+5,8,7);
+    g.fillStyle=C.playerDark; g.fillRect(px+4,py+4,8,2);
+    if(((p.anim*10)|0)%20<10){ g.fillStyle='#000'; g.fillRect(px+6,py+7,1,1); g.fillRect(px+9,py+7,1,1); }
   }
 
   // ===== 루프 =====
   let last=0; function loop(t){ requestAnimationFrame(loop); const dt=Math.min(32,(t-last)||16); last=t; update(dt/16); render(); }
 
+  function movePlayerAndSfx(p,ax,ay,dt){
+    const moving=Math.hypot(ax,ay)>0.1 && !inConvo;
+    if(!inConvo) moveEntity(p,ax,ay);
+    p.anim+=dt;
+    if(moving){ p.stepTimer+=dt*1000; if(p.stepTimer>=180){ p.stepTimer=0; SFX.step(p.stepPhase++); } }
+    else p.stepTimer=0;
+  }
+
   function update(dt){
+    // 플레이어 입력
     let ax=0, ay=0;
     if(keys.has('a')||keys.has('arrowleft')) ax-=1; if(keys.has('d')||keys.has('arrowright')) ax+=1;
     if(keys.has('w')||keys.has('arrowup')) ay-=1; if(keys.has('s')||keys.has('arrowdown')) ay+=1;
     ax+=joy.ax; ay+=joy.ay; const m=Math.hypot(ax,ay)||1; ax/=m; ay/=m;
 
-    const moving=Math.hypot(ax,ay)>0.1 && !inConvo;
-    for(const p of players){
-      if(!inConvo) moveEntity(p, ax, ay);
-      p.anim+=dt;
-      if(moving){ p.stepTimer+=dt*1000; if(p.stepTimer>=180){ p.stepTimer=0; SFX.step(p.stepPhase++); } }
-      else p.stepTimer=0;
-    }
+    movePlayerAndSfx(players[0],ax,ay,dt);
 
-    stepSeeker(); // 로봇은 공격하지 않음
+    // 로봇 순찰(플레이어를 죽이지 않음)
+    stepSeeker();
 
     // 상호작용
     const p0=players[0]; let label="", action=null;
@@ -300,13 +270,15 @@
         action=()=>{ SFX.interact(); dgTitle.textContent='비석의 기록'; dgBody.textContent=graveText(ng.grave); dgChoices.innerHTML=''; dialog.style.display='flex'; };
       }
     }
-    if(action){ btnE.style.display='grid'; btnE.textContent=label; btnE.onclick=action; }
-    else { btnE.style.display='none'; btnE.onclick=null; }
+    if(action){ btnE.style.display='grid'; btnE.textContent=label; btnE.onclick=action; } else { btnE.style.display='none'; btnE.onclick=null; }
   }
 
   function render(){
     g.clearRect(0,0,game.width,game.height);
     drawBoard(); drawSeeker(); for(const p of players) drawPlayer(p);
+    // HUD(방 이름)
+    g.fillStyle='rgba(0,0,0,.55)'; g.fillRect(8,8,90,10);
+    g.fillStyle='#ddd'; g.font='8px ui-monospace, monospace'; g.fillText('ROOM: 비석의 방', 12, 16);
   }
 
   // 키보드 E로 상호작용
