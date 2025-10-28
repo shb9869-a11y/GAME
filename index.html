@@ -3,21 +3,16 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
-<title>BaconBot — 비석 사이를 걷는 로봇</title>
-<meta name="theme-color" content="#0a0a0d" />
-<!-- iOS A2HS (홈 화면 추가 시 전체화면) -->
+<title>Grave Run — 술래잡기</title>
+<meta name="theme-color" content="#140c1c" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-<meta name="apple-mobile-web-app-title" content="BaconBot" />
-<link rel="apple-touch-icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABAAQMAAAB8I8qEAAAABlBMVEUAAAD///+l2Z/dAAAAIklEQVQY02NgGAU0wAgYGBg2QGIYQOaAqQFjQGQGQwAAf3oGqC2cO0gAAAAASUVORK5CYII=" />
-<link rel="icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAOCAQAAAC1QeVaAAAABlBMVEUAAAD///+l2Z/dAAAAI0lEQVQImWNgYGBg+M/AwMDwZ2BgKIEBkGAgQGQYJgYGBgYgAABo8QHk7o4Q8kAAAAASUVORK5CYII="/>
+<meta name="apple-mobile-web-app-title" content="Grave Run" />
 <style>
   :root{
-    --bg:#0a0a0d;
-    --fg:#f5f5f7;
-    --accent:#ff3355;
-    --stone:#6d6b87;
-    --hud:#111218;
+    --bg:#0a0812; --fg:#eae6ff;
+    --violet:#6d58a5; --violet2:#4a3b76; --violet3:#2a2144; --shadow:#000000;
+    --accent:#ff7a33; /* 플레이어(주황) */
     --safe-top: env(safe-area-inset-top, 0px);
     --safe-bot: env(safe-area-inset-bottom, 0px);
     --safe-left: env(safe-area-inset-left, 0px);
@@ -26,326 +21,244 @@
   html,body{height:100%;margin:0;background:var(--bg);color:var(--fg);} 
   body{display:grid;place-items:center;font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;}
   #wrap{position:relative; width:100vw; height:100svh; overflow:hidden; background:var(--bg); padding:var(--safe-top) var(--safe-right) var(--safe-bot) var(--safe-left);} 
-  canvas{ 
-    position:absolute; inset:0; margin:auto; 
-    image-rendering: pixelated;
-    image-rendering: crisp-edges;
-    touch-action:none;
-  }
-  .hud{
-    position:absolute; left:0; top:0; right:0; display:flex; gap:8px; align-items:center; padding:calc(8px + var(--safe-top)) 10px 8px 10px;
-    background: linear-gradient( to bottom, rgba(0,0,0,.45), rgba(0,0,0,0));
-    font-size:12px; letter-spacing:.2px; pointer-events:none; user-select:none;
-  }
-  .chip{ background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.12); padding:4px 8px; border-radius:8px; }
-  .logo{font-weight:700; color:var(--accent);} 
-  .pad{ position:absolute; bottom:calc(16px + var(--safe-bot)); left:calc(16px + var(--safe-left)); width:140px; height:140px; opacity:.85; filter: drop-shadow(0 2px 8px rgba(0,0,0,.5)); }
-  .pad .ring{ position:absolute; inset:0; border-radius:50%; border:2px dashed rgba(255,255,255,.18); }
-  .pad .stick{ position:absolute; width:64px; height:64px; left:38px; top:38px; border-radius:50%; background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.25);} 
-  .btnE{ position:absolute; right:calc(16px + var(--safe-right)); bottom:calc(28px + var(--safe-bot)); width:76px; height:76px; border-radius:50%; background:rgba(255,51,85,.15); border:2px solid var(--accent); color:var(--fg); font-weight:700; display:grid;place-items:center; opacity:.95; }
-  .btnE span{ transform: translateY(1px); }
-  .hint{ position:absolute; left:50%; bottom:calc(10px + var(--safe-bot)); transform:translateX(-50%); opacity:.85; font-size:12px; text-align:center; background:rgba(0,0,0,.35); border:1px solid rgba(255,255,255,.12); padding:4px 8px; border-radius:8px; }
-  #install{
-    position:absolute; left:50%; bottom:calc(90px + var(--safe-bot)); transform:translateX(-50%);
-    display:none; gap:8px; align-items:center; padding:8px 10px; border-radius:10px;
-    background:rgba(0,0,0,.55); border:1px solid rgba(255,255,255,.15);
-    backdrop-filter: blur(6px);
-  }
-  #install button{ all:unset; cursor:pointer; padding:6px 10px; border:1px solid rgba(255,255,255,.25); border-radius:8px; }
-  @media (min-aspect-ratio: 16/9){ .hint{ bottom:calc(6px + var(--safe-bot)); } }
+  canvas{ position:absolute; inset:0; margin:auto; image-rendering: pixelated; image-rendering: crisp-edges; touch-action:none; }
+
+  /* 화면엔 위치 컨트롤러(조이스틱)만 */
+  .pad{ position:absolute; bottom:calc(16px + var(--safe-bot)); left:calc(16px + var(--safe-left)); width:150px; height:150px; opacity:.95; filter: drop-shadow(0 2px 8px rgba(0,0,0,.6)); }
+  .pad .ring{ position:absolute; inset:0; border-radius:50%; border:2px dashed rgba(255,255,255,.18); background: radial-gradient(circle, rgba(255,255,255,.06), rgba(255,255,255,.02)); }
+  .pad .stick{ position:absolute; width:66px; height:66px; left:42px; top:42px; border-radius:50%; background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.3);} 
+
+  .badge{ position:absolute; right:calc(10px + var(--safe-right)); top:calc(8px + var(--safe-top)); font-size:12px; opacity:.8; background:rgba(0,0,0,.35); border:1px solid rgba(255,255,255,.15); padding:4px 8px; border-radius:8px; }
 </style>
 </head>
 <body>
   <div id="wrap">
-    <canvas id="game" width="320" height="180"></canvas>
-    <canvas id="fx" width="320" height="180"></canvas>
-    <div class="chip">WASD / ←→↑↓ 이동</div>
-      <div class="chip">E: 경청(listen)</div>
-      <div class="chip">Shift: 달리기</div>
-    </div>
+    <canvas id="game" width="256" height="256"></canvas>
     <div class="pad" id="pad" aria-hidden="true">
       <div class="ring"></div>
       <div class="stick" id="stick"></div>
     </div>
-    <button class="btnE" id="btnE" aria-label="listen"><span>E</span></button>
-    </div>
+    <div class="badge">Pac‑style tag · 중앙 로봇=술래 · 우상단 주황=플레이어</div>
+  </div>
 <script>
 (()=>{
-  // ===== PWA: manifest 생성 & SW 등록 =====
-  const manifest = {
-    name: "BaconBot — 비석 사이를 걷는 로봇",
-    short_name: "BaconBot",
-    start_url: ".",
-    display: "standalone",
-    background_color: "#0a0a0d",
-    theme_color: "#0a0a0d",
-    icons: [
-      { src: makeIcon(192), sizes: "192x192", type: "image/png", purpose:"any" },
-      { src: makeIcon(512), sizes: "512x512", type: "image/png", purpose:"any" }
-    ]
-  };
-  const manBlob = new Blob([JSON.stringify(manifest)], {type: 'application/json'});
-  const manURL = URL.createObjectURL(manBlob);
+  // ===== PWA (홈 화면 추가/오프라인) =====
+  const manifest = {name:"Grave Run", short_name:"GraveRun", start_url:".", display:"standalone", background_color:"#140c1c", theme_color:"#140c1c"};
+  const manURL = URL.createObjectURL(new Blob([JSON.stringify(manifest)], {type:'application/json'}));
   const link = document.createElement('link'); link.rel='manifest'; link.href=manURL; document.head.appendChild(link);
-
-  function makeIcon(size){
-    const c=document.createElement('canvas'); c.width=size; c.height=size; const x=c.getContext('2d');
-    x.fillStyle='#0a0a0d'; x.fillRect(0,0,size,size);
-    x.fillStyle='#ff3355';
-    x.fillRect(size*0.22,size*0.24,size*0.56,size*0.46);
-    x.fillStyle='#ffffff'; x.fillRect(size*0.34,size*0.36,size*0.08,size*0.08); x.fillRect(size*0.58,size*0.36,size*0.08,size*0.08);
-    return c.toDataURL('image/png');
-  }
-
   if ('serviceWorker' in navigator){
-    const swCode = `
-      const C="baconbot-v1";
-      self.addEventListener('install',e=>{e.waitUntil(caches.open(C).then(c=>c.addAll(['./'])))});
-      self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(keys=>Promise.all(keys.map(k=>k!==C&&caches.delete(k)))))})
-      self.addEventListener('fetch',e=>{
-        const u=new URL(e.request.url);
-        if (u.origin===location.origin){
-          e.respondWith(caches.match(e.request).then(r=> r || fetch(e.request).then(res=>{ const cc=res.clone(); caches.open(C).then(c=>c.put(e.request,cc)); return res; }).catch(()=>caches.match('./'))))
-        }
-      });`;
-    const blob = new Blob([swCode], {type:'text/javascript'});
-    const url = URL.createObjectURL(blob);
+    const swCode = `const C='graverun-v1';self.addEventListener('install',e=>e.waitUntil(caches.open(C).then(c=>c.addAll(['./']))));self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(K=>Promise.all(K.map(k=>k!==C&&caches.delete(k))))));self.addEventListener('fetch',e=>{const u=new URL(e.request.url);if(u.origin===location.origin){e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request).then(res=>{const cc=res.clone();caches.open(C).then(c=>c.put(e.request,cc));return res;}).catch(()=>caches.match('./'))))}});`;
+    const url = URL.createObjectURL(new Blob([swCode], {type:'text/javascript'}));
     navigator.serviceWorker.register(url, {scope:'./'}).catch(()=>{});
   }
+  // 첫 터치에 전체화면(안드로이드)
+  window.addEventListener('pointerdown', ()=>{const el=document.documentElement; if(!document.fullscreenElement && el.requestFullscreen) el.requestFullscreen();},{once:true, passive:true});
 
-  let deferredPrompt=null; const installUI=document.getElementById('install'); const installBtn=document.getElementById('installBtn');
-  window.addEventListener('beforeinstallprompt',(e)=>{ e.preventDefault(); deferredPrompt=e; const ui=document.getElementById('install'); if(ui) ui.style.display='flex'; }); deferredPrompt=e; installUI.style.display='flex'; });
-  installBtn?.addEventListener('click', async()=>{ if (!deferredPrompt) return; deferredPrompt.prompt(); const { outcome } = await deferredPrompt.userChoice; deferredPrompt=null; const ui=document.getElementById('install'); if(ui) ui.style.display='none'; }); const { outcome } = await deferredPrompt.userChoice; deferredPrompt=null; installUI.style.display='none'; });
-
-  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
-  const isStandalone = (window.matchMedia('(display-mode: standalone)').matches) || (window.navigator.standalone===true);
-  if (isIOS && !isStandalone && document.getElementById('install')){ document.getElementById('install').style.display='flex'; document.getElementById('installBtn').textContent='iOS: 공유버튼 → 홈화면에 추가'; }
-
-  async function goFullscreen(){
-    try{
-      const el=document.documentElement; if (document.fullscreenElement) return;
-      if (el.requestFullscreen) await el.requestFullscreen();
-    }catch(e){}
-  }
-  window.addEventListener('pointerdown', ()=> goFullscreen(), {once:true, passive:true});
-
-  // ===== 게임 =====
-  const DPR = Math.max(1, Math.min(3, Math.round(window.devicePixelRatio||1)));
+  // ===== 기본 캔버스 =====
   const wrap = document.getElementById('wrap');
   const game = document.getElementById('game');
-  const fx = document.getElementById('fx');
   const g = game.getContext('2d', { alpha:false });
-  const gx = fx.getContext('2d');
-  g.imageSmoothingEnabled = false; gx.imageSmoothingEnabled = false;
-
-  const W = game.width, H = game.height;
+  g.imageSmoothingEnabled = false;
+  const TILE = 16;                   // 타일 사이즈 (픽셀)
+  const MAP_W = 16, MAP_H = 16;      // 16x16 맵 (256x256)
 
   function fit(){
     const {clientWidth:cw, clientHeight:ch} = wrap;
-    const scale = Math.max(1, Math.floor(Math.min(cw/W, ch/H)));
-    const vw = W*scale, vh = H*scale;
-    for (const c of [game, fx]){
-      c.style.width = vw+"px"; c.style.height = vh+"px"; c.style.left = ((cw-vw)/2|0) + "px"; c.style.top = ((ch-vh)/2|0) + "px";
-    }
+    const scale = Math.max(1, Math.floor(Math.min(cw/game.width, ch/game.height)));
+    const vw = game.width*scale, vh = game.height*scale;
+    game.style.width = vw+"px"; game.style.height = vh+"px";
+    game.style.left = ((cw-vw)/2|0)+"px"; game.style.top = ((ch-vh)/2|0)+"px";
   }
   new ResizeObserver(fit).observe(wrap);
-  window.addEventListener('orientationchange', ()=>setTimeout(fit, 200));
 
-  const world = { w: 1024, h: 1024, stones: [], fog: new Set(), seed: Math.random()*1e9|0 };
-  function rng(seed){ return ()=> (seed = (seed*1664525 + 1013904223)>>>0)/4294967296; }
-  const R = rng(world.seed);
-  const STONE_CT = 140; 
-  for (let i=0;i<STONE_CT;i++){
-    const x = (R()*world.w)|0, y = (R()*world.h)|0;
-    const w = 10 + (R()*18|0); const h2 = 16 + (R()*36|0); const rot = (R()*0.4 - 0.2);
-    world.stones.push({x,y,w,h:h2,rot, id:i});
-  }
+  // ===== 팔레트 =====
+  const C = {
+    bg:'#201335', plate:'#6d58a5', plate2:'#584787', border:'#2a2144', dot:'#3a2c5d',
+    grave:'#7c6ac0', graveDark:'#362a56', shadow:'rgba(0,0,0,.55)',
+    seeker:'#cfe6ff', seekerEye:'#37a5ff', seekerBody:'#aab9cc',
+    player:'#ff7a33', playerDark:'#b74f14'
+  };
 
-  const player = { x: world.w/2, y: world.h/2, vx:0, vy:0, spd: 0.9, run:1.6, dir:1, walkT:0 };
+  // ===== 맵 (무덤=벽, 빈곳=0, 출입구=2) =====
+  // 디자인 이미지 느낌의 배치(우측 상단 빈칸, 하단 통로)
+  const LEVEL = [
+    "1111111111111111",
+    "1000000000000001",
+    "1011111111111101",
+    "1011111111111101",
+    "1010110110110101",
+    "1011111111111101",
+    "1011111111111101",
+    "1010110110110101",
+    "1011111111111101",
+    "1011111111111101",
+    "1010110110110101",
+    "1011111111111101",
+    "1011111111111101",
+    "1000000000000001",
+    "1000000000000001",
+    "1111110000111111"
+  ].map(r=>r.split('').map(d=>+d));
+  // 우상단 플레이어 스폰 영역 비우기
+  for(let y=1;y<5;y++) for(let x=12;x<15;x++) LEVEL[y][x]=0;
+  // 중앙 술래 자리 비우기
+  LEVEL[8][8]=0; LEVEL[7][8]=0; LEVEL[8][7]=0; LEVEL[8][9]=0;
+  // 하단 통로(입구)
+  LEVEL[15][6]=0; LEVEL[15][7]=0; LEVEL[15][8]=0; LEVEL[15][9]=0;
 
+  // ===== 엔티티 =====
+  function makePlayer(x,y){ return {x,y, vx:0, vy:0, spd:0.09, alive:true, anim:0}; }
+  function makeSeeker(x,y){ return {x,y, vx:0, vy:0, spd:0.085, t:0}; }
+
+  const players = [ makePlayer(13.5, 2.5) ]; // 기본 1플레이어 (우상단)
+  const seeker = makeSeeker(8.5, 8.5);      // 중앙 로봇 술래
+
+  // URL 파라미터로 플레이어 추가 (?p=3)
+  const P = Math.max(1, Math.min(4, +(new URLSearchParams(location.search).get('p')||1)));
+  while (players.length < P) players.push(makePlayer(14.5-(players.length*0.8), 3.2+(players.length*0.6)));
+
+  // ===== 입력 (키보드 + 조이스틱) =====
   const keys = new Set();
-  window.addEventListener('keydown', e=>{ keys.add(e.key.toLowerCase()); if(['arrowup','arrowdown','arrowleft','arrowright'].includes(e.key.toLowerCase())) e.preventDefault(); });
-  window.addEventListener('keyup', e=> keys.delete(e.key.toLowerCase()));
-
+  addEventListener('keydown', e=>{ const k=e.key.toLowerCase(); if(['arrowup','arrowdown','arrowleft','arrowright','w','a','s','d'].includes(k)) e.preventDefault(); keys.add(k); });
+  addEventListener('keyup', e=> keys.delete(e.key.toLowerCase()));
   const pad = document.getElementById('pad');
   const stick = document.getElementById('stick');
-  const btnE = document.getElementById('btnE');
-  let joy = {ax:0, ay:0, active:false};
+  let joy={ax:0,ay:0,active:false};
   function padStart(e){ joy.active=true; moveStick(e); }
   function padMove(e){ if(joy.active) moveStick(e); }
-  function padEnd(){ joy.active=false; stick.style.left = '38px'; stick.style.top='38px'; joy.ax=0; joy.ay=0; }
+  function padEnd(){ joy.active=false; stick.style.left='42px'; stick.style.top='42px'; joy.ax=0; joy.ay=0; }
   function moveStick(e){
-    const rect = pad.getBoundingClientRect(); const cx = rect.left + rect.width/2; const cy = rect.top + rect.height/2;
-    const p = (e.touches? e.touches[0]:e);
-    let dx = p.clientX - cx, dy = p.clientY - cy; const mag = Math.hypot(dx,dy); const max = 40; if (mag>max){ dx*=max/mag; dy*=max/mag; }
-    stick.style.left = (rect.width/2 + dx - 32) + 'px'; stick.style.top  = (rect.height/2 + dy - 32) + 'px';
-    joy.ax = dx/max; joy.ay = dy/max;
+    const r=pad.getBoundingClientRect(); const cx=r.left+r.width/2, cy=r.top+r.height/2; const p=e.touches?e.touches[0]:e;
+    let dx=p.clientX-cx, dy=p.clientY-cy; const m=Math.hypot(dx,dy), max=44; if(m>max){dx*=max/m; dy*=max/m;}
+    stick.style.left=(r.width/2+dx-33)+'px'; stick.style.top=(r.height/2+dy-33)+'px'; joy.ax = dx/max; joy.ay = dy/max;
   }
-  pad.addEventListener('pointerdown', padStart); pad.addEventListener('pointermove', padMove); pad.addEventListener('pointerup', padEnd); pad.addEventListener('pointercancel', padEnd);
-  btnE.addEventListener('click', ()=> tryListen());
+  for (const ev of ['pointerdown','pointermove','pointerup','pointercancel']) pad.addEventListener(ev, {pointerdown:padStart,pointermove:padMove,pointerup:padEnd,pointercancel:padEnd}[ev]);
 
-  const AudioCtx = window.AudioContext || window.webkitAudioContext; 
-  const actx = new AudioCtx();
-  let audioReady=false; 
-  function resumeAudio(){ if(!audioReady){ actx.resume(); audioReady=true; beep(220, .04); }}
-  window.addEventListener('pointerdown', resumeAudio, {once:true, passive:true});
-  function beep(freq=440, dur=.06, type='square', gain=0.08){
-    const o = actx.createOscillator(); const g = actx.createGain();
-    o.type = type; o.frequency.value=freq; g.gain.value=gain; 
-    o.connect(g).connect(actx.destination);
-    o.start(); o.stop(actx.currentTime+dur);
-  }
-  function drone(near){
-    const t = actx.currentTime;
-    if (!drone.g){ drone.o = actx.createOscillator(); drone.g = actx.createGain(); drone.o.type='triangle'; drone.o.frequency.value=50; drone.g.gain.value=0.0; drone.o.connect(drone.g).connect(actx.destination); drone.o.start(); }
-    const target = Math.min(.15, near*.12);
-    drone.g.gain.cancelScheduledValues(t); drone.g.gain.linearRampToValueAtTime(target, t+.2);
-  }
+  // 모바일에서만 컨트롤 보이기
+  function updatePadVisibility(){ pad.style.display = matchMedia('(pointer: coarse)').matches? 'block':'none'; }
+  updatePadVisibility();
 
-  function collides(nx, ny){
-    for(const s of world.stones){
-      const cx=s.x+s.w/2, cy=s.y+s.h/2; const dx=nx-cx, dy=ny-cy; const c=Math.cos(-s.rot), si=Math.sin(-s.rot);
-      const rx = dx*c - dy*si, ry = dx*si + dy*c; const hw=(s.w/2)+3, hh=(s.h/2)+3;
-      if (Math.abs(rx)<hw && Math.abs(ry)<hh) return true;
+  // ===== 유틸 =====
+  function solidAt(tx,ty){ return LEVEL[ty] && LEVEL[ty][tx]===1; }
+  function moveEntity(e, ax, ay){
+    const spd = e.spd; const nx = e.x + ax*spd; const ny = e.y + ay*spd;
+    if (!solidAt(nx|0, e.y|0)) e.x = nx; if (!solidAt(e.x|0, ny|0)) e.y = ny;
+  }
+  function dist(a,b){ const dx=a.x-b.x, dy=a.y-b.y; return Math.hypot(dx,dy); }
+
+  // ===== 간단 추적 AI (맨해튼 그리드 BFS → 다음 한 칸) =====
+  function stepSeeker(){
+    seeker.t += 1;
+    // 타겟: 가장 가까운 생존 플레이어
+    let target = null, best=1e9; for(const p of players){ if(!p.alive) continue; const d=dist(seeker,p); if(d<best){best=d; target=p;} }
+    if(!target) return; // 모두 탈락 시 대기
+
+    // 그리드 기반 BFS (작은 맵이라 매 프레임도 OK)
+    const sx=seeker.x|0, sy=seeker.y|0; const tx=target.x|0, ty=target.y|0;
+    const Q=[[sx,sy]]; const V=new Set([sx+','+sy]); const Pth={}; const dirs=[[1,0],[-1,0],[0,1],[0,-1]];
+    while(Q.length){
+      const [x,y]=Q.shift(); if(x===tx&&y===ty) break;
+      for(const [dx,dy] of dirs){ const nx=x+dx, ny=y+dy; if(nx<0||ny<0||nx>=MAP_W||ny>=MAP_H) continue; if(solidAt(nx,ny)) continue; const k=nx+','+ny; if(V.has(k)) continue; V.add(k); Pth[k]=[x,y]; Q.push([nx,ny]); }
     }
-    return false;
+    // 역추적하여 다음 칸 결정
+    let cx=tx, cy=ty, prev=null; while((cx+','+cy) in Pth){ prev=[cx,cy]; const p=Pth[cx+','+cy]; cx=p[0]; cy=p[1]; if(cx===sx&&cy===sy) break; }
+    if(prev){ const [gx,gy]=prev; const ax=Math.sign(gx+0.5 - seeker.x), ay=Math.sign(gy+0.5 - seeker.y); moveEntity(seeker, ax, ay); }
   }
 
-  function nearestStone(px,py){ let best=null, bd=1e9; for(const s of world.stones){ const cx=s.x+s.w/2, cy=s.y+s.h/2; const d = Math.hypot(px-cx, py-cy); if (d<bd){ bd=d; best=s; } } return {stone:best, dist:bd}; }
-  function tryListen(){ const n = nearestStone(player.x, player.y); if (n.dist<38){ beep(880,.08,'square',.1); setTimeout(()=>beep(660,.08,'square',.08),60); showWhisper(n.stone); } else { beep(140,.05,'square',.05); } }
+  // ===== 렌더링 =====
+  function drawBoard(){
+    // 배경판 + 테두리
+    g.fillStyle = C.bg; g.fillRect(0,0,game.width,game.height);
+    g.fillStyle = C.border; g.fillRect(6,6,game.width-12,game.height-12);
+    g.fillStyle = C.plate; g.fillRect(12,12,game.width-24,game.height-24);
 
-  const whispers = [
-    "나는 얼굴을 잃고, 귀로만 걷는다.",
-    "기억의 살결이 돌 사이에서 뒤틀린다.",
-    "빛은 고요를 문질러, 소리를 만든다.",
-    "오차가 감정이고, 잔향이 초상이다.",
-    "돌은 서 있고, 이야기는 흘러간다.",
-    "네가 듣는 동안, 나는 보이지 않는다.",
-    "움푹 팬 시간 속에서 심장이 파형으로 뛴다.",
-    "유령 같은 프레임이 나를 붙잡는다.",
-  ];
-  let whisperTimer=0, whisperText="", whisperAlpha=0;
-  function showWhisper(stone){ whisperText = whispers[(stone.id + (Math.random()*whispers.length|0)) % whispers.length]; whisperAlpha = 1; whisperTimer = 180; }
+    // 바닥 점점
+    g.fillStyle = C.dot; for(let i=0;i<190;i++){ const x=12+Math.random()*(game.width-24)|0; const y=12+Math.random()*(game.height-24)|0; g.fillRect(x,y,1,1); }
 
-  const cam = {x:0,y:0, shake:0};
-  let last=0; function loop(t){ requestAnimationFrame(loop); const dt = Math.min(32, (t-last)||16); last=t; update(dt/16); render(); }
-
-  function update(dt){
-    let ax=0, ay=0; if (keys.has('a')||keys.has('arrowleft')) ax-=1; if (keys.has('d')||keys.has('arrowright')) ax+=1; if (keys.has('w')||keys.has('arrowup')) ay-=1; if (keys.has('s')||keys.has('arrowdown')) ay+=1; ax += joy.ax; ay += joy.ay;
-    const mag = Math.hypot(ax,ay); let spd = player.spd * (keys.has('shift')? player.run:1);
-    if (mag>0){ ax/=mag; ay/=mag; player.vx = ax*spd; player.vy = ay*spd; player.dir = (Math.abs(ax)>Math.abs(ay)? (ax>=0?1:-1) : player.dir); player.walkT += dt; } else { player.vx*=0.6; player.vy*=0.6; }
-    let nx = player.x + player.vx*dt*3; let ny = player.y + player.vy*dt*3;
-    if (!collides(nx, player.y)) player.x = clamp(nx, 8, world.w-8); else player.vx=0;
-    if (!collides(player.x, ny)) player.y = clamp(ny, 8, world.h-8); else player.vy=0;
-    cam.x += ((player.x - W/2) - cam.x)*0.08; cam.y += ((player.y - H/2) - cam.y)*0.08;
-    const n = nearestStone(player.x, player.y); const near = Math.max(0, 1 - (n.dist/140)); drone(near); cam.shake = Math.max( cam.shake*0.9, near*1.6 );
-    const tx = (player.x/8|0), ty=(player.y/8|0); world.fog.add(tx+","+ty);
-    if (whisperTimer>0){ whisperTimer-=1; if (whisperTimer<32) whisperAlpha = whisperTimer/32; }
-    if (mag>0.1){ if (!update.stepT) update.stepT=0; update.stepT+=dt; if (update.stepT>0.18){ update.stepT=0; beep(220+Math.random()*40, .04, 'square', .06); } }
-    pad.style.display = matchMedia('(pointer: coarse)').matches? 'block':'none'; btnE.style.display = pad.style.display;
-  }
-
-  function clamp(v,min,max){ return v<min?min:(v>max?max:v); }
-
-  // 사람 도트 스프라이트 (2프레임)
-const humanFrames={
-  R:[
-    [
-      "....11......",
-      "...1221.....",
-      "..122221....",
-      "..12ff21....",
-      "..122221....",
-      "...1111.....",
-      "....11......",
-      "...1222.....",
-      "..122.21....",
-      "..12...21...",
-      "...2...21...",
-      "..22...2....",
-      "..2....2....",
-      "..2....2....",
-      "..2...22....",
-      "..2..2.2...."
-    ],[
-      "....11......",
-      "...1221.....",
-      "..122221....",
-      "..12ff21....",
-      "..122221....",
-      "...1111.....",
-      "....11......",
-      "...1222.....",
-      "..122.21....",
-      "..12..221...",
-      "...2..2.1...",
-      "..22.2.2....",
-      "..2..2......",
-      "..2..2......",
-      "..2..22.....",
-      "..2.2......."
-    ]
-  ]
-};
-function drawHuman(x,y,dir,frame){
-  const f=humanFrames.R[frame%humanFrames.R.length];
-  for(let j=0;j<f.length;j++){
-    const row=f[j];
-    for(let i=0;i<row.length;i++){
-      const c=row[i]; if(c==='.') continue; let xi=(dir<0)?(row.length-1-i):i;
-      if(c==='1') g.fillStyle='#f4d7d7';
-      if(c==='2') g.fillStyle='#ff3355';
-      if(c==='f') g.fillStyle='#222329';
-      g.fillRect((x+xi)|0,(y+j)|0,1,1);
-    }
-  }
-}
-    if (Math.sin(performance.now()*0.005)>0.6){ g.fillStyle='#111'; g.fillRect(x+6, y+5, 2,1); g.fillRect(x+2, y+5, 2,1); }
-  }
-
-  function drawStone(s, cx, cy){
-    g.save(); g.translate(s.x-cx, s.y-cy); g.translate(s.w/2, s.h/2); g.rotate(s.rot); g.translate(-s.w/2, -s.h/2);
-    g.fillStyle= (s.id%2? '#514e6b':'#6d6b87'); g.fillRect(0,0,s.w,s.h);
-    g.strokeStyle='rgba(255,255,255,.08)'; g.lineWidth=1; g.strokeRect(2,2,s.w-4,s.h-4);
-    g.fillStyle='rgba(0,0,0,.25)'; g.fillRect(-3, s.h-1, s.w+6, 2); g.restore();
-  }
-
-  function drawFog(cx,cy){
-    g.save(); g.globalCompositeOperation='source-over'; g.fillStyle='rgba(0,0,0,.6)'; g.fillRect(0,0,W,H);
-    g.globalCompositeOperation='destination-out'; g.fillStyle='rgba(0,0,0,1)';
-    const sx = (cx/8|0)-24, sy=(cy/8|0)-24;
-    for(let ty=sy; ty<sy+48; ty++){
-      for(let tx=sx; tx<sx+64; tx++){
-        if (world.fog.has(tx+","+ty)) g.fillRect((tx*8 - cx)|0, (ty*8 - cy)|0, 8, 8);
+    // 무덤(벽)
+    for(let y=0;y<MAP_H;y++){
+      for(let x=0;x<MAP_W;x++){
+        if(LEVEL[y][x]===1){ drawGrave(x*TILE, y*TILE); }
       }
     }
-    g.restore();
+
+    // 하단 입구 통로 강조
+    g.fillStyle = C.plate2; g.fillRect(6*TILE, 15*TILE, 4*TILE, TILE);
   }
 
-  function postProcess(){
-    gx.clearRect(0,0,W,H); gx.drawImage(game,0,0);
-    const lines = 26;
-    for (let i=0;i<lines;i++){
-      const y0 = (H/lines*i)|0; const y1 = (H/lines*(i+1)|0) - y0; const off = Math.sin((performance.now()*0.002 + i*0.9)) * (cam.shake*2 + 1);
-      gx.drawImage(game, 0, y0, W, y1, off|0, y0, W, y1);
+  function drawGrave(px,py){
+    // 그림자
+    g.fillStyle=C.shadow; g.fillRect(px+2,py+TILE-3,TILE-2,2);
+    // 본체
+    g.fillStyle=C.graveDark; g.fillRect(px+3,py+3,TILE-6,TILE-6);
+    g.fillStyle=C.grave; g.fillRect(px+2,py+4,TILE-6,TILE-7);
+    // 모서리 하이라이트
+    g.fillStyle='rgba(255,255,255,.08)'; g.fillRect(px+3,py+4,TILE-8,1);
+  }
+
+  function drawSeeker(){
+    const px = Math.round((seeker.x*TILE)-(TILE/2));
+    const py = Math.round((seeker.y*TILE)-(TILE/2));
+    // 본체
+    g.fillStyle = C.seekerBody; g.fillRect(px+3, py+6, 10, 6);
+    g.fillStyle = '#ffffff'; g.fillRect(px+2, py+4, 12, 6);
+    // 눈
+    g.fillStyle = C.seekerEye; g.fillRect(px+5, py+6, 2, 2); g.fillRect(px+9, py+6, 2, 2);
+    // 팔(검은색)
+    g.fillStyle = '#111'; g.fillRect(px+1, py+8, 2,3); g.fillRect(px+13, py+8, 2,3);
+  }
+
+  function drawPlayer(p){
+    const px = Math.round((p.x*TILE)-(TILE/2));
+    const py = Math.round((p.y*TILE)-(TILE/2));
+    // 그림자
+    g.fillStyle=C.shadow; g.fillRect(px+2, py+TILE-2, TILE-4, 2);
+    // 몸통 (주황)
+    g.fillStyle = C.player; g.fillRect(px+4, py+5, 8, 7);
+    // 머리/테두리 어둡게
+    g.fillStyle = C.playerDark; g.fillRect(px+4, py+4, 8, 2);
+    // 눈 (한 픽셀 깜박)
+    if(((p.anim*10)|0)%20<10){ g.fillStyle='#000'; g.fillRect(px+6, py+7, 1,1); g.fillRect(px+9, py+7, 1,1); }
+  }
+
+  // ===== 루프 =====
+  let last=0; function loop(t){ requestAnimationFrame(loop); const dt=Math.min(32,(t-last)||16); last=t; update(dt/16); render(); }
+
+  function update(dt){
+    // 입력 방향 (1P 기준 – 여러 명이면 동일 입력 공유 / 추후 분리 가능)
+    let ax=0, ay=0; if(keys.has('a')||keys.has('arrowleft')) ax-=1; if(keys.has('d')||keys.has('arrowright')) ax+=1; if(keys.has('w')||keys.has('arrowup')) ay-=1; if(keys.has('s')||keys.has('arrowdown')) ay+=1; ax+=joy.ax; ay+=joy.ay; const m=Math.hypot(ax,ay)||1; ax/=m; ay/=m;
+    for(const p of players){ if(!p.alive) continue; moveEntity(p, ax, ay); p.anim += dt; }
+
+    // 술래 AI
+    stepSeeker();
+
+    // 충돌 체크 (잡히면 탈락)
+    for(const p of players){ if(!p.alive) continue; if(dist(p,seeker) < 0.6){ p.alive=false; }
     }
-    const grad = gx.createRadialGradient(W/2,H/2, H*0.1, W/2,H/2, H*0.66); grad.addColorStop(0, 'rgba(0,0,0,0)'); grad.addColorStop(1, 'rgba(0,0,0,.38)'); gx.fillStyle=grad; gx.fillRect(0,0,W,H);
-    if (whisperAlpha>0 && whisperText){ gx.save(); gx.globalAlpha = Math.max(0, Math.min(1, whisperAlpha)); gx.font='8px ui-monospace, monospace'; gx.textAlign='center'; gx.textBaseline='bottom'; const lines = wrapText(gx, whisperText, W*0.7); for (let i=0;i<lines.length;i++){ const y = H-12 - (lines.length-1-i)*10; gx.fillStyle='rgba(0,0,0,.55)'; gx.fillRect(W/2- (gx.measureText(lines[i]).width/2 +6), y-9, gx.measureText(lines[i]).width+12, 12); gx.fillStyle='#e6e2e8'; gx.fillText(lines[i], W/2, y);} gx.restore(); }
   }
-
-  function wrapText(ctx, text, max){ const words = text.split(' '); const out=[]; let line=''; for (const w of words){ const test = line? line+" "+w : w; if (ctx.measureText(test).width>max){ out.push(line); line=w; } else line=test;} if (line) out.push(line); return out; }
 
   function render(){
-    g.fillStyle= '#0a0b10'; g.fillRect(0,0,W,H);
-    const jitterX = (Math.random()-0.5)*cam.shake; const jitterY=(Math.random()-0.5)*cam.shake; const cx = (cam.x|0)+jitterX; const cy=(cam.y|0)+jitterY;
-    for(let i=0;i<80;i++){ g.fillStyle = (i%7? 'rgba(255,255,255,.03)':'rgba(255,180,200,.03)'); const nx = ((Math.random()*W)|0), ny=((Math.random()*H)|0); g.fillRect(nx,ny,1,1); }
-    const view = {x:cx, y:cy, w:W, h:H};
-    for(const s of world.stones){ if (!(s.x-6 + s.w+12 < view.x || s.x-6 > view.x+view.w || s.y-6 + s.h+12 < view.y || s.y-6 > view.y+view.h)) drawStone(s, cx, cy); }
-    const fxp = (player.x - cx - 6)|0; const fyp = (player.y - cy - 14)|0; const moving = (Math.hypot(player.vx,player.vy)>0.05); const frame = moving? ((player.walkT*8|0)%2):0; drawHuman(fxp, fyp, player.dir, frame);
-    drawFog(cx,cy); postProcess();
+    drawBoard();
+    // 엔티티
+    drawSeeker();
+    for(const p of players) if(p.alive) drawPlayer(p);
+
+    // 남은 플레이어 수/상태
+    const alive = players.filter(p=>p.alive).length;
+    g.fillStyle = 'rgba(0,0,0,.55)'; g.fillRect(8,8,60,10);
+    g.fillStyle = '#ddd'; g.font = '8px ui-monospace, monospace'; g.fillText('PLAYERS '+alive, 12, 16);
+
+    if(alive===0){ g.fillStyle='rgba(0,0,0,.6)'; g.fillRect(0,0,game.width,game.height); g.fillStyle='#fff'; g.font='12px ui-monospace, monospace'; g.fillText('CAUGHT! tap to retry', 70, 128); }
   }
 
-  window.addEventListener('keydown', (e)=>{ if(e.key.toLowerCase()==='e') tryListen(); });
+  // 탭으로 리스타트
+  game.addEventListener('pointerdown', ()=>{
+    if(players.every(p=>!p.alive)){
+      players.forEach((p,i)=>{ p.x=13.5 - i*0.8; p.y=2.5 + i*0.6; p.alive=true; p.anim=0; });
+      seeker.x=8.5; seeker.y=8.5; seeker.t=0;
+    }
+  });
+
   fit(); requestAnimationFrame(loop);
 })();
 </script>
