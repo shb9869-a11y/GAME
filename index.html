@@ -23,11 +23,11 @@
   canvas{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
          image-rendering:pixelated;image-rendering:crisp-edges;touch-action:none;}
 
-  .badge{position:absolute;right:calc(10px + var(--safe-right));top:calc(8px + var(--safe-top));
-         font-size:12px;opacity:.8;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.15);
-         padding:4px 8px;border-radius:8px; display:none;}
+  .badge{position:absolute;left:calc(12px + var(--safe-left));top:calc(8px + var(--safe-top));
+         font-size:12px;opacity:.95;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.15);
+         padding:6px 10px;border-radius:8px; display:none;white-space:nowrap;}
   .btnE{position:absolute;right:calc(16px + var(--safe-right));bottom:calc(16px + var(--safe-bot));
-         width:120px;height:52px;border-radius:12px;border:1px solid rgba(255,255,255,.25);
+         width:140px;height:52px;border-radius:12px;border:1px solid rgba(255,255,255,.25);
          background:rgba(0,0,0,.38);color:#fff;display:none;place-items:center;font:600 13px ui-monospace,monospace;}
   .dialog{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.55);}
   .dialog .box{min-width:260px;max-width:86vw;background:#1b142a;color:#eee;border:1px solid rgba(255,255,255,.2);border-radius:10px;padding:12px;box-shadow:0 10px 24px rgba(0,0,0,.6);font:12px/1.6 ui-monospace,monospace;}
@@ -79,7 +79,7 @@
     <div id="intro" class="intro" role="dialog" aria-modal="true">
       <div class="title">
         <span class="big">GRAVE RUN</span>
-        <span class="sub">비석의 방으로 들어가 귀를 기울여 주세요</span>
+        <span class="sub">빛(듣기)과 삶(말/기억)의 관계를 그리며, 공간을 생성하세요</span>
       </div>
 
       <div class="panel">
@@ -89,7 +89,8 @@
           <li>데스크톱: <b>WASD/화살표</b>, 상호작용 <b>E</b></li>
         </ul>
         <div style="opacity:.75;margin-top:10px">
-          시작을 누르면 전체화면 및 오디오가 활성화됩니다.
+          <b>3분</b> 동안 빛과 삶을 겹치게 만들어 공간을 최대한 창조해 보세요.<br/>
+          비석/전화기와 상호작용하면 ‘삶’의 펄스가 커져 빠르게 자랍니다.
         </div>
       </div>
 
@@ -100,7 +101,10 @@
     </div>
 
     <!-- Game -->
-    <canvas id="game" width="256" height="256"></canvas>
+    <canvas id="game" width="256" height="256" aria-label="Game canvas"></canvas>
+
+    <!-- Light overlay (additive glow) -->
+    <canvas id="glow" width="256" height="256" aria-hidden="true"></canvas>
 
     <!-- D-Pad -->
     <div class="dpad" id="dpad" aria-hidden="false">
@@ -117,7 +121,7 @@
       <div class="cell"></div>
     </div>
 
-    <div class="badge" id="badge">ROOM: 비석의 방 · 하단 출구 → 전화기의 방</div>
+    <div class="badge" id="badge">TIME 03:00 • BUILT 0%</div>
     <button id="btnE" class="btnE">E: 상호작용</button>
 
     <div id="dialog" class="dialog" role="dialog" aria-modal="true">
@@ -149,7 +153,7 @@
   const SFX={
     ui(){beep({freq:550,dur:0.07,vol:0.25});},
     step(i=0){beep({freq:i%2?520:460,dur:0.06,vol:0.2});},
-    interact(){beep({freq:900,dur:0.08,vol:0.26});beep({freq:1300,dur:0.08,vol:0.22,slide:0.8});},
+    interact(){beep({freq:900,dur:0.08,vol:0.26});beep({freq:1300,dur:0.08,vol:0.22,slide=0.8});},
     select(){beep({freq:660,dur:0.07,vol:0.22});},
     ring(){beep({freq:660,type:'square',dur:0.12,vol:0.28}); setTimeout(()=>beep({freq:660,type:'square',dur:0.12,vol:0.28}),140);}
   };
@@ -163,31 +167,35 @@
 
   btnStart.addEventListener('click', async ()=>{
     SFX.ui();
-    // 풀스크린(가능한 경우)
     const el=document.documentElement;
     if(!document.fullscreenElement && el.requestFullscreen) { try{ await el.requestFullscreen(); }catch(e){} }
     await unlockAudio();
-
-    // 모바일이면 D-패드 표시
     if (matchMedia('(pointer: coarse)').matches) dpad.style.display='grid';
     badge.style.display='block';
-
-    // 페이드아웃 후 시작
     intro.classList.add('fade-out');
     setTimeout(()=>{ intro.style.display='none'; startGame(); }, 450);
   });
 
   btnHow.addEventListener('click', ()=>{
     SFX.ui();
-    alert("비석의 방에서 로봇과 대화하고 비석/전화기에 귀 기울이세요.\n하단 통로로 다음 방을 드나들 수 있습니다.");
+    alert("3분 안에 더 많은 공간을 ‘자라게’ 하세요.\n- 당신의 이동=빛, 비석/전화기와의 상호작용=삶.\n- 빛과 삶이 겹칠수록 공간은 빠르게 생성됩니다.");
   });
 
-  /* ---------- Game (이하 기존 로직) ---------- */
-  const wrap=document.getElementById('wrap'), game=document.getElementById('game');
+  /* ---------- Game core ---------- */
+  const wrap=document.getElementById('wrap'),
+        game=document.getElementById('game'),
+        glow=document.getElementById('glow');
   const g=game.getContext('2d',{alpha:false}); g.imageSmoothingEnabled=false;
+  const gl=glow.getContext('2d',{alpha:true}); gl.imageSmoothingEnabled=false;
   const TILE=16, MAP_W=16, MAP_H=16;
 
-  function fit(){ const {clientWidth:cw,clientHeight:ch}=wrap; const s=Math.max(1,Math.floor(Math.min(cw/game.width,ch/game.height))); game.style.width=(game.width*s)+'px'; game.style.height=(game.height*s)+'px'; }
+  function fit(){
+    const {clientWidth:cw,clientHeight:ch}=wrap;
+    const s=Math.max(1,Math.floor(Math.min(cw/game.width,ch/game.height)));
+    const w=(game.width*s)+'px', h=(game.height*s)+'px';
+    game.style.width=w; game.style.height=h;
+    glow.style.width=w; glow.style.height=h;
+  }
   new ResizeObserver(fit).observe(wrap); fit();
 
   const C={ bg:'#201335', plate:'#6d58a5', plate2:'#584787', border:'#2a2144', dot:'#3a2c5d',
@@ -264,7 +272,7 @@
     {npc:"마지막 질문. 너는 왜 계속 걷고 있어?",choices:["누군가의 잔향을 찾고 있어.","멈추면, 들리지 않을까 봐."],replies:["그 잔향이 네 지도를 바꿀 거야.","걷는 침묵은 언제나 열려 있지."]}
   ];
   let inConvo=false, stepIdx=0;
-  function openRobotConvo(){ inConvo=true; stepIdx=0; renderConvoStep(); dialog.style.display='flex'; SFX.interact(); }
+  function openRobotConvo(){ inConvo=true; stepIdx=0; renderConvoStep(); dialog.style.display='flex'; SFX.interact(); lifePulse(seeker.x|0, seeker.y|0, room); }
   function renderConvoStep(){
     dgTitle.textContent='로봇(비석의 방 순찰)'; const s=convo[stepIdx];
     dgBody.innerHTML=`<div style="white-space:pre-wrap">${s.npc}</div>`; dgChoices.innerHTML='';
@@ -336,11 +344,127 @@
     g.fillStyle=C.shadow; g.fillRect(px+2,py+TILE-2,TILE-4,2); g.fillStyle=C.player; g.fillRect(px+4,py+5,8,7);
     g.fillStyle=C.playerDark; g.fillRect(px+4,py+4,8,2); if(((p.anim*10)|0)%20<10){ g.fillStyle='#000'; g.fillRect(px+6,py+7,1,1); g.fillRect(px+9,py+7,1,1);} }
 
-  // Loop (start after pressing '시작하기')
-  let started=false, last=0;
-  function loop(t){ if(!started) return; requestAnimationFrame(loop); const dt=Math.min(32,(t-last)||16); last=t; update(dt/16); render(); }
+  /* ======= Light/Life growth system ======= */
+  const light=Array.from({length:MAP_H},()=>Float32Array.from({length:MAP_W},()=>0));
+  const life =Array.from({length:MAP_H},()=>Float32Array.from({length:MAP_W},()=>0));
+  const built=Array.from({length:MAP_H},()=>Array(MAP_W).fill(false));
+
+  // 후보 타일(벽이 아닌, 실제로 ‘공간’으로 자랄 수 있는 영역)
+  function isCandidateTile(r,x,y){
+    if(x<0||y<0||x>=MAP_W||y>=MAP_H) return false;
+    if(r===0) return LEVEL0[y][x]===0; // 비석의 방: 빈 바닥
+    // 전화기의 방: 바닥(0)이며 전화기 없음
+    return LEVEL1[y][x]===0 && !phoneSet.has(`${x},${y}`);
+  }
+
+  const THRESH=22;              // 생장 임계치 (light + life)
+  const LIGHT_ADD=0.9;          // 플레이어가 남기는 빛
+  const LIGHT_DECAY=0.985;      // 프레임별 빛 감쇠
+  const LIFE_DECAY=0.995;       // 프레임별 삶 감쇠
+  const PULSE_POWER=14;         // 상호작용 시 삶 펄스
+
+  function addLight(px,py){
+    const tx=px|0, ty=py|0;
+    for(let dy=-1; dy<=1; dy++){
+      for(let dx=-1; dx<=1; dx++){
+        const x=tx+dx, y=ty+dy; if(x<0||y<0||x>=MAP_W||y>=MAP_H) continue;
+        light[y][x]+= LIGHT_ADD * (dx===0&&dy===0 ? 1.0 : 0.45);
+      }
+    }
+  }
+
+  function lifePulse(cx,cy,roomNow){
+    // 반경 3 타일 정도로 확산
+    for(let y=cy-3; y<=cy+3; y++){
+      for(let x=cx-3; x<=cx+3; x++){
+        if(x<0||y<0||x>=MAP_W||y>=MAP_H) continue;
+        const d = Math.hypot(x-cx,y-cy);
+        if(d<=3 && isCandidateTile(roomNow,x,y)) life[y][x]+= PULSE_POWER * (1 - d/3);
+      }
+    }
+  }
+
+  function stepGrowth(){
+    let grown=0, total=0;
+    for(let y=0;y<MAP_H;y++){
+      for(let x=0;x<MAP_W;x++){
+        // 감쇠
+        light[y][x]*=LIGHT_DECAY;
+        life [y][x]*=LIFE_DECAY;
+
+        if(isCandidateTile(room,x,y)){
+          total++;
+          if(!built[y][x] && (light[y][x]+life[y][x])>=THRESH){
+            built[y][x]=true; // 공간이 ‘생장’
+          }
+          if(built[y][x]) grown++;
+        }
+      }
+    }
+    return {grown,total};
+  }
+
+  // 빛 오라 그리기
+  function renderGlow(){
+    gl.clearRect(0,0,glow.width,glow.height);
+    gl.globalCompositeOperation='lighter';
+    for(let y=0;y<MAP_H;y++){
+      for(let x=0;x<MAP_W;x++){
+        const L = light[y][x]; if(L<1) continue;
+        const alpha = Math.min(0.35, L/50);
+        gl.fillStyle = `rgba(130,180,255,${alpha})`;
+        gl.fillRect(x*TILE+3,y*TILE+3,TILE-6,TILE-6);
+      }
+    }
+    // 플레이어 주변 즉시빛
+    gl.fillStyle='rgba(255,200,120,0.25)';
+    gl.beginPath();
+    gl.arc(player.x*TILE, player.y*TILE, 9, 0, Math.PI*2);
+    gl.fill();
+    gl.globalCompositeOperation='source-over';
+  }
+
+  // ‘생장된’ 문양 오버프린트
+  function renderBuilt(){
+    for(let y=0;y<MAP_H;y++){
+      for(let x=0;x<MAP_W;x++){
+        if(!built[y][x]) continue;
+        // 보라빛 새김무늬와 라인
+        g.fillStyle='rgba(255,240,255,0.08)';
+        g.fillRect(x*TILE+2,y*TILE+2,TILE-4,1);
+        g.fillStyle='#8d79d6';
+        g.fillRect(x*TILE+4,y*TILE+4,TILE-8,1);
+        g.fillRect(x*TILE+4,y*TILE+TILE-5,TILE-8,1);
+        g.fillRect(x*TILE+4,y*TILE+6,1,TILE-12);
+        g.fillRect(x*TILE+TILE-5,y*TILE+6,1,TILE-12);
+      }
+    }
+  }
+
+  /* ======= Timer ======= */
+  const TIMER_MS = 3*60*1000; // 3분
+  let remainMs = TIMER_MS;
+  let started=false, finished=false, last=0;
+
+  function fmt(ms){
+    const s = Math.max(0, Math.floor(ms/1000));
+    const mm = String((s/60)|0).padStart(2,'0');
+    const ss = String(s%60).padStart(2,'0');
+    return `${mm}:${ss}`;
+  }
+
+  function loop(t){
+    if(!started) return;
+    requestAnimationFrame(loop);
+    const dtms=Math.min(32,(t-last)||16); last=t;
+    update(dtms/16); // keep existing scale (1 = 16ms)
+    render();
+  }
 
   function update(dt){
+    if(finished) return;
+
+    // ===== 이동/입력
     let ax=0, ay=0;
     if(keys.has('a')||keys.has('arrowleft')) ax-=1; if(keys.has('d')||keys.has('arrowright')) ax+=1;
     if(keys.has('w')||keys.has('arrowup')) ay-=1; if(keys.has('s')||keys.has('arrowdown')) ay+=1;
@@ -351,32 +475,69 @@
     player.anim+=dt;
     if(moving){ player.stepTimer+=dt*1000; if(player.stepTimer>=180){ player.stepTimer=0; SFX.step(player.stepPhase++); } } else player.stepTimer=0;
 
+    // ===== 빛 추가(플레이어)
+    addLight(player.x, player.y);
+
+    // ===== 로봇 순찰
     seekerObj.step();
 
+    // ===== 방 전환
     if((player.y|0)===MAP_H-1 && (player.x|0)>=6 && (player.x|0)<=9){
       room = room===0 ? 1 : 0;
-      badge.textContent = room===0 ? 'ROOM: 비석의 방 · 하단 출구 → 전화기의 방' : 'ROOM: 전화기의 방 · 하단 출구 → 비석의 방';
       player.x=8.5; player.y=14.2; inConvo=false; dialog.style.display='none'; dgChoices.innerHTML='';
+      // 방 전환시 약간의 주변 빛 잔상
+      lifePulse(player.x|0, player.y|0, room);
     }
 
-    // 상호작용
+    // ===== 상호작용
     let label="", action=null;
     if(room===0){
       if(!inConvo && Math.hypot(player.x-seeker.x, player.y-seeker.y)<0.85){ label='E: 로봇과 대화'; action=()=> openRobotConvo(); }
       else{ const ng=nearestGrave(player.x,player.y);
-        if(ng.grave && ng.dist<1.1){ label='E: 비석에 귀 기울이기'; action=()=>{ SFX.interact(); dgTitle.textContent='비석의 기록'; dgBody.textContent=graveText(ng.grave.x,ng.grave.y); dgChoices.innerHTML=''; dialog.style.display='flex'; }; } }
+        if(ng.grave && ng.dist<1.1){ label='E: 비석에 귀 기울이기'; action=()=>{ SFX.interact(); dgTitle.textContent='비석의 기록'; dgBody.textContent=graveText(ng.grave.x,ng.grave.y); dgChoices.innerHTML=''; dialog.style.display='flex'; lifePulse(ng.grave.x, ng.grave.y, room); }; } }
     }else{
       const np=nearestPhone(player.x,player.y);
-      if(np.phone && np.dist<1.1){ label='E: 수화기 들기'; action=()=>{ SFX.ring(); dgTitle.textContent='전화기의 방'; dgBody.textContent='...여보세요? (침묵 속의 목소리가 미세하게 울린다)'; dgChoices.innerHTML=''; dialog.style.display='flex'; }; }
+      if(np.phone && np.dist<1.1){ label='E: 수화기 들기'; action=()=>{ SFX.ring(); dgTitle.textContent='전화기의 방'; dgBody.textContent='...여보세요? (침묵 속의 목소리가 미세하게 울린다)'; dgChoices.innerHTML=''; dialog.style.display='flex'; lifePulse(np.phone.x, np.phone.y, room); }; }
     }
     const btn=document.getElementById('btnE');
     if(action){ btn.style.display='grid'; btn.textContent=label; btn.onclick=action; } else { btn.style.display='none'; btn.onclick=null; }
+
+    // ===== 성장 스텝
+    const {grown,total}=stepGrowth();
+
+    // ===== 타이머
+    remainMs -= dt*16;
+    if(remainMs<=0){
+      remainMs=0;
+      finished=true;
+      endGame(grown,total);
+    }
+
+    // ===== 배지 업데이트
+    const pct = total? Math.round((grown/total)*100) : 0;
+    const where = room===0 ? '비석의 방' : '전화기의 방';
+    badge.textContent = `TIME ${fmt(remainMs)} • BUILT ${String(pct).padStart(2,'0')}% • ROOM ${where}`;
   }
 
   function render(){
     g.clearRect(0,0,game.width,game.height);
     g.drawImage(room===0 ? layer0 : layer1, 0, 0);
-    drawSeeker(); drawPlayer(player);
+    renderBuilt();              // 생장 문양
+    drawSeeker();               // 로봇
+    drawPlayer(player);         // 플레이어
+    renderGlow();               // 빛 오라(글로우)
+  }
+
+  function endGame(grown,total){
+    // 결과 다이얼로그
+    const pct = total? Math.round((grown/total)*100) : 0;
+    dialog.style.display='flex';
+    dgTitle.textContent='세션 종료 — 빛과 삶의 지도';
+    dgBody.innerHTML = `3분이 끝났습니다.\n\n생성된 공간: ${pct}%\n빛(이동)과 삶(상호작용)이 겹친 자리에서 공간이 자라났습니다.\n\n다시 시도하여 다른 ‘지도’를 만들어 보세요.`;
+    dgChoices.innerHTML='';
+    const again=document.createElement('button'); again.textContent='다시 시작';
+    again.onclick=()=>{ location.reload(); };
+    dgChoices.appendChild(again);
   }
 
   // Start game function
