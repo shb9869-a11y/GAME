@@ -3,30 +3,40 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
-<title>Grave Run — Life</title>
+<title>Grave Run — 접속</title>
+<title>Grave Run — Entrance</title>
 <meta name="theme-color" content="#140c1c" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <meta name="apple-mobile-web-app-title" content="Grave Run" />
 <style>
-  :root{
+:root{
+    --bg:#0a0812; --fg:#eae6ff; --muted:#b9b4d6; --accent:#ff7a33;
     --bg:#0a0812; --fg:#eae6ff; --accent:#ff7a33;
-    --safe-top: env(safe-area-inset-top, 0px);
-    --safe-bot: env(safe-area-inset-bottom, 0px);
-    --safe-left: env(safe-area-inset-left, 0px);
-    --safe-right: env(safe-area-inset-right, 0px);
-  }
+--safe-top: env(safe-area-inset-top, 0px);
+--safe-bot: env(safe-area-inset-bottom, 0px);
+--safe-left: env(safe-area-inset-left, 0px);
+--safe-right: env(safe-area-inset-right, 0px);
+}
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0;background:var(--bg);color:var(--fg);
+    font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;}
+  .wrap{
+    min-height:100svh; display:grid; place-items:center;
+    padding:calc(16px + var(--safe-top)) calc(16px + var(--safe-right))
+             calc(16px + var(--safe-bot)) calc(16px + var(--safe-left));
   html,body{height:100%;margin:0;background:var(--bg);color:var(--fg);}
   body{display:grid;place-items:center;font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;}
   #wrap{position:relative;width:100vw;height:100svh;overflow:hidden;background:var(--bg);
         padding:var(--safe-top) var(--safe-right) var(--safe-bot) var(--safe-left);}
   canvas{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
          image-rendering:pixelated;image-rendering:crisp-edges;touch-action:none;}
-  .badge{position:absolute;left:calc(12px + var(--safe-left));top:calc(8px + var(--safe-top));
-         font-size:12px;opacity:.95;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.15);
-         padding:6px 10px;border-radius:8px; display:none;white-space:nowrap;}
+
+  .badge{position:absolute;right:calc(10px + var(--safe-right));top:calc(8px + var(--safe-top));
+         font-size:12px;opacity:.8;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.15);
+         padding:4px 8px;border-radius:8px; display:none;}
   .btnE{position:absolute;right:calc(16px + var(--safe-right));bottom:calc(16px + var(--safe-bot));
-         width:140px;height:52px;border-radius:12px;border:1px solid rgba(255,255,255,.25);
+         width:120px;height:52px;border-radius:12px;border:1px solid rgba(255,255,255,.25);
          background:rgba(0,0,0,.38);color:#fff;display:none;place-items:center;font:600 13px ui-monospace,monospace;}
   .dialog{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.55);}
   .dialog .box{min-width:260px;max-width:86vw;background:#1b142a;color:#eee;border:1px solid rgba(255,255,255,.2);border-radius:10px;padding:12px;box-shadow:0 10px 24px rgba(0,0,0,.6);font:12px/1.6 ui-monospace,monospace;}
@@ -34,12 +44,16 @@
   .choices{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;}
   .choices button{padding:6px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.25);background:#33265a;color:#fff;font:600 12px ui-monospace,monospace;}
 
-  /* D-Pad */
+  /* ===== D-Pad ===== */
   .dpad{
     position:absolute;left:calc(16px + var(--safe-left));bottom:calc(16px + var(--safe-bot));
     width:196px;height:196px;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);
     gap:10px;opacity:.96;filter:drop-shadow(0 2px 8px rgba(0,0,0,.6));touch-action:none; display:none;
-  }
+}
+  .card{
+    width:min(720px,94vw); background:rgba(255,255,255,.03);
+    border:1px solid rgba(255,255,255,.14); border-radius:16px;
+    box-shadow:0 12px 32px rgba(0,0,0,.45); padding:20px;
   .dpad .cell{display:grid;place-items:center;}
   .dpad button{
     width:100%;height:100%;min-width:0;min-height:0;border-radius:14px;
@@ -47,14 +61,21 @@
     font:700 14px ui-monospace,monospace;letter-spacing:.2px;user-select:none;-webkit-user-select:none;
   }
   .dpad button:active{background:rgba(255,255,255,.2);}
-  @media (pointer:fine){ .dpad{display:none;} }
+  @media (pointer:fine){ .dpad{display:none;} } /* 데스크톱: 숨김(키보드 사용) */
 
-  /* Intro */
+  /* ===== Intro screen ===== */
   .intro{
     position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
     gap:20px;background:radial-gradient(120vmax 120vmax at 50% 40%, #1b122a 0%, #0a0812 60%);
     z-index:10;
-  }
+}
+  h1{margin:0 0 6px; font-size:20px; letter-spacing:.3px}
+  .sub{opacity:.75; font-size:12px; margin-bottom:16px}
+  .row{display:grid; grid-template-columns:140px 1fr; gap:10px; align-items:center; margin:10px 0}
+  .row label{font-weight:700; font-size:12px; color:var(--muted)}
+  input,select{
+    width:100%; padding:10px 12px; border-radius:12px; border:1px solid rgba(255,255,255,.16);
+    background:rgba(255,255,255,.06); color:#fff; font:600 13px ui-monospace,monospace;
   .intro .title{font-weight:800;letter-spacing:.08em;text-align:center;}
   .intro .title .big{display:block;font-size: clamp(28px, 8vmin, 64px);}
   .intro .title .sub{display:block;margin-top:6px;font-size: clamp(12px, 2.2vmin, 16px);opacity:.8}
@@ -62,46 +83,85 @@
     width:min(720px, 88vw);
     background:rgba(0,0,0,.35); border:1px solid rgba(255,255,255,.15); border-radius:16px;
     padding:16px; text-align:left; font-size:12px; line-height:1.6;
-  }
+}
+  .hint{font-size:11px; opacity:.7; margin-top:4px}
+  .controls{display:flex; gap:10px; flex-wrap:wrap; margin-top:14px}
+  .btn{
+    padding:12px 16px; border-radius:12px; border:1px solid rgba(255,255,255,.22);
+    background:rgba(255,255,255,.08); color:#fff; font:800 13px ui-monospace,monospace;
+    letter-spacing:.3px; cursor:pointer; user-select:none;
   .intro .row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:6px}
   .intro button{
     padding:10px 16px;border-radius:12px;border:1px solid rgba(255,255,255,.25);
     background:#33265a;color:#fff;font:700 14px ui-monospace,monospace;
-  }
+}
+  .btn.primary{background:linear-gradient(180deg,#ff7a33,#b74f14); border-color:rgba(0,0,0,.35)}
+  .btn:active{transform:translateY(1px)}
+  .footer{display:flex; justify-content:space-between; align-items:center; margin-top:16px; font-size:11px; opacity:.75}
+  .badge{padding:4px 8px; border-radius:10px; border:1px solid rgba(255,255,255,.16); background:rgba(255,255,255,.06)}
+  .kbd{padding:2px 6px; border-radius:6px; border:1px solid rgba(255,255,255,.2); opacity:.9}
   .fade-out{animation: fade .45s ease forwards}
   @keyframes fade{to{opacity:0;visibility:hidden}}
 </style>
 </head>
 <body>
+<div class="wrap">
+  <div class="card">
+    <h1>Grave Run — 접속</h1>
+    <div class="sub">비석의 방 → 전화기의 방. 터치 D-Pad 또는 키보드(↑↓←→ / WASD)로 이동.</div>
+
+    <div class="row">
+      <label for="player">플레이어 이름</label>
+      <div>
+        <input id="player" placeholder="예: guest" maxlength="16" />
+        <div class="hint">선택 사항. 대화/로그에 이름이 표기됩니다.</div>
   <div id="wrap">
-    <!-- Intro -->
+    <!-- Intro / 첫 페이지 -->
     <div id="intro" class="intro" role="dialog" aria-modal="true">
       <div class="title">
-        <span class="big">GRAVE RUN — LIFE</span>
-        <span class="sub">콘웨이의 생명 게임으로 ‘공간’을 기르는 3분 실험</span>
-      </div>
-
-      <div class="panel">
-        <b>룰</b>
-        <ul style="margin:8px 0 0 18px;padding:0">
-          <li>모바일: 좌하단 D-패드 / 데스크톱: <b>WASD/화살표</b>, <b>E</b> 상호작용</li>
-          <li>당신이 밟는 칸은 살아납니다(Seed)</li>
-          <li>한 세대마다 콘웨이 규칙으로 전체가 갱신됩니다 (2~3 생존, 3 탄생)</li>
-          <li>비석/전화기에서 <b>E</b>: 작은 패턴(글라이더/블링커/토드) 삽입</li>
-        </ul>
-        <div style="opacity:.75;margin-top:10px">
-          3분 동안 생명/패턴을 퍼뜨려 생존율을 높여 보세요.
-        </div>
-      </div>
-
-      <div class="row">
-        <button id="btnStart">시작하기</button>
-        <button id="btnHow">세계관</button>
-      </div>
+        <span class="big">GRAVE RUN</span>
+        <span class="sub">비석의 방으로 들어가 귀를 기울여 주세요</span>
+</div>
     </div>
 
+    <div class="row">
+      <label for="target">게임 페이지 파일</label>
+      <div>
+        <input id="target" value="game.html" />
+        <div class="hint">현재 제공한 게임 파일명을 입력하세요. (예: <b>game.html</b> / <b>grave-run.html</b>)</div>
+      <div class="panel">
+        <b>조작</b>
+        <ul style="margin:8px 0 0 18px;padding:0">
+          <li>모바일: 화면 좌하단 D-패드(상·하·좌·우)</li>
+          <li>데스크톱: <b>WASD/화살표</b>, 상호작용 <b>E</b></li>
+        </ul>
+        <div style="opacity:.75;margin-top:10px">
+          시작을 누르면 전체화면 및 오디오가 활성화됩니다.
+        </div>
+</div>
+    </div>
+
+    <div class="row">
+      <label for="room">시작 위치</label>
+      <select id="room">
+        <option value="0" selected>비석의 방</option>
+        <option value="1">전화기의 방</option>
+      </select>
+      <div class="row">
+        <button id="btnStart">시작하기</button>
+        <button id="btnHow">세계관 요약</button>
+      </div>
+</div>
+
+    <div class="row">
+      <label for="sfx">사운드</label>
+      <select id="sfx">
+        <option value="1" selected>켜기</option>
+        <option value="0">끄기</option>
+      </select>
+    </div>
     <!-- Game -->
-    <canvas id="game" width="256" height="256" aria-label="Game canvas"></canvas>
+    <canvas id="game" width="256" height="256"></canvas>
 
     <!-- D-Pad -->
     <div class="dpad" id="dpad" aria-hidden="false">
@@ -109,6 +169,10 @@
       <div class="cell"><button data-dir="up">▲</button></div>
       <div class="cell"></div>
 
+    <div class="controls">
+      <button class="btn" id="how">조작법 보기</button>
+      <button class="btn" id="fs">전체화면 테스트</button>
+      <button class="btn primary" id="start">게임 시작</button>
       <div class="cell"><button data-dir="left">◀</button></div>
       <div class="cell"></div>
       <div class="cell"><button data-dir="right">▶</button></div>
@@ -116,9 +180,15 @@
       <div class="cell"></div>
       <div class="cell"><button data-dir="down">▼</button></div>
       <div class="cell"></div>
-    </div>
+</div>
 
-    <div class="badge" id="badge">TIME 03:00 • GEN 0 • LIVE 0%</div>
+    <div class="footer">
+      <span class="badge">권장: 세로 화면 · 터치 허용 필요</span>
+      <span>
+        키보드: <span class="kbd">WASD</span>/<span class="kbd">↑↓←→</span>,
+        상호작용: <span class="kbd">E</span>
+      </span>
+    <div class="badge" id="badge">ROOM: 비석의 방 · 하단 출구 → 전화기의 방</div>
     <button id="btnE" class="btnE">E: 상호작용</button>
 
     <div id="dialog" class="dialog" role="dialog" aria-modal="true">
@@ -127,17 +197,88 @@
         <div id="dgBody">...</div>
         <div id="dgChoices" class="choices"></div>
       </div>
-    </div>
-  </div>
+</div>
+</div>
+</div>
 
 <script>
+/* --------- 8bit SFX (click/confirm) --------- */
+let AC, gain, audioUnlocked=false;
+function initAudio(){
+  if(audioUnlocked) return;
+  AC=new (window.AudioContext||window.webkitAudioContext)();
+  gain=AC.createGain(); gain.gain.value=0.22; gain.connect(AC.destination);
+  audioUnlocked=true;
+}
+async function unlockAudio(){ try{ initAudio(); if(AC.state==='suspended') await AC.resume(); }catch(e){} }
+['pointerdown','touchstart','keydown'].forEach(ev=>addEventListener(ev,unlockAudio,{passive:true}));
+
+function beep(freq=660, dur=0.08, vol=0.28){
+  if(!audioUnlocked) return;
+  const t=AC.currentTime;
+  const o=AC.createOscillator(); const g=AC.createGain();
+  o.type='square'; o.frequency.setValueAtTime(freq,t);
+  g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(vol,t+0.01);
+  g.gain.linearRampToValueAtTime(0.0001,t+dur+0.06);
+  o.connect(g); g.connect(gain); o.start(t); o.stop(t+dur+0.06);
+}
+const SFX={ click(){beep(600,0.06,0.24);}, confirm(){beep(760,0.08,0.26);} };
+
+/* --------- Helpers --------- */
+function isAndroid(){ return /Android/i.test(navigator.userAgent); }
+async function goFullscreen(){
+  const el=document.documentElement;
+  const anyEl=el;
+  if(anyEl.requestFullscreen){ try{ await anyEl.requestFullscreen(); }catch(e){} }
+}
+function startGame(){
+  const target = (document.getElementById('target').value || 'game.html').trim();
+  const player = (document.getElementById('player').value || '').trim();
+  const room   = document.getElementById('room').value;
+  const sfx    = document.getElementById('sfx').value;
+  // 클릭 사운드
+  if(sfx==='1') SFX.confirm();
+
+  // 안드로이드는 바로 전체화면 시도
+  if(isAndroid()) goFullscreen();
+
+  // 쿼리로 간단 설정 전달(현재 게임은 없어도 동작에 지장 없음)
+  const params = new URLSearchParams();
+  if(player) params.set('player', player);
+  params.set('room', room);
+  params.set('sfx', sfx);
+  // 이동
+  const url = target + (target.includes('?') ? '&' : '?') + params.toString();
+  location.href = url;
+}
+
+/* --------- UI bind --------- */
+document.getElementById('how').addEventListener('click', ()=>{
+  SFX.click();
+  alert(
+`조작법
+- 이동: 화면 좌하단 D-Pad (모바일) / WASD, 화살표 (데스크톱)
+- 상호작용: E 키 또는 화면 우하단 'E: 상호작용' 버튼
+- 방 이동: 하단 출구(6..9)로 내려가면 비석의 방/전화기의 방 전환`
+);
+});
+document.getElementById('fs').addEventListener('click', async ()=>{
+  SFX.click(); await goFullscreen();
+  alert('전체화면을 시도했습니다. 일부 브라우저는 사용자 상호작용 후에만 허용합니다.');
+});
+document.getElementById('start').addEventListener('click', startGame);
+
+// 편의: Enter로 시작
+addEventListener('keydown', (e)=>{
+  if(e.key==='Enter'){ e.preventDefault(); startGame(); }
+});
 (()=>{
-  /* PWA (optional) */
-  const manifest={name:"Grave Run — Life",short_name:"GraveLife",start_url:".",display:"standalone",background_color:"#140c1c",theme_color:"#140c1c"};
+  /* ====== minimal PWA (optional) ====== */
+  const manifest={name:"Grave Run",short_name:"GraveRun",start_url:".",display:"standalone",background_color:"#140c1c",theme_color:"#140c1c"};
   const mURL=URL.createObjectURL(new Blob([JSON.stringify(manifest)],{type:'application/json'}));
   const link=document.createElement('link'); link.rel='manifest'; link.href=mURL; document.head.appendChild(link);
 
-  /* SFX */
+  /* ---------- SFX ---------- */
   let AC, masterGain, unlocked=false;
   function initAudio(){ if(unlocked) return; AC=new (window.AudioContext||window.webkitAudioContext)(); masterGain=AC.createGain(); masterGain.gain.value=0.22; masterGain.connect(AC.destination); unlocked=true; }
   async function unlockAudio(){ initAudio(); try{ if(AC.state==='suspended') await AC.resume(); }catch(e){} }
@@ -151,10 +292,11 @@
     ui(){beep({freq:550,dur:0.07,vol:0.25});},
     step(i=0){beep({freq:i%2?520:460,dur:0.06,vol:0.2});},
     interact(){beep({freq:900,dur:0.08,vol:0.26});beep({freq:1300,dur:0.08,vol:0.22,slide:0.8});},
-    select(){beep({freq:660,dur:0.07,vol:0.22});}
+    select(){beep({freq:660,dur:0.07,vol:0.22});},
+    ring(){beep({freq:660,type:'square',dur:0.12,vol:0.28}); setTimeout(()=>beep({freq:660,type:'square',dur:0.12,vol:0.28}),140);}
   };
 
-  /* Intro */
+  /* ---------- Intro screen ---------- */
   const intro=document.getElementById('intro');
   const btnStart=document.getElementById('btnStart');
   const btnHow=document.getElementById('btnHow');
@@ -163,43 +305,40 @@
 
   btnStart.addEventListener('click', async ()=>{
     SFX.ui();
+    // 풀스크린(가능한 경우)
     const el=document.documentElement;
     if(!document.fullscreenElement && el.requestFullscreen) { try{ await el.requestFullscreen(); }catch(e){} }
     await unlockAudio();
+
+    // 모바일이면 D-패드 표시
     if (matchMedia('(pointer: coarse)').matches) dpad.style.display='grid';
     badge.style.display='block';
+
+    // 페이드아웃 후 시작
     intro.classList.add('fade-out');
     setTimeout(()=>{ intro.style.display='none'; startGame(); }, 450);
   });
 
   btnHow.addEventListener('click', ()=>{
     SFX.ui();
-    alert("비석의 방/전화기의 방의 바닥은 ‘셀’입니다.\n당신의 발걸음은 씨앗이 되고, 패턴은 이야기가 됩니다.\n세대가 흐르며 생과 멸이 반복됩니다.");
+    alert("비석의 방에서 로봇과 대화하고 비석/전화기에 귀 기울이세요.\n하단 통로로 다음 방을 드나들 수 있습니다.");
   });
 
-  /* Canvas & constants */
-  const wrap=document.getElementById('wrap'),
-        game=document.getElementById('game');
+  /* ---------- Game (이하 기존 로직) ---------- */
+  const wrap=document.getElementById('wrap'), game=document.getElementById('game');
   const g=game.getContext('2d',{alpha:false}); g.imageSmoothingEnabled=false;
-
   const TILE=16, MAP_W=16, MAP_H=16;
 
-  function fit(){
-    const {clientWidth:cw,clientHeight:ch}=wrap;
-    const s=Math.max(1,Math.floor(Math.min(cw/game.width,ch/game.height)));
-    const w=(game.width*s)+'px', h=(game.height*s)+'px';
-    game.style.width=w; game.style.height=h;
-  }
+  function fit(){ const {clientWidth:cw,clientHeight:ch}=wrap; const s=Math.max(1,Math.floor(Math.min(cw/game.width,ch/game.height))); game.style.width=(game.width*s)+'px'; game.style.height=(game.height*s)+'px'; }
   new ResizeObserver(fit).observe(wrap); fit();
 
   const C={ bg:'#201335', plate:'#6d58a5', plate2:'#584787', border:'#2a2144', dot:'#3a2c5d',
             grave:'#7c6ac0', graveDark:'#362a56', shadow:'rgba(0,0,0,.55)',
             seekerBody:'#aab9cc', seekerEye:'#37a5ff',
             player:'#ff7a33', playerDark:'#b74f14',
-            brick:'#70322a', brickDark:'#3a1713', phone:'#d63c2f', phoneDial:'#e9c8a8',
-            live:'#d7c7ff', liveHi:'#ffffff22' };
+            brick:'#70322a', brickDark:'#3a1713', phone:'#d63c2f', phoneDial:'#e9c8a8' };
 
-  /* Maps: 0=Grave room, 1=Phone room */
+  // Levels
   const LEVEL0=Array.from({length:MAP_H},()=>Array(MAP_W).fill(1));
   for(let y=2;y<MAP_H-1;y+=2){ for(let x=1;x<MAP_W-1;x++) LEVEL0[y][x]=0; }
   for(let x=2;x<MAP_W-1;x+=2){ for(let y=1;y<MAP_H-1;y++) LEVEL0[y][x]=0; }
@@ -215,13 +354,13 @@
   const PHONES=[[1,3],[1,6],[1,9],[1,12],[4,1],[7,1],[10,1],[14,3],[14,6],[14,9],[4,13],[7,13],[10,13],[13,13]];
   const phoneSet=new Set(PHONES.map(([x,y])=>`${x},${y}`));
 
-  /* Entities */
+  // Entities
   function makePlayer(x,y){ return {x,y,spd:0.09,anim:0,stepTimer:0,stepPhase:0}; }
-  function makeSeeker(x,y){ return {x,y,spd:0.07,path:[],target:null,repathAt:0}; } // 시각만: 죽이지 않음
+  function makeSeeker(x,y){ return {x,y,spd:0.07,path:[],target:null,repathAt:0}; }
   const player=makePlayer(13.5,2.5);
   const seeker=makeSeeker(8.5,8.5);
 
-  /* Input */
+  // Input: keyboard
   const keys=new Set(); addEventListener('keydown',e=>{const k=e.key.toLowerCase(); if(['arrowup','arrowdown','arrowleft','arrowright','w','a','s','d','e'].includes(k)) e.preventDefault(); keys.add(k);});
   addEventListener('keyup',e=> keys.delete(e.key.toLowerCase()));
 
@@ -237,7 +376,7 @@
   }
   dpad.querySelectorAll('button[data-dir]').forEach(bindDirBtn);
 
-  /* Rooms & collisions */
+  // Room/collision
   let room=0;
   function solidAt(tx,ty){
     if(tx<0||ty<0||tx>=MAP_W||ty>=MAP_H) return true;
@@ -246,145 +385,38 @@
     if(phoneSet.has(`${tx},${ty}`)) return true;
     return false;
   }
-  function isCandidateTile(r, x, y){
-    if(x<0||y<0||x>=MAP_W||y>=MAP_H) return false;
-    return r===0 ? (LEVEL0[y][x]===0) : (LEVEL1[y][x]===0 && !phoneSet.has(`${x},${y}`));
-  }
   function moveEntity(e,ax,ay){ const spd=e.spd; let nx=e.x+ax*spd, ny=e.y+ay*spd;
     if(!solidAt(nx|0, e.y|0)) e.x=nx; if(!solidAt(e.x|0, ny|0)) e.y=ny;
   }
 
-  /* UI / Dialog */
+  // UI / Dialog
   const btnE=document.getElementById('btnE'), dialog=document.getElementById('dialog');
   const dgTitle=document.getElementById('dgTitle'), dgBody=document.getElementById('dgBody'), dgChoices=document.getElementById('dgChoices');
   function closeDialog(){ dialog.style.display='none'; dgChoices.innerHTML=''; }
   dialog.addEventListener('click',(e)=>{ if(e.target===dialog) closeDialog(); });
 
-  function graveText(x,y){ const lines=["여기선 패턴이 살아 움직인다.","작은 반복이 우주를 만든다.","침묵과 규칙 사이에서 삶이 출현한다.","가까운 질서, 먼 무질서.","너의 이동이 한 세대를 바꾼다.","이야기는 주기와 간섭으로 쌓인다.","멈춤도 하나의 주기.","이왕이면 흔들리는 질서를 택하자."]; const idx=(x*31+y*17)%lines.length; return lines[idx]; }
+  function graveText(x,y){ const lines=["나는 얼굴을 잃고, 귀로만 걷는다.","빛이 고요를 문질러 소리가 났다.","오차가 감정이고, 잔향이 초상이다.","돌은 서 있고, 이야기는 흘러간다.","너와 나 사이, 빈칸이 숨을 쉰다.","시간의 모서리에 귀를 댔다.","여기 눕힌 건 말들이다.","망각의 틈에서 작은 불이 켜진다."]; const idx=(x*31+y*17)%lines.length; return lines[idx]; }
   function nearestGrave(px,py){ let best=null,bd=1e9; for(let y=0;y<MAP_H;y++) for(let x=0;x<MAP_W;x++) if(LEVEL0[y][x]===1){ const cx=x+0.5, cy=y+0.5; const d=Math.hypot(px-cx,py-cy); if(d<bd){bd=d; best={x,y,cx,cy};}} return {grave:best, dist:bd}; }
   function nearestPhone(px,py){ let best=null,bd=1e9; for(const [x,y] of PHONES){ const cx=x+0.5, cy=y+0.5; const d=Math.hypot(px-cx,py-cy); if(d<bd){bd=d; best={x,y,cx,cy};}} return {phone:best, dist:bd}; }
 
-  /* Robot convo (그대로, 상호작용 시 패턴 삽입 트리거) */
+  // Robot convo
   const convo=[
-    {npc:"……규칙이 보이니? 반복은 삶을 낳기도 죽이기도 해.",choices:["살아있는 반복.","죽음을 품은 반복."],replies:["그 주기는 빛난다.","그래도 그 끝에서 다른 패턴이 태어나지."]},
-    {npc:"여기선 작은 차이가 전체를 흔든다.",choices:["작은 씨앗 하나.","작은 타이밍 하나."],replies:["한 세대를 흔들 수 있어.","리듬이 달라지지."]},
-    {npc:"마지막으로, 네 발걸음은 어디를 남기고 싶니?",choices:["출구 쪽으로 흐르는 패턴.","이 방 한복판의 진동."],replies:["그럼 글라이더를 띄우지.","그럼 발진기(블링커)를 놓자."]}
+    {npc:"……신호 포착. 너는 소리를 어떻게 듣지?",choices:["몸으로 먼저 듣는다.","기억으로 해석한다."],replies:["좋아. 몸은 진실을 숨기지 않지.","그래, 기억은 언제나 편집본이야."]},
+    {npc:"여기 비석들은 잊힌 말들의 좌표야.",choices:["좌표를 따라가면 어디에 닿을까?","말이 사라지면 무엇이 남지?"],replies:["아마 네가 모르는 너에게.","침묵. 그리고 방향."]},
+    {npc:"마지막 질문. 너는 왜 계속 걷고 있어?",choices:["누군가의 잔향을 찾고 있어.","멈추면, 들리지 않을까 봐."],replies:["그 잔향이 네 지도를 바꿀 거야.","걷는 침묵은 언제나 열려 있지."]}
   ];
   let inConvo=false, stepIdx=0;
   function openRobotConvo(){ inConvo=true; stepIdx=0; renderConvoStep(); dialog.style.display='flex'; SFX.interact(); }
   function renderConvoStep(){
-    dgTitle.textContent='로봇(순찰)'; const s=convo[stepIdx];
+    dgTitle.textContent='로봇(비석의 방 순찰)'; const s=convo[stepIdx];
     dgBody.innerHTML=`<div style="white-space:pre-wrap">${s.npc}</div>`; dgChoices.innerHTML='';
     s.choices.forEach((text,i)=>{ const b=document.createElement('button'); b.textContent=text;
-      b.onclick=()=>{ SFX.select(); const reply=s.replies[i]; dgBody.innerHTML+=`\n\n> 너: ${text}\n로봇: ${reply}`;
-        // 마지막 선택에서 패턴 삽입
-        if(stepIdx===2){ if(i===0) spawnGlider(seeker.x|0, (seeker.y|0)+1, room, +1); else spawnBlinker(seeker.x|0, seeker.y|0, room); }
-        stepIdx++; if(stepIdx<convo.length){ setTimeout(()=>renderConvoStep(),420);} else { dgChoices.innerHTML=''; const done=document.createElement('button'); done.textContent='끝내기'; done.onclick=()=>{ inConvo=false; dialog.style.display='none'; }; dgChoices.appendChild(done);} };
+      b.onclick=()=>{ SFX.select(); const reply=s.replies[i]; dgBody.innerHTML+=`\n\n> 너: ${text}\n로봇: ${reply}`; stepIdx++; if(stepIdx<convo.length){ setTimeout(()=>renderConvoStep(),420);} else { dgChoices.innerHTML=''; const done=document.createElement('button'); done.textContent='끝내기'; done.onclick=()=>{ inConvo=false; dialog.style.display='none'; }; dgChoices.appendChild(done);} };
       dgChoices.appendChild(b);
     });
   }
 
-  /* Life grid (per room) */
-  function grid2D(){ return Array.from({length:MAP_H},()=>Array(MAP_W).fill(0)); } // 0=dead,1=alive
-  const lifeGrid=[grid2D(), grid2D()];
-  let generation=0;
-  let livePct=0;
-  let liveSum=0, liveSamples=0;
-
-  function setAlive(r,x,y){ if(isCandidateTile(r,x,y)) lifeGrid[r][y][x]=1; }
-  function toggleAlive(r,x,y){ if(isCandidateTile(r,x,y)) lifeGrid[r][y][x]= lifeGrid[r][y][x]?0:1; }
-
-  function countNeighbors(r,x,y){
-    let n=0;
-    for(let dy=-1; dy<=1; dy++){
-      for(let dx=-1; dx<=1; dx++){
-        if(dx===0&&dy===0) continue;
-        const nx=x+dx, ny=y+dy;
-        if(!isCandidateTile(r,nx,ny)) continue;
-        if(lifeGrid[r][ny][nx]) n++;
-      }
-    }
-    return n;
-  }
-
-  function stepLife(r){
-    const src=lifeGrid[r], next=grid2D();
-    let alive=0, total=0;
-    for(let y=0;y<MAP_H;y++){
-      for(let x=0;x<MAP_W;x++){
-        if(!isCandidateTile(r,x,y)) continue;
-        total++;
-        const a=src[y][x], n=countNeighbors(r,x,y);
-        let v=a;
-        if(a){ v = (n===2 || n===3) ? 1 : 0; }
-        else { v = (n===3) ? 1 : 0; }
-        next[y][x]=v; if(v) alive++;
-      }
-    }
-    lifeGrid[r]=next;
-    generation++;
-    livePct = total? Math.round((alive/total)*100) : 0;
-    liveSum += livePct; liveSamples++;
-  }
-
-  /* Patterns */
-  function spawnBlinker(cx,cy,r){
-    // 가로 3
-    for(let dx=-1; dx<=1; dx++) setAlive(r, cx+dx, cy);
-  }
-  function spawnToad(cx,cy,r){
-    // 2x3 oscill
-    setAlive(r,cx,cy); setAlive(r,cx+1,cy); setAlive(r,cx+2,cy);
-    setAlive(r,cx-1,cy+1); setAlive(r,cx,cy+1); setAlive(r,cx+1,cy+1);
-  }
-  function spawnGlider(cx,cy,r,dir=+1){
-    // 기본 glider (dir: +1 오른쪽, -1 왼쪽)
-    // 패턴 중심에서 살짝 옮겨 삽입
-    const s = dir>=0 ? [[1,0],[2,1],[0,2],[1,2],[2,2]] : [[-1,0],[-2,1],[0,2],[-1,2],[-2,2]];
-    for(const [dx,dy] of s) setAlive(r, cx+dx, cy+dy);
-  }
-
-  /* Rendering */
-  function makeLayer(drawFn){ const off=document.createElement('canvas'); off.width=game.width; off.height=game.height; const gg=off.getContext('2d'); gg.imageSmoothingEnabled=false; drawFn(gg); return off; }
-  function drawCommon(gg){ gg.fillStyle=C.bg; gg.fillRect(0,0,game.width,game.height);
-    gg.fillStyle=C.border; gg.fillRect(6,6,game.width-12,game.height-12);
-    gg.fillStyle=C.plate; gg.fillRect(12,12,game.width-24,game.height-24);
-    gg.fillStyle=C.dot; for(let i=0;i<190;i++){ const x=12+((i*73)%(game.width-24)); const y=12+((i*97)%(game.height-24)); gg.fillRect(x,y,1,1); } }
-  function dGrave(gg,px,py){ gg.fillStyle=C.shadow; gg.fillRect(px+2,py+TILE-3,TILE-2,2);
-    gg.fillStyle=C.graveDark; gg.fillRect(px+3,py+3,TILE-6,TILE-6); gg.fillStyle=C.grave; gg.fillRect(px+2,py+4,TILE-6,TILE-7);
-    gg.fillStyle='rgba(255,255,255,.08)'; gg.fillRect(px+3,py+4,TILE-8,1); }
-  function dBrick(gg,px,py){ gg.fillStyle=C.brickDark; gg.fillRect(px,py,TILE,TILE); gg.fillStyle=C.brick; gg.fillRect(px+1,py+1,TILE-2,TILE-2); gg.fillStyle='rgba(0,0,0,.25)'; gg.fillRect(px+1,py+TILE-4,TILE-2,3); }
-  function dPhone(gg,px,py){ gg.fillStyle=C.phone; gg.fillRect(px+2,py+5,12,8); gg.fillStyle=C.phoneDial; gg.fillRect(px+5,py+7,6,4); gg.fillStyle='rgba(255,255,255,.12)'; gg.fillRect(px+3,py+6,8,1); gg.fillStyle=C.shadow; gg.fillRect(px+2,py+TILE-2,12,2); }
-
-  const layer0=makeLayer((gg)=>{ drawCommon(gg); for(let y=0;y<MAP_H;y++) for(let x=0;x<MAP_W;x++) if(LEVEL0[y][x]===1) dGrave(gg,x*TILE,y*TILE);
-                                  gg.fillStyle=C.plate2; gg.fillRect(6*TILE,15*TILE,4*TILE,TILE); });
-  const layer1=makeLayer((gg)=>{ drawCommon(gg); for(let y=0;y<MAP_H;y++) for(let x=0;x<MAP_W;x++) if(LEVEL1[y][x]===1) dBrick(gg,x*TILE,y*TILE);
-                                  for(const [x,y] of PHONES) dPhone(gg,x*TILE,y*TILE);
-                                  gg.fillStyle=C.plate2; gg.fillRect(6*TILE,15*TILE,4*TILE,TILE); });
-
-  function drawSeeker(){ if(room!==0) return; const px=Math.round(seeker.x*TILE - TILE/2), py=Math.round(seeker.y*TILE - TILE/2);
-    g.fillStyle=C.seekerBody; g.fillRect(px+3,py+6,10,6); g.fillStyle='#ffffff'; g.fillRect(px+2,py+4,12,6);
-    g.fillStyle=C.seekerEye; g.fillRect(px+5,py+6,2,2); g.fillStyle=C.seekerEye; g.fillRect(px+9,py+6,2,2);
-    g.fillStyle='#111'; g.fillRect(px+1,py+8,2,3); g.fillRect(px+13,py+8,2,3); }
-  function drawPlayer(p){ const px=Math.round(p.x*TILE - TILE/2), py=Math.round(p.y*TILE - TILE/2);
-    g.fillStyle=C.shadow; g.fillRect(px+2,py+TILE-2,TILE-4,2); g.fillStyle=C.player; g.fillRect(px+4,py+5,8,7);
-    g.fillStyle=C.playerDark; g.fillRect(px+4,py+4,8,2); if(((p.anim*10)|0)%20<10){ g.fillStyle='#000'; g.fillRect(px+6,py+7,1,1); g.fillRect(px+9,py+7,1,1);} }
-
-  function drawLife(r){
-    for(let y=0;y<MAP_H;y++){
-      for(let x=0;x<MAP_W;x++){
-        if(!isCandidateTile(r,x,y)) continue;
-        if(lifeGrid[r][y][x]){
-          g.fillStyle=C.live;
-          g.fillRect(x*TILE+3,y*TILE+3,TILE-6,TILE-6);
-          g.fillStyle=C.liveHi;
-          g.fillRect(x*TILE+4,y*TILE+4,TILE-8,1);
-        }
-      }
-    }
-  }
-
-  /* Patrol (visual only) */
+  // Patrol
   function dist(a,b){ return Math.hypot(a.x-b.x,a.y-b.y); }
   function randomWalkableTile0(){ let tx,ty; do{ tx=(Math.random()*MAP_W)|0; ty=(Math.random()*MAP_H)|0; }while(LEVEL0[ty]?.[tx]!==0); return {tx,ty}; }
   function bfsPath(level, fromX,fromY,toX,toY){
@@ -420,25 +452,37 @@
     } else this.ensureTarget(true);
   }};
 
-  /* Timer & loop */
-  const TIMER_MS = 3*60*1000; // 3분
-  let remainMs = TIMER_MS;
-  let started=false, finished=false, last=0;
-  let lifeTick=0, LIFE_STEP_MS=260; // 세대 시간(가볍게)
-  function fmt(ms){ const s=Math.max(0,Math.floor(ms/1000)); const mm=String((s/60)|0).padStart(2,'0'); const ss=String(s%60).padStart(2,'0'); return `${mm}:${ss}`; }
+  // Pre-render layers
+  function makeLayer(drawFn){ const off=document.createElement('canvas'); off.width=game.width; off.height=game.height; const gg=off.getContext('2d'); gg.imageSmoothingEnabled=false; drawFn(gg); return off; }
+  function drawCommon(gg){ gg.fillStyle=C.bg; gg.fillRect(0,0,game.width,game.height);
+    gg.fillStyle=C.border; gg.fillRect(6,6,game.width-12,game.height-12);
+    gg.fillStyle=C.plate; gg.fillRect(12,12,game.width-24,game.height-24);
+    gg.fillStyle=C.dot; for(let i=0;i<190;i++){ const x=12+((i*73)%(game.width-24)); const y=12+((i*97)%(game.height-24)); gg.fillRect(x,y,1,1); } }
+  function dGrave(gg,px,py){ gg.fillStyle=C.shadow; gg.fillRect(px+2,py+TILE-3,TILE-2,2);
+    gg.fillStyle=C.graveDark; gg.fillRect(px+3,py+3,TILE-6,TILE-6); gg.fillStyle=C.grave; gg.fillRect(px+2,py+4,TILE-6,TILE-7);
+    gg.fillStyle='rgba(255,255,255,.08)'; gg.fillRect(px+3,py+4,TILE-8,1); }
+  function dBrick(gg,px,py){ gg.fillStyle=C.brickDark; gg.fillRect(px,py,TILE,TILE); gg.fillStyle=C.brick; gg.fillRect(px+1,py+1,TILE-2,TILE-2); gg.fillStyle='rgba(0,0,0,.25)'; gg.fillRect(px+1,py+TILE-4,TILE-2,3); }
+  function dPhone(gg,px,py){ gg.fillStyle=C.phone; gg.fillRect(px+2,py+5,12,8); gg.fillStyle=C.phoneDial; gg.fillRect(px+5,py+7,6,4); gg.fillStyle='rgba(255,255,255,.12)'; gg.fillRect(px+3,py+6,8,1); gg.fillStyle=C.shadow; gg.fillRect(px+2,py+TILE-2,12,2); }
 
-  function loop(t){
-    if(!started) return;
-    requestAnimationFrame(loop);
-    const dtms=Math.min(32,(t-last)||16); last=t;
-    update(dtms/16, dtms);
-    render();
-  }
+  const layer0=makeLayer((gg)=>{ drawCommon(gg); for(let y=0;y<MAP_H;y++) for(let x=0;x<MAP_W;x++) if(LEVEL0[y][x]===1) dGrave(gg,x*TILE,y*TILE);
+                                  gg.fillStyle=C.plate2; gg.fillRect(6*TILE,15*TILE,4*TILE,TILE); });
+  const layer1=makeLayer((gg)=>{ drawCommon(gg); for(let y=0;y<MAP_H;y++) for(let x=0;x<MAP_W;x++) if(LEVEL1[y][x]===1) dBrick(gg,x*TILE,y*TILE);
+                                  for(const [x,y] of PHONES) dPhone(gg,x*TILE,y*TILE);
+                                  gg.fillStyle=C.plate2; gg.fillRect(6*TILE,15*TILE,4*TILE,TILE); });
 
-  function update(dt, dtms){
-    if(finished) return;
+  function drawSeeker(){ if(room!==0) return; const px=Math.round(seeker.x*TILE - TILE/2), py=Math.round(seeker.y*TILE - TILE/2);
+    g.fillStyle=C.seekerBody; g.fillRect(px+3,py+6,10,6); g.fillStyle='#ffffff'; g.fillRect(px+2,py+4,12,6);
+    g.fillStyle=C.seekerEye; g.fillRect(px+5,py+6,2,2); g.fillStyle=C.seekerEye; g.fillRect(px+9,py+6,2,2);
+    g.fillStyle='#111'; g.fillRect(px+1,py+8,2,3); g.fillRect(px+13,py+8,2,3); }
+  function drawPlayer(p){ const px=Math.round(p.x*TILE - TILE/2), py=Math.round(p.y*TILE - TILE/2);
+    g.fillStyle=C.shadow; g.fillRect(px+2,py+TILE-2,TILE-4,2); g.fillStyle=C.player; g.fillRect(px+4,py+5,8,7);
+    g.fillStyle=C.playerDark; g.fillRect(px+4,py+4,8,2); if(((p.anim*10)|0)%20<10){ g.fillStyle='#000'; g.fillRect(px+6,py+7,1,1); g.fillRect(px+9,py+7,1,1);} }
 
-    // 입력/이동
+  // Loop (start after pressing '시작하기')
+  let started=false, last=0;
+  function loop(t){ if(!started) return; requestAnimationFrame(loop); const dt=Math.min(32,(t-last)||16); last=t; update(dt/16); render(); }
+
+  function update(dt){
     let ax=0, ay=0;
     if(keys.has('a')||keys.has('arrowleft')) ax-=1; if(keys.has('d')||keys.has('arrowright')) ax+=1;
     if(keys.has('w')||keys.has('arrowup')) ay-=1; if(keys.has('s')||keys.has('arrowdown')) ay+=1;
@@ -449,15 +493,11 @@
     player.anim+=dt;
     if(moving){ player.stepTimer+=dt*1000; if(player.stepTimer>=180){ player.stepTimer=0; SFX.step(player.stepPhase++); } } else player.stepTimer=0;
 
-    // 씨앗(밟는 칸을 살린다)
-    setAlive(room, player.x|0, player.y|0);
-
-    // 로봇 순찰(연출)
     seekerObj.step();
 
-    // 방 전환
     if((player.y|0)===MAP_H-1 && (player.x|0)>=6 && (player.x|0)<=9){
       room = room===0 ? 1 : 0;
+      badge.textContent = room===0 ? 'ROOM: 비석의 방 · 하단 출구 → 전화기의 방' : 'ROOM: 전화기의 방 · 하단 출구 → 비석의 방';
       player.x=8.5; player.y=14.2; inConvo=false; dialog.style.display='none'; dgChoices.innerHTML='';
     }
 
@@ -465,69 +505,28 @@
     let label="", action=null;
     if(room===0){
       if(!inConvo && Math.hypot(player.x-seeker.x, player.y-seeker.y)<0.85){ label='E: 로봇과 대화'; action=()=> openRobotConvo(); }
-      else{
-        const ng=nearestGrave(player.x,player.y);
-        if(ng.grave && ng.dist<1.1){
-          label='E: 비석 패턴 넣기';
-          action=()=>{ SFX.interact(); dgTitle.textContent='비석의 기록'; dgBody.textContent=graveText(ng.grave.x,ng.grave.y); dgChoices.innerHTML=''; dialog.style.display='flex';
-            // 무작위로 글라이더/토드
-            (Math.random()<0.5)? spawnGlider(ng.grave.x,ng.grave.y,room, (Math.random()<0.5?+1:-1)): spawnToad(ng.grave.x,ng.grave.y,room);
-          };
-        }
-      }
+      else{ const ng=nearestGrave(player.x,player.y);
+        if(ng.grave && ng.dist<1.1){ label='E: 비석에 귀 기울이기'; action=()=>{ SFX.interact(); dgTitle.textContent='비석의 기록'; dgBody.textContent=graveText(ng.grave.x,ng.grave.y); dgChoices.innerHTML=''; dialog.style.display='flex'; }; } }
     }else{
       const np=nearestPhone(player.x,player.y);
-      if(np.phone && np.dist<1.1){
-        label='E: 전화기 패턴 넣기';
-        action=()=>{ SFX.interact(); dgTitle.textContent='전화기의 방'; dgBody.textContent='철컥… 미세한 진동이 퍼진다.'; dgChoices.innerHTML=''; dialog.style.display='flex'; spawnBlinker(np.phone.x, np.phone.y, room); };
-      }
+      if(np.phone && np.dist<1.1){ label='E: 수화기 들기'; action=()=>{ SFX.ring(); dgTitle.textContent='전화기의 방'; dgBody.textContent='...여보세요? (침묵 속의 목소리가 미세하게 울린다)'; dgChoices.innerHTML=''; dialog.style.display='flex'; }; }
     }
     const btn=document.getElementById('btnE');
     if(action){ btn.style.display='grid'; btn.textContent=label; btn.onclick=action; } else { btn.style.display='none'; btn.onclick=null; }
-
-    // Life step
-    lifeTick += dtms;
-    if(lifeTick>=LIFE_STEP_MS){
-      lifeTick = 0;
-      stepLife(room);
-    }
-
-    // 타이머
-    remainMs -= dtms;
-    if(remainMs<=0){
-      remainMs=0; finished=true; endGame();
-    }
-
-    // 배지
-    const where = room===0 ? '비석' : '전화기';
-    badge.textContent = `TIME ${fmt(remainMs)} • GEN ${generation} • LIVE ${String(livePct).padStart(2,'0')}% • ROOM ${where}`;
   }
 
   function render(){
     g.clearRect(0,0,game.width,game.height);
     g.drawImage(room===0 ? layer0 : layer1, 0, 0);
-    drawLife(room);     // 생명 그리기
-    drawSeeker();
-    drawPlayer(player);
+    drawSeeker(); drawPlayer(player);
   }
 
-  function endGame(){
-    const avg = liveSamples? Math.round(liveSum/liveSamples) : livePct;
-    dialog.style.display='flex';
-    dgTitle.textContent='세션 종료 — 생명의 지도';
-    dgBody.innerHTML = `3분이 끝났습니다.\n세대 수: ${generation}\n평균 생존율: ${avg}%\n마지막 생존율: ${livePct}%\n\n같은 규칙, 다른 이야기. 다시 시도해 보세요.`;
-    dgChoices.innerHTML='';
-    const again=document.createElement('button'); again.textContent='다시 시작'; again.onclick=()=>location.reload(); dgChoices.appendChild(again);
-  }
-
-  // Start
+  // Start game function
   function startGame(){ started=true; requestAnimationFrame(loop); }
 
-  // E 키
+  // keyboard E
   addEventListener('keydown', e=>{ if((e.key==='e'||e.key==='E')){ const btn=document.getElementById('btnE'); if(btn.style.display!=='none'){ e.preventDefault(); btn.click(); }}});
 
-  // D-Pad helpers
-  const heldDirs=new Set(); const dpadState={ax:0,ay:0};
 })();
 </script>
 </body>
