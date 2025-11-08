@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no"/>
-<title>SLEEEEP · Retro Popup Maze</title>
+<title>SLEEEEP · Tall Grass Maze (Popup · SFX)</title>
 <meta name="theme-color" content="#000000">
 <style>
   :root{ --fg:#fff }
@@ -15,31 +15,24 @@
   #desk{ position:relative; width:100vw; height:100vh; overflow:hidden }
   .gameWin{
     position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
-    width:min(960px, 92vw); aspect-ratio:16/9; background:#000;
-    box-shadow:0 24px 60px rgba(0,0,0,.80), 0 0 0 1px rgba(255,255,255,.10);
+    width:min(1080px, 92vw); aspect-ratio:16/9; background:#000;
+    box-shadow:0 24px 60px rgba(0,0,0,.8), 0 0 0 1px rgba(255,255,255,.1);
     overflow:hidden
   }
+
   /* 캔버스 */
   #view{ position:absolute; inset:0; width:100%; height:100%;
     image-rendering:pixelated; image-rendering:crisp-edges; background:#000; display:block }
 
-  /* 레트로 스캔라인 */
-  .scan{
-    position:absolute; inset:0; pointer-events:none; mix-blend-mode:overlay; opacity:.18;
-    background: repeating-linear-gradient(
-      to bottom,
-      rgba(255,255,255,.12) 0px,
-      rgba(255,255,255,.12) 1px,
-      rgba(0,0,0,0) 2px,
-      rgba(0,0,0,0) 3px
-    );
-  }
+  /* 살짝 CRT 스캔라인 */
+  .scan{ position:absolute; inset:0; pointer-events:none; opacity:.14; mix-blend-mode:overlay;
+    background:repeating-linear-gradient(to bottom, rgba(255,255,255,.12) 0px, rgba(255,255,255,.12) 1px, rgba(0,0,0,0) 3px, rgba(0,0,0,0) 4px); }
 
   /* 글자만 버튼 */
   .tbtn{
     position:absolute; padding:0 6px; height:28px; background:transparent; border:none; color:#fff;
-    font:800 14px/1 ui-serif,Georgia,"Times New Roman",serif; letter-spacing:.02em;
-    text-shadow:0 1px 0 #000a; cursor:pointer; user-select:none
+    font:800 14px/1 ui-serif,Georgia,"Times New Roman",serif; letter-spacing:.02em; text-shadow:0 1px 0 #000a;
+    cursor:pointer; user-select:none
   }
   #btnMap{ left:12px; top:10px }
   #btnInv{ right:12px; top:10px }
@@ -47,17 +40,23 @@
 
   /* 투명 D-pad */
   .dpad{
-    position:absolute; left:12px; bottom:10px; width:150px; height:150px; display:none;
-    grid-template-columns:repeat(3,1fr); grid-template-rows:repeat(3,1fr); gap:6px; z-index:3
+    position:absolute; left:12px; bottom:10px; width:160px; height:160px; display:none;
+    grid-template-columns:repeat(3,1fr); grid-template-rows:repeat(3,1fr); gap:8px; z-index:3
   }
   .dpad .cell{ display:grid; place-items:center }
   .key{ background:transparent; border:none; color:#fff; font:800 18px ui-serif,Georgia,"Times New Roman",serif; cursor:pointer }
   .key:active{ transform:scale(.95) }
   @media (pointer:coarse){ .dpad{ display:grid } }
 
-  /* 안내 텍스트 */
+  /* 힌트 */
   #hint{ position:absolute; left:50%; top:10px; transform:translateX(-50%);
     font:800 12px ui-monospace; background:rgba(0,0,0,.55); padding:6px 8px }
+
+  /* 모달 틀(비어있음) */
+  .modal{position:absolute; inset:0; display:none; align-items:center; justify-content:center; z-index:5; background:#0008}
+  .sheet{min-width:480px; max-width:86%; min-height:280px; max-height:70%; overflow:auto; background:#101018; color:#fff; padding:16px}
+  .sheet h3{margin:0 0 12px; font:800 14px ui-serif}
+  .close{float:right; background:transparent; color:#fff; border:none; font-weight:800; cursor:pointer}
 </style>
 </head>
 <body>
@@ -69,50 +68,99 @@
     <button id="btnMap" class="tbtn" type="button">MAP</button>
     <button id="btnInv" class="tbtn" type="button">INVENTORY</button>
     <button id="btnDialog" class="tbtn" type="button">Dialogue</button>
-    <div id="hint">EXIT ↑  ·  Move: ← ↑ → ↓ / WASD</div>
+    <div id="hint">EXIT ↑  ·  Move: ← ↑ → ↓ / WASD  ·  E/Enter: Interact</div>
 
     <div id="dpad" class="dpad" aria-hidden="false">
       <div class="cell"></div><div class="cell"><button class="key" data-dir="up">↑</button></div><div class="cell"></div>
       <div class="cell"><button class="key" data-dir="left">←</button></div><div class="cell"></div><div class="cell"><button class="key" data-dir="right">→</button></div>
       <div class="cell"></div><div class="cell"><button class="key" data-dir="down">↓</button></div><div class="cell"></div>
     </div>
+
+    <!-- MAP / INVENTORY 빈 창 -->
+    <div id="mapModal" class="modal"><div class="sheet">
+      <button class="close" data-close>닫기</button><h3>MAP</h3>
+      <div id="mini" style="height:220px;background:#0e0e13"></div>
+    </div></div>
+    <div id="invModal" class="modal"><div class="sheet">
+      <button class="close" data-close>닫기</button><h3>INVENTORY</h3>
+      <div style="height:220px;background:#0e0e13"></div>
+    </div></div>
   </div>
 </div>
 
 <script>
 (function(){
-  const cv = document.getElementById('view');
-  const g  = cv.getContext('2d', {alpha:false});
-  g.imageSmoothingEnabled = false;
+  /* ====== Audio (발소리/풀사각 SFX) ====== */
+  const Q=new URLSearchParams(location.search);
+  const SFX_ON=(Q.get('sfx')??'1')==='1';
+  let AC=null, master=null, footGain=null, rustleGain=null, ready=false;
 
-  /* ===== 레트로 흑백 팔레트(명암 확실) ===== */
-  const C = {
+  function initAudio(){
+    if(!SFX_ON || ready) return;
+    AC=new (window.AudioContext||window.webkitAudioContext)();
+    master=AC.createGain(); master.gain.value=0.35; master.connect(AC.destination);
+
+    footGain=AC.createGain(); footGain.gain.value=0; footGain.connect(master);
+    rustleGain=AC.createGain(); rustleGain.gain.value=0; rustleGain.connect(master);
+
+    // 약한 노이즈(풀 스침) 루프
+    const noiseBuf=AC.createBuffer(1, AC.sampleRate*2, AC.sampleRate);
+    const data=noiseBuf.getChannelData(0);
+    for(let i=0;i<data.length;i++) data[i]=(Math.random()*2-1)*0.35;
+    const noise=AC.createBufferSource(); noise.buffer=noiseBuf; noise.loop=true;
+    const bp=AC.createBiquadFilter(); bp.type='bandpass'; bp.frequency.value=2200; bp.Q.value=1.3;
+    noise.connect(bp).connect(rustleGain); noise.start();
+    ready=true;
+  }
+  async function unlockAudio(){ try{ initAudio(); if(AC && AC.state==='suspended') await AC.resume(); }catch(e){} }
+  ['pointerdown','touchstart','keydown'].forEach(ev=>addEventListener(ev,unlockAudio,{passive:true}));
+
+  function footstep(){
+    if(!ready) return;
+    const t=AC.currentTime;
+    const o=AC.createOscillator(); o.type='triangle';
+    const g=AC.createGain(); g.gain.value=0;
+    o.frequency.setValueAtTime(120 + Math.random()*25, t);
+    g.gain.linearRampToValueAtTime(0.35, t+0.005);
+    g.gain.exponentialRampToValueAtTime(0.001, t+0.10);
+    o.connect(g).connect(footGain); o.start(t); o.stop(t+0.12);
+    // 살짝 잎사귀 스침
+    rustleGain.gain.cancelScheduledValues(t);
+    rustleGain.gain.linearRampToValueAtTime(0.22, t+0.01);
+    rustleGain.gain.exponentialRampToValueAtTime(0.02, t+0.25);
+  }
+
+  /* ====== Canvas / World ====== */
+  const cv=document.getElementById('view');
+  const g=cv.getContext('2d', {alpha:false});
+  g.imageSmoothingEnabled=false;
+
+  // 레트로 흑백 톤(명암 분리)
+  const C={
     grassD:'#0b0f0b', grassM:'#171f17', grassH:'#293329',
-    path:'#bfc5c7',   // << 밝게 (미로 또렷)
-    edgeTop:'#e9eef0', edgeBot:'#5a6063',
-    playerFill:'#f8f8f8', playerEdge:'#1a1a1a', playerShadow:'rgba(0,0,0,.55)'
+    path:'#cfd6d9', edgeTop:'#f5f9fb', edgeBot:'#4a5053',
+    playerFill:'#ffffff', playerEdge:'#111', playerShadow:'rgba(0,0,0,.55)',
+    exitMark:'rgba(255,255,255,.14)'
   };
 
-  /* ===== 타일/미로 ===== */
-  const W=cv.width, H=cv.height, TILE=16;      // 더 “레트로”하게 작은 타일
+  const W=cv.width, H=cv.height, TILE=16;  // 타일 작게 → 레트로 감
   const COLS=(W/TILE)|0, ROWS=(H/TILE)|0;
   const WALL=1, OPEN=0;
   const grid=Array.from({length:ROWS},()=>Array(COLS).fill(WALL));
 
-  // 시드 고정(재현 가능), 필요시 바꿔도 됨
+  // 미로 생성(백트래킹) + 중앙 세로 코어(탈출 보장)
   let SEED=20251108;
   function rnd(){ SEED=(SEED*1664525+1013904223)>>>0; return SEED/0xFFFFFFFF; }
 
-  // 백트래킹 + 중앙 세로 코어(탈출 보장)
   function carve(){
     const inb=(x,y)=>x>0&&y>0&&x<COLS-1&&y<ROWS-1;
     const neigh=(x,y)=>[[x+2,y],[x-2,y],[x,y+2],[x,y-2]]
       .filter(([nx,ny])=>inb(nx,ny)&&grid[ny][nx]===WALL);
 
-    let sx=((COLS/2)|0); if(!(sx&1)) sx--;  // 홀수 좌표 스냅
+    let sx=((COLS/2)|0); if(!(sx&1)) sx--;
     let sy=ROWS-3;        if(!(sy&1)) sy--;
-
     const stack=[[sx,sy]]; grid[sy][sx]=OPEN;
+
     while(stack.length){
       const [x,y]=stack[stack.length-1];
       const nb=neigh(x,y);
@@ -120,38 +168,37 @@
       const [nx,ny]=nb[(rnd()*nb.length)|0];
       grid[(y+ny)/2][(x+nx)/2]=OPEN; grid[ny][nx]=OPEN; stack.push([nx,ny]);
     }
+
+    // 중앙 직통 코어로
     const ex=((COLS/2)|0);
-    for(let y=ROWS-2;y>=1;y--) grid[y][ex]=OPEN; // 중앙 직통
-    grid[0][ex]=OPEN; // 천장 틈
-    // 시작/출구 주변 통로 살짝 넓힘
-    for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
-      grid[sy+dy]?.[sx+dx]=OPEN; grid[1+dy]?.[ex+dx]=OPEN;
+    for(let y=ROWS-2;y>=1;y--) grid[y][ex]=OPEN;
+    grid[0][ex]=OPEN;
+
+    // 시작/출구 주변 확장
+    for(let dy=-1;dy<=1;dy++) for(let dx=-1;dx<=1;dx++){
+      grid[sy+dy]?.[sx+dx]=OPEN;
+      grid[1+dy]?.[ex+dx]=OPEN;
     }
     return {start:[sx,sy], exit:[ex,0]};
   }
   const {start:START, exit:EXIT}=carve();
 
-  /* ===== 배경(잔디 타일 + 밝은 길) ===== */
+  // 배경 그리기(잔디+길)
   function prng(n){ n=(n<<13)^n; return (1-((n*(n*n*15731+789221)+1376312589)&0x7fffffff)/1073741824.0); }
   function drawBG(){
-    // 바닥
     g.fillStyle='#000'; g.fillRect(0,0,W,H);
-
     for(let ty=0;ty<ROWS;ty++){
       for(let tx=0;tx<COLS;tx++){
         const x=tx*TILE, y=ty*TILE;
-
         if(grid[ty][tx]===OPEN){
-          // 길(밝게)
           g.fillStyle=C.path; g.fillRect(x,y,TILE,TILE);
-          // 레트로 가장자리 하이라이트/쉐도
           g.fillStyle=C.edgeTop; g.fillRect(x,y,TILE,1);
           g.fillStyle=C.edgeBot; g.fillRect(x,y+TILE-1,TILE,1);
         }else{
-          // 정적 잔디(픽셀 도트 3갈래)
           const r=Math.abs(prng(tx*73856093 ^ ty*19349663));
           g.fillStyle = r<0.33?C.grassD:(r<0.66?C.grassM:C.grassH);
           const cx=x+(TILE>>1), cy=y+(TILE>>1);
+          // “귀여운 풀” 픽셀 도트
           g.fillRect(cx-1, cy-4, 2, 5);
           g.fillRect(cx-4, cy-1, 2, 3);
           g.fillRect(cx+2, cy-1, 2, 3);
@@ -160,17 +207,15 @@
         }
       }
     }
-
-    // 출구 컬럼 은은 강조
-    g.fillStyle='rgba(255,255,255,.10)';
-    g.fillRect(EXIT[0]*TILE, 0, TILE, TILE);
+    // 출구 칼럼 은은한 표시
+    g.fillStyle=C.exitMark; g.fillRect(EXIT[0]*TILE, 0, TILE, TILE);
   }
 
-  /* ===== 플레이어(화이트 바디+진한 외곽선) ===== */
+  // 플레이어
   const player={
     x: START[0]*TILE + (TILE>>1),
     y: START[1]*TILE + (TILE>>1),
-    spd: 2.2, size:.8
+    spd: 2.2, size:.9, lastStepX:null, lastStepY:null
   };
   function tileAt(px,py){
     const tx=(px/TILE)|0, ty=(py/TILE)|0;
@@ -178,41 +223,34 @@
     return grid[ty][tx];
   }
   function moveOnPath(px,py,ax,ay,s){
+    let moved=false;
     let nx=px+ax*s, ny=py+ay*s;
-    if(tileAt(nx,py)===OPEN) px=nx;
-    if(tileAt(px,ny)===OPEN) py=ny;
-    return [px,py];
+    if(tileAt(nx,py)===OPEN){ px=nx; moved=true; }
+    if(tileAt(px,ny)===OPEN){ py=ny; moved=true; }
+    return [px,py,moved];
   }
   function drawPlayer(){
     const s=player.size, px=player.x, py=player.y;
-    // 그림자
     g.fillStyle=C.playerShadow; g.fillRect(px-6*s, py+6*s, 12*s, 3*s);
-    // 몸통(화이트)
     g.fillStyle=C.playerFill;  g.fillRect(px-6*s, py-10*s, 12*s, 10*s);
-    // 머리(화이트)
     g.fillRect(px-5*s, py-16*s, 10*s, 6*s);
-    // 외곽선(짙은 회색)
     g.fillStyle=C.playerEdge;
-    g.fillRect(px-6*s, py-10*s, 12*s, 1*s);           // 몸 상단
-    g.fillRect(px-6*s, py-1*s,  12*s, 1*s);           // 몸 하단
-    g.fillRect(px-6*s, py-10*s, 1*s,  10*s);          // 좌
-    g.fillRect(px+5*s, py-10*s, 1*s,  10*s);          // 우
-    g.fillRect(px-5*s, py-16*s, 10*s, 1*s);           // 머리 상단
-    g.fillRect(px-5*s, py-10*s, 10*s, 1*s);           // 머리 하단
-    g.fillRect(px-5*s, py-16*s, 1*s,  6*s);           // 머리 좌
-    g.fillRect(px+4*s, py-16*s, 1*s,  6*s);           // 머리 우
+    g.fillRect(px-6*s, py-10*s, 12*s, 1*s); g.fillRect(px-6*s, py-1*s, 12*s, 1*s);
+    g.fillRect(px-6*s, py-10*s, 1*s,10*s); g.fillRect(px+5*s, py-10*s, 1*s,10*s);
+    g.fillRect(px-5*s, py-16*s, 10*s,1*s); g.fillRect(px-5*s, py-10*s, 10*s,1*s);
+    g.fillRect(px-5*s, py-16*s, 1*s, 6*s); g.fillRect(px+4*s, py-16*s, 1*s, 6*s);
   }
 
-  /* ===== 입력 ===== */
+  /* ====== 입력 ====== */
   const keys=new Set();
   addEventListener('keydown',e=>{
     const k=e.key.toLowerCase();
-    if(['arrowup','arrowdown','arrowleft','arrowright','w','a','s','d'].includes(k)) e.preventDefault();
+    if(['arrowup','arrowdown','arrowleft','arrowright','w','a','s','d','e','enter'].includes(k)) e.preventDefault();
     keys.add(k);
   });
   addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));
 
-  // 터치 D-pad
+  const dpad=document.getElementById('dpad');
   const held=new Set(); const dstate={ax:0,ay:0};
   const setHeld=(dir,on)=>{ if(on) held.add(dir); else held.delete(dir);
     let ax=0,ay=0; if(held.has('left')) ax-=1; if(held.has('right')) ax+=1; if(held.has('up')) ay-=1; if(held.has('down')) ay+=1;
@@ -229,9 +267,39 @@
     b.addEventListener('touchcancel',off,{passive:false});
   });
 
-  /* ===== 루프 ===== */
-  let hintT=240; // 힌트 잠깐 표시
-  const hintEl=document.getElementById('hint');
+  // MAP/INVENTORY 더미 모달
+  const mapModal=document.getElementById('mapModal');
+  const invModal=document.getElementById('invModal');
+  document.getElementById('btnMap').onclick=()=>{ mapModal.style.display='flex'; drawMiniMap(); };
+  document.getElementById('btnInv').onclick=()=> invModal.style.display='flex';
+  [mapModal,invModal].forEach(m=>m.addEventListener('click',e=>{ if(e.target===m||e.target.dataset.close!=null) m.style.display='none';}));
+
+  // 간단 미니맵(현재 위치 점)
+  function drawMiniMap(){
+    const host=document.getElementById('mini');
+    host.innerHTML='';
+    const c=document.createElement('canvas'); c.width=COLS; c.height=ROWS; c.style.width='100%'; c.style.height='100%';
+    const gg=c.getContext('2d');
+    const img=gg.createImageData(COLS,ROWS); const d=img.data;
+    for(let y=0;y<ROWS;y++){
+      for(let x=0;x<COLS;x++){
+        const i=(y*COLS+x)*4;
+        const open=grid[y][x]===OPEN;
+        const v=open?220:24; d[i]=d[i+1]=d[i+2]=v; d[i+3]=255;
+      }
+    }
+    // 플레이어/출구 점
+    const ptx=(player.x/TILE)|0, pty=(player.y/TILE)|0;
+    const ei=(EXIT[1]*COLS + EXIT[0])*4; d[ei]=255; d[ei+1]=255; d[ei+2]=255; d[ei+3]=255;
+    const pi=(pty*COLS + ptx)*4; d[pi]=32; d[pi+1]=200; d[pi+2]=255; d[pi+3]=255;
+    gg.putImageData(img,0,0); host.appendChild(c);
+  }
+
+  // 힌트 페이드아웃
+  let hintT=240; const hintEl=document.getElementById('hint');
+
+  // 발걸음 간격(거리 기반)
+  let stepAcc=0; const STEP_DIST=10;
 
   function update(){
     let ax=0,ay=0;
@@ -242,7 +310,14 @@
     ax+=dstate.ax; ay+=dstate.ay;
     const m=Math.hypot(ax,ay)||1; ax/=m; ay/=m;
 
-    [player.x,player.y] = moveOnPath(player.x,player.y,ax,ay,player.spd);
+    const [nx,ny,moved]=moveOnPath(player.x,player.y,ax,ay,player.spd);
+    if(moved){
+      const dx=nx-(player.lastStepX??nx), dy=ny-(player.lastStepY??ny);
+      stepAcc += Math.hypot(dx,dy);
+      if(stepAcc>=STEP_DIST){ footstep(); stepAcc=0; }
+      player.lastStepX=nx; player.lastStepY=ny;
+    }
+    player.x=nx; player.y=ny;
 
     if(hintT>0){ hintT--; if(hintT===0) hintEl.style.display='none'; }
   }
@@ -250,13 +325,13 @@
   function render(){
     drawBG();
     drawPlayer();
-    // 출구 화살표(상단 중앙, 은은)
-    g.fillStyle='rgba(255,255,255,.2)'; g.fillRect(EXIT[0]*TILE+TILE/2-6, 4, 12, 2);
+    // 출구 상단 화살표
+    g.fillStyle='rgba(255,255,255,.25)';
+    g.fillRect(EXIT[0]*TILE+TILE/2-6, 4, 12, 2);
     g.fillRect(EXIT[0]*TILE+TILE/2-1, 2, 2, 2);
   }
 
-  function loop(){ update(); render(); requestAnimationFrame(loop); }
-  render(); requestAnimationFrame(loop);
+  render(); requestAnimationFrame(function loop(){ update(); render(); requestAnimationFrame(loop); });
 })();
 </script>
 </body>
