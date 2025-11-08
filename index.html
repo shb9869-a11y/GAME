@@ -3,57 +3,51 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no"/>
-<title>SLEEEEP · Popup Maze (Fail-safe)</title>
+<title>SLEEEEP · Retro Popup Maze</title>
 <meta name="theme-color" content="#000000">
 <style>
   :root{ --fg:#fff }
   *{ box-sizing:border-box }
   html,body{ height:100%; margin:0; background:#000; color:var(--fg);
-    font-family:ui-serif,Georgia,"Times New Roman",serif }
+    font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace }
 
-  /* 중앙 팝업(반드시 보이게) */
+  /* 중앙 팝업 */
   #desk{ position:relative; width:100vw; height:100vh; overflow:hidden }
   .gameWin{
     position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
-    width:min(960px, 92vw); aspect-ratio:16/9;
-    background:#000; box-shadow:0 24px 60px rgba(0,0,0,.75), 0 0 0 1px rgba(255,255,255,.08);
-    overflow:hidden;
+    width:min(960px, 92vw); aspect-ratio:16/9; background:#000;
+    box-shadow:0 24px 60px rgba(0,0,0,.80), 0 0 0 1px rgba(255,255,255,.10);
+    overflow:hidden
   }
-
-  /* JS 실패 시에도 보이는 정적 미로(배경 그리드) */
-  .fallback{
-    position:absolute; inset:0; display:grid;
-    grid-template-columns:repeat(48, 1fr);
-    grid-template-rows:repeat(27, 1fr);
-    /* 잔디 느낌 배경 (픽셀풍 도트) */
-    background:
-      radial-gradient(#3b553a 1px, transparent 2px) 0 0/8px 8px,
-      radial-gradient(#1f2e20 1px, transparent 2px) 4px 4px/8px 8px,
-      #0b140d;
-  }
-  /* 중앙 세로 통로(탈출 보장) – JS 없어도 보임 */
-  .fallback .path { background:#1e1e1e }
-  /* 시작/출구 표시 */
-  .start { outline:2px solid #fff }
-  .exit  { background:#303030 !important }
-
-  /* 캔버스(있으면 이게 렌더 주도) */
+  /* 캔버스 */
   #view{ position:absolute; inset:0; width:100%; height:100%;
-    image-rendering:pixelated; image-rendering:crisp-edges; background:transparent; display:block }
+    image-rendering:pixelated; image-rendering:crisp-edges; background:#000; display:block }
 
-  /* 텍스트 버튼(사각 박스/테두리 없음) */
+  /* 레트로 스캔라인 */
+  .scan{
+    position:absolute; inset:0; pointer-events:none; mix-blend-mode:overlay; opacity:.18;
+    background: repeating-linear-gradient(
+      to bottom,
+      rgba(255,255,255,.12) 0px,
+      rgba(255,255,255,.12) 1px,
+      rgba(0,0,0,0) 2px,
+      rgba(0,0,0,0) 3px
+    );
+  }
+
+  /* 글자만 버튼 */
   .tbtn{
     position:absolute; padding:0 6px; height:28px; background:transparent; border:none; color:#fff;
     font:800 14px/1 ui-serif,Georgia,"Times New Roman",serif; letter-spacing:.02em;
     text-shadow:0 1px 0 #000a; cursor:pointer; user-select:none
   }
-  #btnMap{ left:10px; top:10px }
-  #btnInv{ right:10px; top:10px }
-  #btnDialog{ right:10px; bottom:10px }
+  #btnMap{ left:12px; top:10px }
+  #btnInv{ right:12px; top:10px }
+  #btnDialog{ right:12px; bottom:10px }
 
   /* 투명 D-pad */
   .dpad{
-    position:absolute; left:10px; bottom:10px; width:150px; height:150px; display:none;
+    position:absolute; left:12px; bottom:10px; width:150px; height:150px; display:none;
     grid-template-columns:repeat(3,1fr); grid-template-rows:repeat(3,1fr); gap:6px; z-index:3
   }
   .dpad .cell{ display:grid; place-items:center }
@@ -61,30 +55,22 @@
   .key:active{ transform:scale(.95) }
   @media (pointer:coarse){ .dpad{ display:grid } }
 
-  /* 에러/상태 표시 */
-  #banner{ position:absolute; left:0; right:0; top:0; padding:8px 12px; font:800 12px ui-serif; display:none }
-  .ok{ background:#0a0a0a; color:#fff }
-  .err{ background:#b00020; color:#fff }
+  /* 안내 텍스트 */
+  #hint{ position:absolute; left:50%; top:10px; transform:translateX(-50%);
+    font:800 12px ui-monospace; background:rgba(0,0,0,.55); padding:6px 8px }
 </style>
 </head>
 <body>
 <div id="desk">
   <div class="gameWin" id="gameWin">
-    <!-- 상태 배너 -->
-    <div id="banner" class="ok">POPUP LOADED (fallback active)</div>
-
-    <!-- 정적 미로(항상 보임) -->
-    <div id="fallback" class="fallback" aria-hidden="false"></div>
-
-    <!-- 캔버스(성공 시 그 위에 그림) -->
     <canvas id="view" width="960" height="540" aria-label="게임 화면"></canvas>
+    <div class="scan"></div>
 
-    <!-- 텍스트 버튼 -->
     <button id="btnMap" class="tbtn" type="button">MAP</button>
     <button id="btnInv" class="tbtn" type="button">INVENTORY</button>
     <button id="btnDialog" class="tbtn" type="button">Dialogue</button>
+    <div id="hint">EXIT ↑  ·  Move: ← ↑ → ↓ / WASD</div>
 
-    <!-- 투명 D-pad -->
     <div id="dpad" class="dpad" aria-hidden="false">
       <div class="cell"></div><div class="cell"><button class="key" data-dir="up">↑</button></div><div class="cell"></div>
       <div class="cell"><button class="key" data-dir="left">←</button></div><div class="cell"></div><div class="cell"><button class="key" data-dir="right">→</button></div>
@@ -93,65 +79,39 @@
   </div>
 </div>
 
-<noscript>
-  <div style="position:fixed;inset:0;display:grid;place-items:center;color:#fff;font:800 14px ui-serif">
-    JavaScript가 꺼져 있어요. 그래도 팝업/미로는 보여야 합니다.
-  </div>
-</noscript>
-
 <script>
-/* === Fallback 미로를 즉시 구성: 중앙 세로 통로 보장 === */
-(function buildFallback(){
-  const host = document.getElementById('fallback');
-  const cols = 48, rows = 27;
-  // 중앙 세로 통로
-  const mid = (cols/2)|0;
-  for(let r=0;r<rows;r++){
-    const cell = document.createElement('div');
-    if((r>1 && r<rows-1) && r%1===0) cell.className = 'path';
-    host.appendChild(cell);
-    for(let c=1;c<cols;c++){
-      const cell2 = document.createElement('div');
-      if(c===mid) cell2.className='path';
-      host.appendChild(cell2);
-    }
-  }
-  // 시작/출구 표시
-  const idxStart = (rows-3)*cols + mid;
-  const idxExit  = 0*cols + mid;
-  host.children[idxStart]?.classList.add('start');
-  host.children[idxExit]?.classList.add('exit');
-})();
-
-/* === 캔버스가 되면, 그 위에 실제 렌더 (안되면 fallback 유지) === */
-(function main(){
-  const banner = document.getElementById('banner');
-  function ok(msg){ banner.textContent = msg; banner.className='ok'; banner.style.display='block'; setTimeout(()=>banner.style.display='none', 1200); }
-  function err(msg){ banner.textContent = 'ERROR: '+msg; banner.className='err'; banner.style.display='block'; }
-
+(function(){
   const cv = document.getElementById('view');
   const g  = cv.getContext('2d', {alpha:false});
-  if(!g){ err('Canvas 2D not available (fallback only)'); return; }
   g.imageSmoothingEnabled = false;
 
-  // 팔레트
-  const C={ path:'#1e1e1e', ground:'#000',
-    tuftDark:'#0b140d', tuftMid:'#1f2e20', tuftHi:'#3b553a',
-    actor:'#f0e0bf', actorEdge:'#1a1a1a', actorHead:'#ffe8c9' };
+  /* ===== 레트로 흑백 팔레트(명암 확실) ===== */
+  const C = {
+    grassD:'#0b0f0b', grassM:'#171f17', grassH:'#293329',
+    path:'#bfc5c7',   // << 밝게 (미로 또렷)
+    edgeTop:'#e9eef0', edgeBot:'#5a6063',
+    playerFill:'#f8f8f8', playerEdge:'#1a1a1a', playerShadow:'rgba(0,0,0,.55)'
+  };
 
-  // 타일/미로
-  const W=cv.width, H=cv.height, TILE=20;
+  /* ===== 타일/미로 ===== */
+  const W=cv.width, H=cv.height, TILE=16;      // 더 “레트로”하게 작은 타일
   const COLS=(W/TILE)|0, ROWS=(H/TILE)|0;
   const WALL=1, OPEN=0;
   const grid=Array.from({length:ROWS},()=>Array(COLS).fill(WALL));
-  let SEED=777; function rnd(){ SEED=(SEED*1664525+1013904223)>>>0; return SEED/0xFFFFFFFF; }
 
+  // 시드 고정(재현 가능), 필요시 바꿔도 됨
+  let SEED=20251108;
+  function rnd(){ SEED=(SEED*1664525+1013904223)>>>0; return SEED/0xFFFFFFFF; }
+
+  // 백트래킹 + 중앙 세로 코어(탈출 보장)
   function carve(){
     const inb=(x,y)=>x>0&&y>0&&x<COLS-1&&y<ROWS-1;
     const neigh=(x,y)=>[[x+2,y],[x-2,y],[x,y+2],[x,y-2]]
       .filter(([nx,ny])=>inb(nx,ny)&&grid[ny][nx]===WALL);
-    let sx=((COLS/2)|0); if(!(sx&1)) sx--;
+
+    let sx=((COLS/2)|0); if(!(sx&1)) sx--;  // 홀수 좌표 스냅
     let sy=ROWS-3;        if(!(sy&1)) sy--;
+
     const stack=[[sx,sy]]; grid[sy][sx]=OPEN;
     while(stack.length){
       const [x,y]=stack[stack.length-1];
@@ -160,10 +120,10 @@
       const [nx,ny]=nb[(rnd()*nb.length)|0];
       grid[(y+ny)/2][(x+nx)/2]=OPEN; grid[ny][nx]=OPEN; stack.push([nx,ny]);
     }
-    // 중앙 세로 통로 = 탈출 보장
     const ex=((COLS/2)|0);
-    for(let y=ROWS-2;y>=1;y--) grid[y][ex]=OPEN;
-    grid[0][ex]=OPEN;
+    for(let y=ROWS-2;y>=1;y--) grid[y][ex]=OPEN; // 중앙 직통
+    grid[0][ex]=OPEN; // 천장 틈
+    // 시작/출구 주변 통로 살짝 넓힘
     for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
       grid[sy+dy]?.[sx+dx]=OPEN; grid[1+dy]?.[ex+dx]=OPEN;
     }
@@ -171,50 +131,92 @@
   }
   const {start:START, exit:EXIT}=carve();
 
+  /* ===== 배경(잔디 타일 + 밝은 길) ===== */
   function prng(n){ n=(n<<13)^n; return (1-((n*(n*n*15731+789221)+1376312589)&0x7fffffff)/1073741824.0); }
   function drawBG(){
-    g.fillStyle=C.ground; g.fillRect(0,0,W,H);
+    // 바닥
+    g.fillStyle='#000'; g.fillRect(0,0,W,H);
+
     for(let ty=0;ty<ROWS;ty++){
       for(let tx=0;tx<COLS;tx++){
         const x=tx*TILE, y=ty*TILE;
+
         if(grid[ty][tx]===OPEN){
+          // 길(밝게)
           g.fillStyle=C.path; g.fillRect(x,y,TILE,TILE);
-          g.fillStyle='rgba(255,255,255,.05)'; g.fillRect(x,y,TILE,2);
-          g.fillStyle='rgba(0,0,0,.25)'; g.fillRect(x,y+TILE-2,TILE,2);
+          // 레트로 가장자리 하이라이트/쉐도
+          g.fillStyle=C.edgeTop; g.fillRect(x,y,TILE,1);
+          g.fillStyle=C.edgeBot; g.fillRect(x,y+TILE-1,TILE,1);
         }else{
+          // 정적 잔디(픽셀 도트 3갈래)
           const r=Math.abs(prng(tx*73856093 ^ ty*19349663));
-          g.fillStyle = r<0.33?C.tuftDark:(r<0.66?C.tuftMid:C.tuftHi);
+          g.fillStyle = r<0.33?C.grassD:(r<0.66?C.grassM:C.grassH);
           const cx=x+(TILE>>1), cy=y+(TILE>>1);
           g.fillRect(cx-1, cy-4, 2, 5);
-          g.fillRect(cx-5, cy-1, 2, 3);
-          g.fillRect(cx+3, cy-1, 2, 3);
-          if(r>0.7)  g.fillRect(cx-7, cy+4, 1,1);
-          if(r<0.25) g.fillRect(cx+6, cy+3, 1,1);
+          g.fillRect(cx-4, cy-1, 2, 3);
+          g.fillRect(cx+2, cy-1, 2, 3);
+          if(r>0.7)  g.fillRect(cx-6, cy+4, 1,1);
+          if(r<0.25) g.fillRect(cx+5, cy+3, 1,1);
         }
       }
     }
-    // 출구 표식(은은)
-    g.fillStyle='rgba(255,255,255,.08)';
+
+    // 출구 컬럼 은은 강조
+    g.fillStyle='rgba(255,255,255,.10)';
     g.fillRect(EXIT[0]*TILE, 0, TILE, TILE);
   }
 
-  const player={ x: START[0]*TILE + TILE/2, y: START[1]*TILE + TILE/2, spd: 2.6, size:.7 };
-  function tileAt(px,py){ const tx=(px/TILE)|0, ty=(py/TILE)|0; if(tx<0||ty<0||tx>=COLS||ty>=ROWS) return WALL; return grid[ty][tx]; }
-  function move(px,py,ax,ay,s){ let nx=px+ax*s, ny=py+ay*s; if(tileAt(nx,py)===OPEN) px=nx; if(tileAt(px,ny)===OPEN) py=ny; return [px,py]; }
+  /* ===== 플레이어(화이트 바디+진한 외곽선) ===== */
+  const player={
+    x: START[0]*TILE + (TILE>>1),
+    y: START[1]*TILE + (TILE>>1),
+    spd: 2.2, size:.8
+  };
+  function tileAt(px,py){
+    const tx=(px/TILE)|0, ty=(py/TILE)|0;
+    if(tx<0||ty<0||tx>=COLS||ty>=ROWS) return WALL;
+    return grid[ty][tx];
+  }
+  function moveOnPath(px,py,ax,ay,s){
+    let nx=px+ax*s, ny=py+ay*s;
+    if(tileAt(nx,py)===OPEN) px=nx;
+    if(tileAt(px,ny)===OPEN) py=ny;
+    return [px,py];
+  }
   function drawPlayer(){
-    const s=player.size;
-    g.fillStyle='rgba(0,0,0,.5)'; g.fillRect(player.x-10*s, player.y+10*s, 20*s, 4*s);
-    g.fillStyle=C.actor;     g.fillRect(player.x-10*s, player.y-16*s, 20*s, 12*s);
-    g.fillStyle=C.actorHead; g.fillRect(player.x-8*s,  player.y-28*s, 16*s, 10*s);
-    g.fillStyle=C.actorEdge; g.fillRect(player.x-10*s, player.y-4*s,  20*s, 2*s);
+    const s=player.size, px=player.x, py=player.y;
+    // 그림자
+    g.fillStyle=C.playerShadow; g.fillRect(px-6*s, py+6*s, 12*s, 3*s);
+    // 몸통(화이트)
+    g.fillStyle=C.playerFill;  g.fillRect(px-6*s, py-10*s, 12*s, 10*s);
+    // 머리(화이트)
+    g.fillRect(px-5*s, py-16*s, 10*s, 6*s);
+    // 외곽선(짙은 회색)
+    g.fillStyle=C.playerEdge;
+    g.fillRect(px-6*s, py-10*s, 12*s, 1*s);           // 몸 상단
+    g.fillRect(px-6*s, py-1*s,  12*s, 1*s);           // 몸 하단
+    g.fillRect(px-6*s, py-10*s, 1*s,  10*s);          // 좌
+    g.fillRect(px+5*s, py-10*s, 1*s,  10*s);          // 우
+    g.fillRect(px-5*s, py-16*s, 10*s, 1*s);           // 머리 상단
+    g.fillRect(px-5*s, py-10*s, 10*s, 1*s);           // 머리 하단
+    g.fillRect(px-5*s, py-16*s, 1*s,  6*s);           // 머리 좌
+    g.fillRect(px+4*s, py-16*s, 1*s,  6*s);           // 머리 우
   }
 
+  /* ===== 입력 ===== */
   const keys=new Set();
-  addEventListener('keydown',e=>{ const k=e.key.toLowerCase(); if(['arrowup','arrowdown','arrowleft','arrowright','w','a','s','d'].includes(k)) e.preventDefault(); keys.add(k); });
+  addEventListener('keydown',e=>{
+    const k=e.key.toLowerCase();
+    if(['arrowup','arrowdown','arrowleft','arrowright','w','a','s','d'].includes(k)) e.preventDefault();
+    keys.add(k);
+  });
   addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));
 
+  // 터치 D-pad
   const held=new Set(); const dstate={ax:0,ay:0};
-  const setHeld=(dir,on)=>{ if(on) held.add(dir); else held.delete(dir); let ax=0,ay=0; if(held.has('left')) ax-=1; if(held.has('right')) ax+=1; if(held.has('up')) ay-=1; if(held.has('down')) ay+=1; dstate.ax=ax; dstate.ay=ay; };
+  const setHeld=(dir,on)=>{ if(on) held.add(dir); else held.delete(dir);
+    let ax=0,ay=0; if(held.has('left')) ax-=1; if(held.has('right')) ax+=1; if(held.has('up')) ay-=1; if(held.has('down')) ay+=1;
+    dstate.ax=ax; dstate.ay=ay; };
   document.querySelectorAll('[data-dir]').forEach(b=>{
     const dir=b.dataset.dir;
     b.addEventListener('pointerdown',e=>{e.preventDefault();setHeld(dir,true);},{passive:false});
@@ -227,6 +229,10 @@
     b.addEventListener('touchcancel',off,{passive:false});
   });
 
+  /* ===== 루프 ===== */
+  let hintT=240; // 힌트 잠깐 표시
+  const hintEl=document.getElementById('hint');
+
   function update(){
     let ax=0,ay=0;
     if(keys.has('arrowleft')||keys.has('a')) ax-=1;
@@ -235,15 +241,22 @@
     if(keys.has('arrowdown')||keys.has('s')) ay+=1;
     ax+=dstate.ax; ay+=dstate.ay;
     const m=Math.hypot(ax,ay)||1; ax/=m; ay/=m;
-    [player.x,player.y] = move(player.x,player.y,ax,ay,player.spd);
+
+    [player.x,player.y] = moveOnPath(player.x,player.y,ax,ay,player.spd);
+
+    if(hintT>0){ hintT--; if(hintT===0) hintEl.style.display='none'; }
   }
-  function render(){ drawBG(); drawPlayer(); }
 
-  // 첫 프레임 즉시
-  render();
-  requestAnimationFrame(function loop(){ update(); render(); requestAnimationFrame(loop); });
+  function render(){
+    drawBG();
+    drawPlayer();
+    // 출구 화살표(상단 중앙, 은은)
+    g.fillStyle='rgba(255,255,255,.2)'; g.fillRect(EXIT[0]*TILE+TILE/2-6, 4, 12, 2);
+    g.fillRect(EXIT[0]*TILE+TILE/2-1, 2, 2, 2);
+  }
 
-  ok('Canvas active (fallback hidden under canvas)');
+  function loop(){ update(); render(); requestAnimationFrame(loop); }
+  render(); requestAnimationFrame(loop);
 })();
 </script>
 </body>
