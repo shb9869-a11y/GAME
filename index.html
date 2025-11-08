@@ -3,10 +3,8 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-<title>SLEEEEP · Tall Grass & Fog (Wide View)</title>
+<title>SLEEEEP · Tall Grass (Static · Clean D-Pad)</title>
 <meta name="theme-color" content="#000000">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <style>
   :root{
     --bg:#0a0a0c; --fg:#ffffff;
@@ -20,44 +18,44 @@
     font-family:ui-serif,Georgia,"Times New Roman",serif;}
   #stage{position:relative;width:100vw;height:100svh;overflow:hidden;
     padding:var(--safe-top) var(--safe-right) var(--safe-bot) var(--safe-left);}
-  canvas#view{
-    position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
-    image-rendering:pixelated;image-rendering:crisp-edges;background:#0d0d12;
-  }
+  #view{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+    image-rendering:pixelated;image-rendering:crisp-edges;background:#0d0f11}
 
-  /* ── 직각 버튼 (라운드/테두리 없음) */
+  /* 직각 상단 버튼 (테두리/라운드/아웃라인 없음) */
   .btn{
-    position:absolute;height:36px;padding:0 14px;display:grid;place-items:center;
-    background:#15151a;color:#fff;border:none;outline:none;border-radius:0;
+    position:absolute;top:14px;height:36px;padding:0 14px;display:grid;place-items:center;
+    background:#15151a;color:#fff;border:none;border-radius:0;
     font:700 13px/1 ui-serif,Georgia,"Times New Roman",serif;letter-spacing:.02em;
   }
-  #btnMap{left:14px;top:14px}
-  #btnInv{right:14px;top:14px}
+  #btnMap{left:14px}  #btnInv{right:14px}
+
+  /* D-Pad: 배경 완전 제거(투명), 글자만 */
   .dpad{
     position:absolute;left:18px;bottom:18px;width:180px;height:180px;z-index:3;display:none;
-    grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:6px;
+    grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:8px;
   }
-  .dpad .cell{display:grid;place-items:center}
-  .key{width:100%;height:100%;background:#15151a;color:#fff;border:none;outline:none;border-radius:0;
-    font:800 14px ui-serif,Georgia,"Times New Roman",serif}
+  .dpad .cell{display:grid;place-items:center;background:transparent}
+  .key{
+    width:100%;height:100%;background:transparent;color:#fff;border:none;border-radius:0;outline:none;
+    font:800 18px/1 ui-serif,Georgia,"Times New Roman",serif; /* 보기 좋은 큰 화살표 */
+    text-shadow:0 1px 0 #0007;
+  }
+  .key:active{transform:scale(0.96)}
   @media (pointer:coarse){ .dpad{display:grid} }
+
+  /* ACT 버튼도 직각/미니멀 */
   #btnAct{
     position:absolute;right:18px;bottom:18px;z-index:3;width:120px;height:56px;
-    display:grid;place-items:center;background:#15151a;color:#fff;border:none;outline:none;border-radius:0;
+    display:grid;place-items:center;background:#15151a;color:#fff;border:none;border-radius:0;
     font:800 13px ui-serif,Georgia,"Times New Roman",serif;
   }
 
-  /* ── 모달(내용 빈 창만) */
+  /* 모달(빈 창만) */
   .modal{position:absolute;inset:0;display:none;align-items:center;justify-content:center;z-index:5;background:#0008}
   .sheet{min-width:520px;max-width:86vw;min-height:320px;max-height:72vh;overflow:auto;
     background:#121218;color:#fff;border-radius:0;padding:16px}
   .sheet h3{margin:0 0 10px;font:800 14px/1 ui-serif,Georgia,"Times New Roman",serif}
-  .close{float:right;background:#15151a;color:#fff;border:none;outline:none;border-radius:0;padding:6px 10px;font-weight:800}
-
-  /* ── 가로 전용 안내(필요시 표시) */
-  #rotate{position:absolute;inset:0;display:none;background:#000c;color:#fff;z-index:10;
-    align-items:center;justify-content:center;text-align:center;padding:24px}
-  #rotate .box{background:#141418;padding:18px 20px;border-radius:0}
+  .close{float:right;background:#15151a;color:#fff;border:none;border-radius:0;padding:6px 10px;font-weight:800}
 </style>
 </head>
 <body>
@@ -67,65 +65,88 @@
   <button id="btnMap" class="btn">MAP</button>
   <button id="btnInv" class="btn">INVENTORY</button>
 
+  <!-- 투명 D-Pad -->
   <div id="dpad" class="dpad" aria-hidden="false">
-    <div class="cell"></div><div class="cell"><button class="key" data-dir="up">▲</button></div><div class="cell"></div>
-    <div class="cell"><button class="key" data-dir="left">◀</button></div><div class="cell"></div><div class="cell"><button class="key" data-dir="right">▶</button></div>
-    <div class="cell"></div><div class="cell"><button class="key" data-dir="down">▼</button></div><div class="cell"></div>
+    <div class="cell"></div><div class="cell"><button class="key" data-dir="up">↑</button></div><div class="cell"></div>
+    <div class="cell"><button class="key" data-dir="left">←</button></div><div class="cell"></div><div class="cell"><button class="key" data-dir="right">→</button></div>
+    <div class="cell"></div><div class="cell"><button class="key" data-dir="down">↓</button></div><div class="cell"></div>
   </div>
   <button id="btnAct">ACT</button>
 
-  <!-- MAP -->
+  <!-- MAP / INVENTORY 빈 창 -->
   <div id="mapModal" class="modal"><div class="sheet">
-    <button class="close" data-close>닫기</button>
-    <h3>MAP</h3>
+    <button class="close" data-close>닫기</button><h3>MAP</h3>
     <div style="height:240px;background:#0e0e13"></div>
   </div></div>
-
-  <!-- INVENTORY -->
   <div id="invModal" class="modal"><div class="sheet">
-    <button class="close" data-close>닫기</button>
-    <h3>INVENTORY</h3>
+    <button class="close" data-close>닫기</button><h3>INVENTORY</h3>
     <div style="height:240px;background:#0e0e13"></div>
   </div></div>
-
-  <div id="rotate"><div class="box">가로 모드로 전환해주세요.</div></div>
 </div>
 
 <script>
-/* ===== 가로 전용 ===== */
-const rotate=document.getElementById('rotate');
-function checkOrient(){ rotate.style.display=(innerWidth>=innerHeight)?'none':'flex'; }
-addEventListener('resize',checkOrient,{passive:true}); checkOrient();
-
-/* ===== 캔버스 스케일 ===== */
+/* ===== Canvas ===== */
 const stage=document.getElementById('stage');
 const cv=document.getElementById('view');
 const g=cv.getContext('2d'); g.imageSmoothingEnabled=false;
-function fit(){
-  const vw=stage.clientWidth, vh=stage.clientHeight;
+function fit(){ const vw=stage.clientWidth, vh=stage.clientHeight;
   const s=Math.max(1, Math.floor(Math.min(vw/cv.width, vh/cv.height)));
   cv.style.width=(cv.width*s)+'px'; cv.style.height=(cv.height*s)+'px';
   cv.style.left='50%'; cv.style.top='50%'; cv.style.transform='translate(-50%,-50%)';
 }
 new ResizeObserver(fit).observe(stage); fit();
 
-/* ===== 팔레트(초기 포켓몬/레트로 무드) ===== */
+/* ===== Palette ===== */
 const C={
-  ground1:'#1b2117', ground2:'#151b12', path:'#3e3a2b',
-  tallDark:'#0f130f', tallMid:'#2a3326', tallHi:'#475442',
-  fog:'#cfd6d8', fog2:'#9aa4a8',
+  ground:'#121614',
+  tuftDark:'#0d160f',
+  tuftMid :'#213222',
+  tuftHi  :'#3e5a3c',
   actor:'#f0e0bf', actorEdge:'#1a1a1a', actorHead:'#ffe8c9'
 };
 
-/* ===== 월드(줌 아웃: 플레이어/요소 축소) ===== */
+/* ===== World ===== */
 const W=cv.width, H=cv.height;
-const player={x:W*0.5, y:H*0.82, spd:2.8, trail:[], size:0.7}; // size < 1 → 멀리서 보이게
-// 주위에 아주 높은 풀 클러스터(화면 가득)
-const CLUSTERS=[...Array(70)].map(()=>({
-  x:Math.random()*W, y: H*0.45 + Math.random()*H*0.55, h: 80+Math.random()*180, w: 24+Math.random()*40
-}));
+const player={x:W*0.5, y:H*0.82, spd:2.8, trail:[], size:0.7};
 
-/* ===== 입력(직각 UI) ===== */
+/* ===== “귀여운 풀” 타일 =====
+   16px 격자에 3갈래 잔디(픽셀)로 화면 전체 채움 — 정적(움직임 없음) */
+const TILE=16;
+function prng(n){ // 타일 좌표 기반 의사난수(고정)
+  n=(n<<13) ^ n; return (1.0 - ((n*(n*n*15731+789221)+1376312589)&0x7fffffff)/1073741824.0);
+}
+function drawCuteGrass(){
+  g.fillStyle=C.ground; g.fillRect(0,0,W,H);
+  for(let y=0;y<H;y+=TILE){
+    for(let x=0;x<W;x+=TILE){
+      const sx=(x/TILE)|0, sy=(y/TILE)|0;
+      const r=Math.abs(prng(sx*73856093 ^ sy*19349663));
+      // 색상 고르기(3단계)
+      g.fillStyle = r<0.33 ? C.tuftDark : (r<0.66 ? C.tuftMid : C.tuftHi);
+      // 작은 잔디 도트(귀엽게 3갈래)
+      const cx=x+8, cy=y+8;
+      g.fillRect(cx-1, cy-3, 2, 4);      // 중앙 잎
+      g.fillRect(cx-4, cy-1, 2, 3);      // 좌 잎
+      g.fillRect(cx+2, cy-1, 2, 3);      // 우 잎
+      // 점점이 추가
+      if(r>0.7){ g.fillRect(cx-6, cy+3, 1,1); }
+      if(r<0.25){ g.fillRect(cx+5, cy+2, 1,1); }
+    }
+  }
+}
+
+/* ===== Player (작게) ===== */
+function drawPlayer(){
+  const s=player.size;
+  // 그림자
+  g.fillStyle='rgba(0,0,0,.45)'; g.fillRect(player.x-10*s, player.y+10*s, 20*s, 4*s);
+  // 몸/머리
+  g.fillStyle=C.actor;     g.fillRect(player.x-10*s, player.y-16*s, 20*s, 12*s);
+  g.fillStyle=C.actorHead; g.fillRect(player.x-8*s,  player.y-28*s, 16*s, 10*s);
+  g.fillStyle=C.actorEdge; g.fillRect(player.x-10*s, player.y-4*s,  20*s, 2*s);
+}
+
+/* ===== Input ===== */
 const keys=new Set();
 addEventListener('keydown',e=>{
   const k=e.key.toLowerCase();
@@ -134,9 +155,7 @@ addEventListener('keydown',e=>{
   if(k==='e'||k==='enter') act();
 });
 addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));
-
-const dpad=document.getElementById('dpad');
-const held=new Set(); const dstate={ax:0,ay:0};
+const dpad=document.getElementById('dpad'); const held=new Set(); const dstate={ax:0,ay:0};
 function updHeld(){ let ax=0,ay=0; if(held.has('left')) ax-=1; if(held.has('right')) ax+=1; if(held.has('up')) ay-=1; if(held.has('down')) ay+=1; dstate.ax=ax; dstate.ay=ay; }
 dpad.querySelectorAll('[data-dir]').forEach(btn=>{
   const dir=btn.dataset.dir;
@@ -152,110 +171,16 @@ dpad.querySelectorAll('[data-dir]').forEach(btn=>{
 });
 document.getElementById('btnAct').onclick=()=>act();
 
-/* ===== 모달 ===== */
+/* ===== Modals ===== */
 const mapModal=document.getElementById('mapModal');
 const invModal=document.getElementById('invModal');
 document.getElementById('btnMap').onclick=()=>mapModal.style.display='flex';
 document.getElementById('btnInv').onclick=()=>invModal.style.display='flex';
-mapModal.addEventListener('click',e=>{ if(e.target===mapModal||e.target.dataset.close!=null) mapModal.style.display='none';});
-invModal.addEventListener('click',e=>{ if(e.target===invModal||e.target.dataset.close!=null) invModal.style.display='none';});
+[mapModal,invModal].forEach(m=>m.addEventListener('click',e=>{ if(e.target===m||e.target.dataset.close!=null) m.style.display='none';}));
 
-/* ===== 배경: 거친 흙/길, 초고밀도 키 큰 풀, 안개 ===== */
-function drawGround(){
-  g.fillStyle=C.ground1; g.fillRect(0,0,W,H);
-  for(let i=0;i<1800;i++){ // 픽셀 텍스처
-    g.fillStyle=(i%2)?C.ground2:C.ground1;
-    g.fillRect((Math.random()*W)|0,(Math.random()*H)|0,2,2);
-  }
-  // 희미한 길(중앙 아래 → 위쪽으로 사라짐)
-  g.fillStyle=C.path;
-  g.beginPath();
-  g.moveTo(W*0.42,H); g.lineTo(W*0.58,H);
-  g.lineTo(W*0.53,H*0.58); g.lineTo(W*0.47,H*0.58);
-  g.closePath(); g.fill();
-}
-function drawTallGrass(){
-  // 뒤 레이어(어두운 줄기)
-  g.strokeStyle=C.tallDark; g.lineWidth=1;
-  CLUSTERS.forEach(c=>{
-    const stems = 6 + (c.w/6)|0;
-    for(let i=0;i<stems;i++){
-      const x=c.x - c.w/2 + (i/stems)*c.w + (Math.random()*2-1)*2;
-      const y=c.y;
-      const h=c.h*(0.8+Math.random()*0.4);
-      g.beginPath();
-      g.moveTo(x,y);
-      g.lineTo(x+(Math.random()*10-5), y-h);
-      g.stroke();
-    }
-  });
-  // 중간 레이어(중간 톤)
-  g.strokeStyle=C.tallMid;
-  CLUSTERS.forEach(c=>{
-    const stems = 5 + (c.w/7)|0;
-    for(let i=0;i<stems;i++){
-      const x=c.x - c.w/2 + (i/stems)*c.w + (Math.random()*2-1)*2;
-      const y=c.y+4;
-      const h=c.h*(0.7+Math.random()*0.3);
-      g.beginPath(); g.moveTo(x,y); g.lineTo(x+(Math.random()*8-4), y-h); g.stroke();
-    }
-  });
-  // 앞 레이어(하이라이트)
-  g.strokeStyle=C.tallHi;
-  CLUSTERS.forEach(c=>{
-    const stems = 4 + (c.w/8)|0;
-    for(let i=0;i<stems;i++){
-      const x=c.x - c.w/2 + (i/stems)*c.w + (Math.random()*2-1)*2;
-      const y=c.y+8;
-      const h=c.h*(0.6+Math.random()*0.25);
-      g.beginPath(); g.moveTo(x,y); g.lineTo(x+(Math.random()*6-3), y-h); g.stroke();
-    }
-  });
-}
-let fogT=0;
-function drawFog(dt){
-  fogT+=dt*0.0005;
-  const grad=g.createRadialGradient(W*0.5, H*0.65, 40, W*0.5, H*0.65, Math.max(W,H));
-  grad.addColorStop(0, `rgba(255,255,255,0.02)`);
-  grad.addColorStop(1, `rgba(255,255,255,0.18)`);
-  g.fillStyle=grad; g.fillRect(0,0,W,H);
-
-  // 부유하는 안개 입자(저해상 노이즈)
-  for(let i=0;i<200;i++){
-    const x=((Math.sin(fogT*2 + i)*0.5+0.5)*W + (i*53)%W)|0;
-    const y=((Math.cos(fogT*1.7 + i*0.7)*0.5+0.5)*H)|0;
-    g.fillStyle='rgba(255,255,255,0.03)';
-    g.fillRect(x,y,3,3);
-  }
-}
-
-/* ===== 플레이어(작게) ===== */
-function drawPlayer(){
-  const s=player.size; // 0.7 → 작게
-  // 잔상
-  g.globalAlpha=0.6;
-  for(let i=0;i<player.trail.length;i++){
-    const t=player.trail[i]; const a=(i+1)/player.trail.length*0.45;
-    g.fillStyle=`rgba(255,255,255,${a})`;
-    g.fillRect((t.x|0)-1,(t.y|0)-1,2,2);
-  }
-  g.globalAlpha=1;
-  // 그림자
-  g.fillStyle='rgba(0,0,0,.45)'; g.fillRect(player.x-10*s, player.y+10*s, 20*s, 4*s);
-  // 몸/머리
-  g.fillStyle=C.actor;     g.fillRect(player.x-10*s, player.y-16*s, 20*s, 12*s);
-  g.fillStyle=C.actorHead; g.fillRect(player.x-8*s,  player.y-28*s, 16*s, 10*s);
-  g.fillStyle=C.actorEdge; g.fillRect(player.x-10*s, player.y-4*s,  20*s, 2*s);
-}
-
-/* ===== ACT (임시: 안개 속에서 ‘…’) ===== */
-let flashT=0, flashMsg='';
-function flash(m){ flashMsg=m; flashT=50; }
-function act(){ flash('…'); }
-
-/* ===== 루프 ===== */
-let last=performance.now();
-function update(dt){
+/* ===== Loop ===== */
+function act(){ /* 나중에 인터랙션 채움 */ }
+function update(){
   let ax=0,ay=0;
   if(keys.has('arrowleft')||keys.has('a')) ax-=1;
   if(keys.has('arrowright')||keys.has('d')) ax+=1;
@@ -266,48 +191,15 @@ function update(dt){
 
   const nx=player.x + ax*player.spd;
   const ny=player.y + ay*player.spd;
-  // 더 넓은 영역(줌 아웃 느낌)
   player.x = Math.max(40, Math.min(W-40, nx));
   player.y = Math.max(H*0.48, Math.min(H-30, ny));
-
-  player.trail.push({x:player.x,y:player.y});
-  if(player.trail.length>10) player.trail.shift();
-
-  if(flashT>0) flashT--;
 }
-function render(dt){
-  drawGround();
-  drawTallGrass();           // 높은 풀
-  drawPlayer();              // 플레이어
-  drawFog(dt);               // 안개
-
-  if(flashT>0){
-    g.fillStyle='rgba(0,0,0,.55)'; const w=160, h=20;
-    g.fillRect(player.x-w/2, player.y-56, w, h);
-    g.fillStyle='#fff'; g.font='12px ui-serif,Georgia,"Times New Roman",serif';
-    g.fillText(flashMsg, player.x-w/2+10, player.y-41);
-  }
+function render(){
+  drawCuteGrass();
+  drawPlayer();
 }
-function loop(t){
-  const dt=t-last; last=t;
-  update(dt); render(dt);
-  requestAnimationFrame(loop);
-}
-render(16); requestAnimationFrame(loop);
-
-/* ===== 터치 십자키 ===== */
-const setHeld=(dir,on)=>{ if(on) held.add(dir); else held.delete(dir); updHeld(); }
-dpad.querySelectorAll('[data-dir]').forEach(btn=>{
-  const dir=btn.dataset.dir;
-  btn.addEventListener('pointerdown',e=>{e.preventDefault();setHeld(dir,true);},{passive:false});
-  const off=e=>{e.preventDefault();setHeld(dir,false);};
-  btn.addEventListener('pointerup',off,{passive:false});
-  btn.addEventListener('pointerleave',off,{passive:false});
-  btn.addEventListener('pointercancel',off,{passive:false});
-  btn.addEventListener('touchstart',e=>{e.preventDefault();setHeld(dir,true);},{passive:false});
-  btn.addEventListener('touchend',off,{passive:false});
-  btn.addEventListener('touchcancel',off,{passive:false});
-});
+function loop(){ update(); render(); requestAnimationFrame(loop); }
+render(); requestAnimationFrame(loop);
 </script>
 </body>
 </html>
