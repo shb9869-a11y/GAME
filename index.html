@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-<title>SLEEEEP · Tall Grass Maze (App-like)</title>
+<title>SLEEEEP · Tall Grass Maze (Popup)</title>
 <meta name="theme-color" content="#000000">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -20,25 +20,36 @@
   *{box-sizing:border-box}
   html,body{height:100%;margin:0;background:#000;color:var(--fg);
     font-family:ui-serif,Georgia,"Times New Roman",serif;}
-  #stage{position:relative;width:100vw;height:100svh;overflow:hidden;
+
+  /* 화면 전체는 검정, 가운데 팝업 창 */
+  #desk{position:relative;width:100vw;height:100svh;
     padding:var(--safe-top) var(--safe-right) var(--safe-bot) var(--safe-left);}
-  /* 게임 창: 전체를 채우지 않음(중앙 90% 이내) */
-  #view{position:absolute;left:50%;top:50%;
-    transform:translate(-50%,-50%);
-    image-rendering:pixelated;image-rendering:crisp-edges;background:#000;}
-  /* 텍스트 버튼(박스/테두리 없음) */
+  .gameWin{
+    position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+    background:#000; /* 내부 배경 */
+    width:min(960px, 92vw); aspect-ratio:16/9; /* 팝업 크기 */
+    box-shadow:0 24px 60px rgba(0,0,0,.75), 0 0 0 1px rgba(255,255,255,.08);
+    overflow:hidden;
+  }
+
+  /* 캔버스는 팝업 안에서 1:1 픽셀 정수배 */
+  #view{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+    image-rendering:pixelated;image-rendering:crisp-edges;background:#000}
+
+  /* 텍스트 버튼(사각 박스 없음) */
   .tbtn{
-    position:absolute;top:10px;padding:0 6px;height:28px;display:grid;place-items:center;
+    position:absolute;padding:0 6px;height:28px;display:grid;place-items:center;
     background:transparent;border:none;outline:none;border-radius:0;color:#fff;
     font:800 14px/1 ui-serif,Georgia,"Times New Roman",serif;letter-spacing:.02em;
     text-shadow:0 1px 0 #000a; cursor:pointer; user-select:none;
   }
-  #btnMap{left:10px}
-  #btnInv{right:10px}
-  #btnDialog{right:10px; top:auto; bottom:10px} /* 하단 우측 */
+  #btnMap{left:10px;top:10px}
+  #btnInv{right:10px;top:10px}
+  #btnDialog{right:10px;bottom:10px}
+
   /* 투명 D-pad */
   .dpad{
-    position:absolute;left:10px;bottom:10px;width:180px;height:180px;display:none;
+    position:absolute;left:10px;bottom:10px;width:160px;height:160px;display:none;
     grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:8px;z-index:3;
   }
   .dpad .cell{display:grid;place-items:center;background:transparent}
@@ -51,53 +62,60 @@
 
   /* 모달(빈 창만) */
   .modal{position:absolute;inset:0;display:none;align-items:center;justify-content:center;z-index:5;background:#0008}
-  .sheet{min-width:520px;max-width:86vw;min-height:320px;max-height:72vh;overflow:auto;
+  .sheet{min-width:480px;max-width:86%;min-height:280px;max-height:70%;overflow:auto;
     background:#101018;color:#fff;border-radius:0;padding:16px}
   .sheet h3{margin:0 0 12px;font:800 14px/1 ui-serif,Georgia,"Times New Roman",serif}
   .close{float:right;background:transparent;color:#fff;border:none;font-weight:800;cursor:pointer}
+  /* 탈출 안내 토스트 */
+  #toast{position:absolute;left:50%;top:12px;transform:translateX(-50%);padding:6px 10px;
+    background:rgba(0,0,0,.55);font:800 12px ui-serif,Georgia,"Times New Roman",serif;display:none}
 </style>
 </head>
 <body>
-<div id="stage">
-  <!-- 화면 전체를 채우지 않는 고정 해상도 캔버스 -->
-  <canvas id="view" width="960" height="540" aria-label="게임 화면"></canvas>
+<div id="desk">
+  <div class="gameWin" id="gameWin">
+    <canvas id="view" width="960" height="540" aria-label="게임 화면"></canvas>
 
-  <!-- 텍스트 버튼 -->
-  <button id="btnMap" class="tbtn">MAP</button>
-  <button id="btnInv" class="tbtn">INVENTORY</button>
-  <button id="btnDialog" class="tbtn">Dialogue</button>
+    <!-- 텍스트 버튼 -->
+    <button id="btnMap" class="tbtn">MAP</button>
+    <button id="btnInv" class="tbtn">INVENTORY</button>
+    <button id="btnDialog" class="tbtn">Dialogue</button>
 
-  <!-- 투명 D-pad -->
-  <div id="dpad" class="dpad" aria-hidden="false">
-    <div class="cell"></div><div class="cell"><button class="key" data-dir="up">↑</button></div><div class="cell"></div>
-    <div class="cell"><button class="key" data-dir="left">←</button></div><div class="cell"></div><div class="cell"><button class="key" data-dir="right">→</button></div>
-    <div class="cell"></div><div class="cell"><button class="key" data-dir="down">↓</button></div><div class="cell"></div>
+    <!-- 투명 D-pad -->
+    <div id="dpad" class="dpad" aria-hidden="false">
+      <div class="cell"></div><div class="cell"><button class="key" data-dir="up">↑</button></div><div class="cell"></div>
+      <div class="cell"><button class="key" data-dir="left">←</button></div><div class="cell"></div><div class="cell"><button class="key" data-dir="right">→</button></div>
+      <div class="cell"></div><div class="cell"><button class="key" data-dir="down">↓</button></div><div class="cell"></div>
+    </div>
+
+    <!-- MAP / INVENTORY 빈 창 -->
+    <div id="mapModal" class="modal"><div class="sheet">
+      <button class="close" data-close>닫기</button><h3>MAP</h3>
+      <div style="height:220px;background:#0e0e13"></div>
+    </div></div>
+    <div id="invModal" class="modal"><div class="sheet">
+      <button class="close" data-close>닫기</button><h3>INVENTORY</h3>
+      <div style="height:220px;background:#0e0e13"></div>
+    </div></div>
+
+    <div id="toast">탈출 지점에 도착했습니다</div>
   </div>
-
-  <!-- MAP / INVENTORY 빈 창 -->
-  <div id="mapModal" class="modal"><div class="sheet">
-    <button class="close" data-close>닫기</button><h3>MAP</h3>
-    <div style="height:240px;background:#0e0e13"></div>
-  </div></div>
-  <div id="invModal" class="modal"><div class="sheet">
-    <button class="close" data-close>닫기</button><h3>INVENTORY</h3>
-    <div style="height:240px;background:#0e0e13"></div>
-  </div></div>
 </div>
 
 <script>
-/* ===== 캔버스 배치: 화면 90% 이내로 스케일 ===== */
-const stage=document.getElementById('stage');
+/* ===== 팝업 안 정수배 스케일 ===== */
+const win=document.getElementById('gameWin');
 const cv=document.getElementById('view');
 const g=cv.getContext('2d'); g.imageSmoothingEnabled=false;
 function fit(){
-  const vw=stage.clientWidth, vh=stage.clientHeight;
-  const s=Math.min(vw*0.9/cv.width, vh*0.9/cv.height);
-  const is = Math.max(1, Math.floor(s)); // 정수배 스케일
+  const wb=win.clientWidth, hb=win.clientHeight;
+  const s=Math.min(wb/cv.width, hb/cv.height);
+  const is=Math.max(1, Math.floor(s));
   cv.style.width=(cv.width*is)+'px';
   cv.style.height=(cv.height*is)+'px';
+  cv.style.left='50%'; cv.style.top='50%'; cv.style.transform='translate(-50%,-50%)';
 }
-new ResizeObserver(fit).observe(stage); fit();
+new ResizeObserver(fit).observe(win); fit();
 
 /* ===== 팔레트 ===== */
 const C={
@@ -109,38 +127,55 @@ const C={
   actor:'#f0e0bf', actorEdge:'#1a1a1a', actorHead:'#ffe8c9'
 };
 
-/* ===== 타일/미로 설정 ===== */
+/* ===== 타일/미로 ===== */
 const W=cv.width, H=cv.height;
-const TILE=20;                   // 48 × 27 타일
+const TILE=20;                      // 48 x 27
 const COLS=(W/TILE)|0, ROWS=(H/TILE)|0;
-
 const WALL=1, OPEN=0;
-const grid = Array.from({length:ROWS},()=>Array(COLS).fill(WALL));
+const grid=Array.from({length:ROWS},()=>Array(COLS).fill(WALL));
 
-/* 랜덤 백트래킹 미로(셀 간격 2칸) */
+/* 시드 고정 가능 (원하면 숫자 바꾸기) */
+let SEED=1337;
+function rnd(){ SEED = (SEED*1103515245 + 12345) & 0x7fffffff; return SEED/0x7fffffff; }
+
+/* 랜덤 백트래킹 + 보장된 탈출 코어로 */
 function carveMaze(){
   const inb=(x,y)=>x>0&&y>0&&x<COLS-1&&y<ROWS-1;
-  function neigh(x,y){
-    return [[x+2,y],[x-2,y],[x,y+2],[x,y-2]].filter(([nx,ny])=>inb(nx,ny)&&grid[ny][nx]===WALL);
-  }
-  // 시작: 아래쪽 중앙 근처
-  let sx=(COLS/2|0)|1, sy=(ROWS-3)|0; sx-=sx%2?0:1; sy-=sy%2?0:1;
+  const neigh=(x,y)=>[[x+2,y],[x-2,y],[x,y+2],[x,y-2]]
+      .filter(([nx,ny])=>inb(nx,ny)&&grid[ny][nx]===WALL);
+
+  // 시작: 하단 중앙 근처 홀수 좌표로 스냅
+  let sx=((COLS/2)|0); sx-=sx%2?0:1;
+  let sy=ROWS-3;        sy-=sy%2?0:1;
+
   const stack=[[sx,sy]]; grid[sy][sx]=OPEN;
   while(stack.length){
     const [x,y]=stack[stack.length-1];
     const nb=neigh(x,y);
     if(nb.length===0){ stack.pop(); continue; }
-    const [nx,ny]=nb[(Math.random()*nb.length)|0];
-    grid[(y+ny)/2][(x+nx)/2]=OPEN; // 사이벽 열기
-    grid[ny][nx]=OPEN;
-    stack.push([nx,ny]);
+    const [nx,ny]=nb[(rnd()*nb.length)|0];
+    grid[(y+ny)/2][(x+nx)/2]=OPEN; grid[ny][nx]=OPEN; stack.push([nx,ny]);
   }
-  // 출구 같은 넓은 공터 살짝
-  for(let y=2;y<5;y++)for(let x=COLS-6;x<COLS-2;x++) grid[y][x]=OPEN;
-}
-carveMaze();
 
-/* ===== 배경: 귀여운 풀 타일 + 길 ===== */
+  // ===== 탈출 보장 코어로(세로 직통) =====
+  const exitX = ((COLS/2)|0);       // 중앙 열
+  for(let y=ROWS-2; y>=1; y--){     // 바닥~천장까지 관통
+    grid[y][exitX]=OPEN;
+  }
+  // 출구 틈(천장)
+  grid[0][exitX]=OPEN;
+
+  // 시작/출구 주변 넓힘(통로 폭 살짝)
+  for(let dy=-1;dy<=1;dy++) for(let dx=-1;dx<=1;dx++){
+    grid[sy+dy]?.[sx+dx] = OPEN;
+    grid[1+dy]?.[exitX+dx] = OPEN;
+  }
+
+  return {start:[sx,sy], exit:[exitX,0]};
+}
+const {start:START, exit:EXIT}=carveMaze();
+
+/* ===== 배경: 풀 타일 + 길 ===== */
 function prng(n){ n=(n<<13) ^ n; return (1.0 - ((n*(n*n*15731+789221)+1376312589)&0x7fffffff)/1073741824.0); }
 function drawBackground(){
   g.fillStyle=C.ground; g.fillRect(0,0,W,H);
@@ -148,35 +183,41 @@ function drawBackground(){
     for(let tx=0;tx<COLS;tx++){
       const x=tx*TILE, y=ty*TILE;
       if(grid[ty][tx]===OPEN){
-        // 길
         g.fillStyle=C.path; g.fillRect(x,y,TILE,TILE);
-        // 살짝 라인(입체감)
         g.fillStyle='rgba(255,255,255,.04)'; g.fillRect(x,y,TILE,2);
         g.fillStyle='rgba(0,0,0,.25)'; g.fillRect(x,y+TILE-2,TILE,2);
       }else{
-        // 풀 타일(정적)
         const r=Math.abs(prng(tx*73856093 ^ ty*19349663));
         g.fillStyle = r<0.33 ? C.tuftDark : (r<0.66 ? C.tuftMid : C.tuftHi);
         const cx=x+TILE/2|0, cy=y+TILE/2|0;
-        g.fillRect(cx-1, cy-4, 2, 5);      // 중앙 잎
-        g.fillRect(cx-5, cy-1, 2, 3);      // 좌 잎
-        g.fillRect(cx+3, cy-1, 2, 3);      // 우 잎
+        g.fillRect(cx-1, cy-4, 2, 5);
+        g.fillRect(cx-5, cy-1, 2, 3);
+        g.fillRect(cx+3, cy-1, 2, 3);
         if(r>0.7){ g.fillRect(cx-7, cy+4, 1,1); }
         if(r<0.25){ g.fillRect(cx+6, cy+3, 1,1); }
       }
     }
   }
+  // 출구 표시(아주 은은)
+  g.fillStyle='rgba(255,255,255,.08)';
+  g.fillRect(EXIT[0]*TILE, 0, TILE, TILE);
 }
 
 /* ===== 플레이어: 길 위에서만 이동 ===== */
-const player={x:(COLS/2|0)*TILE+TILE/2, y:(ROWS-2)*TILE+TILE/2, spd:2.6, size:.7};
-function tileAt(x,y){ const tx=(x/TILE)|0, ty=(y/TILE)|0; if(tx<0||ty<0||tx>=COLS||ty>=ROWS) return WALL; return grid[ty][tx]; }
-
+const player={
+  x: START[0]*TILE + TILE/2,
+  y: START[1]*TILE + TILE/2,
+  spd: 2.6, size:.7
+};
+function tileAtPx(px,py){
+  const tx=(px/TILE)|0, ty=(py/TILE)|0;
+  if(tx<0||ty<0||tx>=COLS||ty>=ROWS) return WALL;
+  return grid[ty][tx];
+}
 function moveOnPath(px,py,ax,ay,spd){
   let nx=px+ax*spd, ny=py+ay*spd;
-  // 한 축씩 검사(길에서만 통과)
-  if(tileAt(nx,py)===OPEN) px=nx;
-  if(tileAt(px,ny)===OPEN) py=ny;
+  if(tileAtPx(nx,py)===OPEN) px=nx;
+  if(tileAtPx(px,ny)===OPEN) py=ny;
   return [px,py];
 }
 
@@ -189,7 +230,6 @@ addEventListener('keydown',e=>{
   if(k==='e'||k==='enter') openDialog();
 });
 addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));
-
 const dpad=document.getElementById('dpad'); const held=new Set(); const dstate={ax:0,ay:0};
 function updHeld(){ let ax=0,ay=0; if(held.has('left')) ax-=1; if(held.has('right')) ax+=1; if(held.has('up')) ay-=1; if(held.has('down')) ay+=1; dstate.ax=ax; dstate.ay=ay; }
 dpad.querySelectorAll('[data-dir]').forEach(btn=>{
@@ -205,23 +245,25 @@ dpad.querySelectorAll('[data-dir]').forEach(btn=>{
   btn.addEventListener('touchcancel',up,{passive:false});
 });
 
-/* ===== 모달(맵/인벤토리) ===== */
+/* ===== MAP/INV 모달 ===== */
 const mapModal=document.getElementById('mapModal');
 const invModal=document.getElementById('invModal');
 document.getElementById('btnMap').onclick=()=>mapModal.style.display='flex';
 document.getElementById('btnInv').onclick=()=>invModal.style.display='flex';
 [mapModal,invModal].forEach(m=>m.addEventListener('click',e=>{ if(e.target===m||e.target.dataset.close!=null) m.style.display='none';}));
 
-/* ===== Dialogue (임시) ===== */
+/* ===== Dialogue (자리만) ===== */
 document.getElementById('btnDialog').onclick=()=>openDialog();
-function openDialog(){ /* 나중에 실제 대화 연결 */ }
+function openDialog(){ /* 추후 연결 */ }
+
+/* ===== 토스트 ===== */
+const toast=document.getElementById('toast');
+let toastT=0; function showToast(msg){ toast.textContent=msg; toast.style.display='block'; toastT=90; }
 
 /* ===== 렌더링 ===== */
 function drawPlayer(){
   const s=player.size;
-  // 그림자
   g.fillStyle='rgba(0,0,0,.5)'; g.fillRect(player.x-10*s, player.y+10*s, 20*s, 4*s);
-  // 몸/머리
   g.fillStyle=C.actor;     g.fillRect(player.x-10*s, player.y-16*s, 20*s, 12*s);
   g.fillStyle=C.actorHead; g.fillRect(player.x-8*s,  player.y-28*s, 16*s, 10*s);
   g.fillStyle=C.actorEdge; g.fillRect(player.x-10*s, player.y-4*s,  20*s, 2*s);
@@ -237,6 +279,11 @@ function update(){
   const m=Math.hypot(ax,ay)||1; ax/=m; ay/=m;
 
   [player.x,player.y] = moveOnPath(player.x,player.y,ax,ay,player.spd);
+
+  // 출구 감지 (천장 타일)
+  const ex=EXIT[0]*TILE + TILE/2, ey=TILE/2;
+  if(Math.hypot(player.x-ex, player.y-ey)<14){ showToast('탈출 지점에 도착했습니다'); }
+  if(toastT>0){ toastT--; if(toastT===0) toast.style.display='none'; }
 }
 function render(){
   drawBackground();
