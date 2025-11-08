@@ -3,13 +3,13 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-<title>SLEEEEP · Prologue — Red Roof House</title>
+<title>SLEEEEP · Prologue — Red Roof House (Clean BW)</title>
 <meta name="theme-color" content="#000000">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <style>
   :root{
-    --bg:#0b0b0f; --fg:#eaeaea;
+    --bg:#0a0a0c; --fg:#e8e8ee;
     --safe-top:env(safe-area-inset-top,0px);
     --safe-bot:env(safe-area-inset-bottom,0px);
     --safe-left:env(safe-area-inset-left,0px);
@@ -21,62 +21,80 @@
   #stage{position:relative;width:100vw;height:100svh;overflow:hidden;
     padding:var(--safe-top) var(--safe-right) var(--safe-bot) var(--safe-left);}
   canvas{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
-    image-rendering:pixelated;image-rendering:crisp-edges;touch-action:none;background:#0f0f14}
-  /* HUD */
-  .panel{position:absolute;z-index:3;background:rgba(0,0,0,.45);
-    border:1px solid rgba(255,255,255,.18);backdrop-filter:blur(6px);border-radius:12px}
-  #map{left:14px;top:14px;width:160px;height:120px;padding:8px}
-  #inv{right:14px;top:14px;width:190px;min-height:120px;padding:8px}
-  .ttl{font:700 12px/1 ui-monospace,monospace;color:#ffd9b0;margin-bottom:6px}
-  .grid{display:grid;grid-template-columns:repeat(5,30px);gap:6px}
-  .slot{width:30px;height:30px;border-radius:6px;border:1px solid rgba(255,255,255,.18);
-    background:rgba(255,255,255,.06);display:grid;place-items:center;font-weight:700;font-size:11px}
-  #hud{left:14px;bottom:14px;padding:8px 10px;font-size:12px}
-  /* Controls (landscape only) */
-  .dpad{position:absolute;left:18px;bottom:18px;width:230px;height:160px;
-    display:none;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:10px;z-index:3}
+    image-rendering:pixelated;image-rendering:crisp-edges;background:#0f0f14}
+  /* Top buttons */
+  .topbtn{position:absolute;top:14px;height:36px;padding:0 12px;display:grid;place-items:center;
+    border-radius:10px;background:rgba(255,255,255,.05);color:#fff;border:1px solid rgba(255,255,255,.14);
+    font:700 12px ui-monospace,monospace;letter-spacing:.02em;z-index:3}
+  #btnMap{left:14px}
+  #btnInv{right:14px}
+  /* Minimal controls */
+  .dpad{position:absolute;left:18px;bottom:18px;width:180px;height:180px;z-index:3;display:none;
+    grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:8px}
   .dpad .cell{display:grid;place-items:center}
-  .dpad button{width:100%;height:100%;border-radius:14px;border:1px solid rgba(255,255,255,.25);
-    background:rgba(255,255,255,.08);color:#fff;font:800 14px ui-monospace,monospace}
-  .dpad button:active{background:rgba(255,255,255,.22)}
+  .chip{width:100%;height:100%;border-radius:12px;background:rgba(255,255,255,.06);
+    border:1px solid rgba(255,255,255,.16);color:#fff;font:800 14px ui-monospace,monospace}
+  .chip:active{background:rgba(255,255,255,.18)}
   @media (pointer:coarse){ .dpad{display:grid} }
-  .act{position:absolute;right:18px;bottom:18px;z-index:3;width:140px;height:64px;
-    display:grid;place-items:center;border-radius:16px;border:1px solid rgba(255,255,255,.25);
-    background:rgba(255,255,255,.08);font:800 14px/1 ui-monospace,monospace}
-  .act .hint{opacity:.85;font-weight:700}
-  /* Rotate overlay for portrait */
-  #rotate{position:absolute;inset:0;display:none;z-index:5;background:#000c;
-    color:#fff;align-items:center;justify-content:center;text-align:center;padding:24px}
+  .act{position:absolute;right:18px;bottom:18px;z-index:3;width:120px;height:56px;display:grid;place-items:center;
+    border-radius:14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.16);
+    font:800 13px ui-monospace,monospace}
+  .hint{opacity:.7}
+  /* Modal clean */
+  .modal{position:absolute;inset:0;display:none;align-items:center;justify-content:center;z-index:5;
+    background:rgba(0,0,0,.5)}
+  .sheet{min-width:520px;max-width:86vw;min-height:320px;max-height:72vh;overflow:auto;
+    border-radius:16px;background:#121218;border:1px solid rgba(255,255,255,.14);padding:16px}
+  .sheet h3{margin:0 0 10px;font:800 13px ui-monospace,monospace;color:#ffd9b0}
+  .close{float:right;border:1px solid rgba(255,255,255,.16);background:transparent;color:#fff;
+    border-radius:8px;padding:6px 10px;font-weight:800}
+  .grid{display:grid;grid-template-columns:repeat(6,48px);gap:8px;margin-top:10px}
+  .slot{width:48px;height:48px;border-radius:10px;border:1px solid rgba(255,255,255,.14);
+    background:rgba(255,255,255,.04);display:grid;place-items:center}
+  /* Rotate overlay */
+  #rotate{position:absolute;inset:0;display:none;background:#000c;color:#fff;z-index:10;
+    align-items:center;justify-content:center;text-align:center;padding:24px}
   #rotate .box{max-width:520px;border:1px solid rgba(255,255,255,.2);border-radius:14px;
     padding:18px 20px;background:#141418}
+  /* Tiny HUD */
+  #hud{position:absolute;left:14px;bottom:14px;padding:6px 8px;border-radius:10px;
+    background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.14);font-size:11px;z-index:3}
 </style>
 </head>
 <body>
 <div id="stage">
-  <canvas id="view" width="960" height="540" aria-label="게임 화면"></canvas>
+  <canvas id="view" width="1280" height="720" aria-label="게임 화면"></canvas>
 
-  <div id="map" class="panel">
-    <div class="ttl">MAP</div>
-    <canvas id="mini" width="150" height="90" style="width:100%;height:90px;image-rendering:pixelated"></canvas>
-  </div>
-
-  <div id="inv" class="panel" aria-label="인벤토리">
-    <div class="ttl">INVENTORY</div>
-    <div class="grid" id="grid">
-      <div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div>
-      <div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div>
-    </div>
-  </div>
-
-  <div id="hud" class="panel">화살표로 이동 · <b>E</b>/<b>Enter</b>/오른쪽 버튼: 대화/줍기</div>
+  <button id="btnMap" class="topbtn">MAP</button>
+  <button id="btnInv" class="topbtn">INVENTORY</button>
 
   <div id="dpad" class="dpad" aria-hidden="false">
-    <div class="cell"></div><div class="cell"><button data-dir="up">▲</button></div><div class="cell"></div>
-    <div class="cell"><button data-dir="left">◀</button></div><div class="cell"></div><div class="cell"><button data-dir="right">▶</button></div>
-    <div class="cell"></div><div class="cell"><button data-dir="down">▼</button></div><div class="cell"></div>
+    <div class="cell"></div><div class="cell"><button class="chip" data-dir="up">▲</button></div><div class="cell"></div>
+    <div class="cell"><button class="chip" data-dir="left">◀</button></div><div class="cell"></div><div class="cell"><button class="chip" data-dir="right">▶</button></div>
+    <div class="cell"></div><div class="cell"><button class="chip" data-dir="down">▼</button></div><div class="cell"></div>
   </div>
+  <button id="btnAct" class="act">ACT <span class="hint">E/Enter</span></button>
 
-  <button id="act" class="act">ACT <span class="hint">[E]</span></button>
+  <div id="hud">← → ↑ ↓ 이동 · ACT로 대화/줍기</div>
+
+  <!-- MAP modal -->
+  <div id="mapModal" class="modal"><div class="sheet">
+    <button class="close" data-close>닫기</button>
+    <h3>MAP — (미리보기 전용)</h3>
+    <p style="opacity:.8">지금은 창만 준비해두었어요. 나중에 타일/방 레이아웃을 여기에 그려 붙이면 됩니다.</p>
+    <div style="height:220px;background:#0e0e13;border:1px dashed rgba(255,255,255,.18);border-radius:12px"></div>
+  </div></div>
+
+  <!-- INVENTORY modal -->
+  <div id="invModal" class="modal"><div class="sheet">
+    <button class="close" data-close>닫기</button>
+    <h3>INVENTORY — (수집품 미리보기)</h3>
+    <div class="grid" id="invGrid">
+      <!-- 빈 슬롯 -->
+      <div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div>
+      <div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div>
+    </div>
+  </div></div>
 
   <div id="rotate"><div class="box">이 게임은 <b>가로 모드 전용</b>입니다.<br>기기를 가로로 돌려주세요.</div></div>
 </div>
@@ -84,58 +102,46 @@
 <script>
 /* ===== Params ===== */
 const Q=new URLSearchParams(location.search);
-const BW=(Q.get('bw')||'0')==='1';
+const BW=(Q.get('bw')||'1')==='1'; // 기본 흑백, ?bw=0이면 컬러
 /* ===== Orientation guard ===== */
 const rotate=document.getElementById('rotate');
 function checkOrient(){
   const landscape = (window.innerWidth>=window.innerHeight);
   rotate.style.display = landscape ? 'none' : 'flex';
-  // 블러/입력 차단은 rotate가 가린 걸로 충분
 }
 addEventListener('resize',checkOrient,{passive:true}); checkOrient();
 
-/* ===== Canvas + Fit (landscape center) ===== */
+/* ===== Canvas fit (16:9) ===== */
 const stage=document.getElementById('stage');
 const cv=document.getElementById('view');
 const g=cv.getContext('2d'); g.imageSmoothingEnabled=false;
 function fit(){
   const vw=stage.clientWidth, vh=stage.clientHeight;
-  const s=Math.floor(Math.min(vw/cv.width, vh/cv.height));
+  const s=Math.floor(Math.min(vw/cv.width, vh/cv.height)); // 정수 배수 스케일
   cv.style.width=(cv.width*s)+'px'; cv.style.height=(cv.height*s)+'px';
   cv.style.left='50%'; cv.style.top='50%'; cv.style.transform='translate(-50%,-50%)';
 }
 new ResizeObserver(fit).observe(stage); fit();
 
-/* ===== Colors ===== */
+/* ===== Palette ===== */
 const C = BW ? {
-  grass1:'#1a1a1a', grass2:'#141414', path:'#2a2a2a',
-  trunk:'#9a9a9a', branch:'#cfcfcf',
-  wall:'#d9d9d9', roof:'#b3b3b3', door:'#7a7a7a', win:'#efefef', shade:'rgba(0,0,0,.18)',
-  actor:'#ffffff', actorEdge:'#222'
-} : {
+  grass1:'#121212', grass2:'#0f0f0f', path:'#2a2a2a',
+  trunk:'#b5b5b5', branch:'#d8d8d8',
+  wall:'#e2e2e2', roof:'#bfbfbf', roofAccent:'#bfbfbf', door:'#7a7a7a', win:'#f5f5f5', shade:'rgba(0,0,0,.18)',
+  actor:'#ffffff', actorEdge:'#1e1e1e', leaf:'#d0d0d0', stone:'#bdbdbd'
+}:{
   grass1:'#24311f', grass2:'#1d281a', path:'#5e5138',
   trunk:'#6e5844', branch:'#a08a75',
-  wall:'#e6e6e8', roof:'#b01014', door:'#7d6d4f', win:'#f4f7ff', shade:'rgba(0,0,0,.18)',
-  actor:'#ffcf8a', actorEdge:'#1d1d1d'
+  wall:'#e6e6e8', roof:'#b01014', roofAccent:'#9b0d12', door:'#7d6d4f', win:'#f4f7ff', shade:'rgba(0,0,0,.18)',
+  actor:'#ffcf8a', actorEdge:'#1d1d1d', leaf:'#8fcf6a', stone:'#c7c2b8'
 };
 
-/* ===== World Setup ===== */
-const W=960, H=540; // canvas pixels
-// player
-const player={x:W*0.5, y:H*0.8, spd:1.8, dir:'up', trail:[]};
-// items sample near path
+/* ===== World ===== */
+const W=cv.width, H=cv.height;
+const player={x:W*0.5, y:H*0.78, spd:2.4, trail:[]};
 const items=[{x:W*0.52,y:H*0.74,type:'leaf',picked:false},{x:W*0.48,y:H*0.73,type:'stone',picked:false}];
-const inventory=[];
-const grid=document.getElementById('grid');
 
-function addInv(type){
-  if(inventory.length>=10) return;
-  inventory.push(type);
-  const slot=grid.querySelectorAll('.slot')[inventory.length-1];
-  slot.textContent=type[0].toUpperCase();
-}
-
-/* ===== Input ===== */
+/* ===== Input (clean) ===== */
 const keys=new Set();
 addEventListener('keydown',e=>{
   const k=e.key.toLowerCase();
@@ -144,11 +150,11 @@ addEventListener('keydown',e=>{
   if(k==='e'||k==='enter') act();
 });
 addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));
-
+// Touch dpad
 const dpad=document.getElementById('dpad');
 const held=new Set(); const dstate={ax:0,ay:0};
 function updHeld(){ let ax=0,ay=0; if(held.has('left')) ax-=1; if(held.has('right')) ax+=1; if(held.has('up')) ay-=1; if(held.has('down')) ay+=1; dstate.ax=ax; dstate.ay=ay; }
-dpad.querySelectorAll('button[data-dir]').forEach(b=>{
+dpad.querySelectorAll('[data-dir]').forEach(b=>{
   const dir=b.dataset.dir;
   const down=e=>{e.preventDefault();held.add(dir);updHeld();};
   const up=e=>{e.preventDefault();held.delete(dir);updHeld();};
@@ -156,62 +162,57 @@ dpad.querySelectorAll('button[data-dir]').forEach(b=>{
   b.addEventListener('pointercancel',up); b.addEventListener('pointerleave',up);
   b.addEventListener('touchstart',down,{passive:false}); b.addEventListener('touchend',up,{passive:false}); b.addEventListener('touchcancel',up,{passive:false});
 });
+document.getElementById('btnAct').onclick=()=>act();
 
-document.getElementById('act').onclick=()=>act();
+/* ===== Minimal modals ===== */
+const mapModal=document.getElementById('mapModal');
+const invModal=document.getElementById('invModal');
+document.getElementById('btnMap').onclick=()=>mapModal.style.display='flex';
+document.getElementById('btnInv').onclick=()=>invModal.style.display='flex';
+mapModal.addEventListener('click',e=>{ if(e.target===mapModal||e.target.dataset.close!=null) mapModal.style.display='none';});
+invModal.addEventListener('click',e=>{ if(e.target===invModal||e.target.dataset.close!=null) invModal.style.display='none';});
 
-/* ===== Scene Drawing Helpers ===== */
-function rand(n){return Math.random()*n}
+/* ===== Scene drawing ===== */
 function drawGrass(){
-  // mottled grass
   g.fillStyle=C.grass1; g.fillRect(0,0,W,H);
-  for(let i=0;i<800;i++){
+  // subtle dither
+  for(let i=0;i<1200;i++){
     g.fillStyle=(i%2)?C.grass2:C.grass1;
     const x=(Math.random()*W)|0, y=(Math.random()*H)|0;
     g.fillRect(x,y,2,2);
   }
-  // central path to the door
+  // path to door
   g.fillStyle=C.path;
   g.beginPath();
-  g.moveTo(W*0.45,H); g.lineTo(W*0.55,H); g.lineTo(W*0.525,H*0.62); g.lineTo(W*0.475,H*0.62); g.closePath(); g.fill();
+  g.moveTo(W*0.46,H); g.lineTo(W*0.54,H); g.lineTo(W*0.525,H*0.60); g.lineTo(W*0.475,H*0.60); g.closePath(); g.fill();
 }
 function drawTree(x,y,scale=1){
-  // trunk
-  g.fillStyle=C.trunk; g.fillRect(x-2*scale,y-20*scale,4*scale,20*scale);
-  // branches
+  g.fillStyle=C.trunk; g.fillRect(x-2*scale,y-24*scale,4*scale,24*scale);
   g.strokeStyle=C.branch; g.lineWidth=1*scale; g.beginPath();
-  const segs=6;
-  for(let i=0;i<segs;i++){
-    const bx=x + (Math.random()*20-10)*scale;
-    const by=y-20*scale - i*8*scale;
-    g.moveTo(x, y-20*scale - i*6*scale);
+  for(let i=0;i<6;i++){
+    const bx=x + (Math.random()*26-13)*scale;
+    const by=y-24*scale - i*9*scale;
+    g.moveTo(x, y-24*scale - i*6*scale);
     g.lineTo(bx, by);
   }
   g.stroke();
 }
 function drawHouse(){
+  const cx=W*0.5, baseY=H*0.60, w=560, h=230;
   // body
-  const cx=W*0.5, baseY=H*0.62, w=520, h=220;
   g.fillStyle=C.wall; g.fillRect(cx-w/2, baseY-h, w, h);
-  // center porch
-  const pw=160, ph=120;
+  // porch
+  const pw=180, ph=126;
   g.fillRect(cx-pw/2, baseY-ph, pw, ph);
   // roof main
   g.fillStyle=C.roof;
-  g.beginPath();
-  g.moveTo(cx-w/2, baseY-h);
-  g.lineTo(cx, baseY-h-90);
-  g.lineTo(cx+w/2, baseY-h);
-  g.closePath(); g.fill();
+  g.beginPath(); g.moveTo(cx-w/2, baseY-h); g.lineTo(cx, baseY-h-100); g.lineTo(cx+w/2, baseY-h); g.closePath(); g.fill();
   // roof porch
-  g.beginPath();
-  g.moveTo(cx-pw/2, baseY-ph);
-  g.lineTo(cx, baseY-ph-60);
-  g.lineTo(cx+pw/2, baseY-ph);
-  g.closePath(); g.fill();
-
-  // windows grid
+  g.fillStyle=C.roofAccent;
+  g.beginPath(); g.moveTo(cx-pw/2, baseY-ph); g.lineTo(cx, baseY-ph-64); g.lineTo(cx+pw/2, baseY-ph); g.closePath(); g.fill();
+  // windows
   g.fillStyle=C.win;
-  const cols=6, rows=2, ww=48, wh=28, gapX=40, gapY=32, offY=baseY-h+40;
+  const cols=6, rows=2, ww=52, wh=30, gapX=36, gapY=34, offY=baseY-h+38;
   let sx=cx - (cols*ww + (cols-1)*gapX)/2;
   for(let r=0;r<rows;r++){
     for(let c=0;c<cols;c++){
@@ -220,72 +221,49 @@ function drawHouse(){
       g.fillStyle=C.shade; g.fillRect(x,y+wh-4,ww,4); g.fillStyle=C.win;
     }
   }
-  // porch door & windows
-  g.fillStyle=C.door; g.fillRect(cx-34, baseY-70, 68, 70);
-  g.fillStyle=C.win; g.fillRect(cx-50, baseY-ph+24, 100, 36);
+  // door + porch window
+  g.fillStyle=C.door; g.fillRect(cx-36, baseY-72, 72, 72);
+  g.fillStyle=C.win; g.fillRect(cx-56, baseY-ph+26, 112, 38);
 }
 function drawItems(){
   items.forEach(it=>{
     if(it.picked) return;
-    g.fillStyle = BW ? '#d0d0d0' : (it.type==='leaf'?'#8fcf6a':'#c7c2b8');
+    g.fillStyle = it.type==='leaf' ? C.leaf : C.stone;
     g.fillRect(it.x-3,it.y-3,6,6);
   });
 }
 function drawPlayer(){
-  // trail dots
+  // trail
   g.globalAlpha=0.6;
   for(let i=0;i<player.trail.length;i++){
     const t=player.trail[i]; const a=(i+1)/player.trail.length*0.45;
-    g.fillStyle= BW ? `rgba(255,255,255,${a})` : `rgba(255,255,255,${a})`;
+    g.fillStyle= `rgba(255,255,255,${a})`;
     g.fillRect((t.x|0)-1,(t.y|0)-1,2,2);
   }
   g.globalAlpha=1;
   // shadow
-  g.fillStyle='rgba(0,0,0,.45)'; g.fillRect(player.x-10,player.y+10,20,4);
-  // body
-  g.fillStyle=C.actor; g.fillRect(player.x-12,player.y-18,24,14);
-  // head
-  g.fillStyle=BW?'#e8e8e8':'#ffe6c7'; g.fillRect(player.x-10,player.y-30,20,12);
-  // edge
+  g.fillStyle='rgba(0,0,0,.45)'; g.fillRect(player.x-12,player.y+12,24,5);
+  // body/head (사람 형상)
+  g.fillStyle=C.actor; g.fillRect(player.x-12,player.y-20,24,16);
+  g.fillStyle=BW?'#eaeaea':'#ffe6c7'; g.fillRect(player.x-10,player.y-34,20,12);
   g.fillStyle=C.actorEdge; g.fillRect(player.x-12,player.y-4,24,2);
 }
 
-/* ===== Mini Map ===== */
-const mini=document.getElementById('mini');
-const mg=mini.getContext('2d'); mg.imageSmoothingEnabled=false;
-function drawMini(){
-  mg.fillStyle=BW?'#111':'#102010'; mg.fillRect(0,0,mini.width,mini.height);
-  // house block
-  mg.fillStyle=BW?'#cfcfcf':'#dcdce0';
-  mg.fillRect( mini.width*0.35, mini.height*0.22, mini.width*0.30, mini.height*0.38 );
-  // path
-  mg.fillStyle=BW?'#6a6a6a':'#6b5a3a';
-  mg.fillRect( mini.width*0.47, mini.height*0.60, mini.width*0.06, mini.height*0.35 );
-  // player dot
-  mg.fillStyle=BW?'#fff':'#ffcc66';
-  mg.fillRect( (player.x/W*mini.width)|0, (player.y/H*mini.height)|0, 2,2 );
-}
-
-/* ===== Interaction ===== */
+/* ===== ACT ===== */
+let flashT=0, flashMsg='';
+function flash(m){ flashMsg=m; flashT=60; }
 function act(){
-  // pick items nearby; later: talk/enter door
+  // pick if near
   let did=false;
   for(const it of items){
     if(it.picked) continue;
-    const d=Math.hypot(player.x-it.x, player.y-it.y);
-    if(d<20){ it.picked=true; addInv(it.type); did=true; }
+    if(Math.hypot(player.x-it.x, player.y-it.y)<22){ it.picked=true; did=true; }
   }
-  // enter if near door
-  const doorX=W*0.5, doorY=H*0.62-10;
-  if(Math.hypot(player.x-doorX, player.y-doorY)<28){
-    // placeholder: fade or message
-    flash('문이 잠겨 있습니다.');
-    did=true;
-  }
-  if(!did) flash('...');
+  // door test
+  const doorX=W*0.5, doorY=H*0.60-10;
+  if(Math.hypot(player.x-doorX, player.y-doorY)<30){ flash('문이 굳게 잠겨 있다.'); did=true; }
+  if(!did) flash('…');
 }
-let flashTimer=0; let flashText='';
-function flash(t){ flashText=t; flashTimer=60; }
 
 /* ===== Loop ===== */
 function update(){
@@ -294,53 +272,51 @@ function update(){
   if(keys.has('arrowright')||keys.has('d')) ax+=1;
   if(keys.has('arrowup')||keys.has('w')) ay-=1;
   if(keys.has('arrowdown')||keys.has('s')) ay+=1;
+  // touch
   ax+=dstate.ax; ay+=dstate.ay;
   const m=Math.hypot(ax,ay)||1; ax/=m; ay/=m;
 
-  // move along path bounds (simple clamp so 잔디밖 탈출 방지)
   const nx=player.x + ax*player.spd;
   const ny=player.y + ay*player.spd;
+  // 카메라에 확실히 보이도록 여유있는 범위
   player.x = Math.max(60, Math.min(W-60, nx));
-  player.y = Math.max(H*0.55, Math.min(H-30, ny));
+  player.y = Math.max(H*0.55, Math.min(H-40, ny));
 
-  // trail
   player.trail.push({x:player.x,y:player.y});
-  if(player.trail.length>14) player.trail.shift();
+  if(player.trail.length>12) player.trail.shift();
 
-  if(flashTimer>0) flashTimer--;
+  if(flashT>0) flashT--;
 }
 function render(){
   drawGrass();
-  // trees scattered (background)
-  for(let i=0;i<16;i++) drawTree((i*63+80)%W, 140+ (i%4)*20, 1.2);
-  for(let i=0;i<10;i++) drawTree( (i*97+30)%W, 180+ (i%5)*22, 1.0);
+  // background trees
+  for(let i=0;i<18;i++) drawTree((i*63+90)%W, 150+ (i%4)*20, 1.2);
+  for(let i=0;i<14;i++) drawTree( (i*97+30)%W, 190+ (i%5)*22, 1.0);
   drawHouse();
   drawItems();
   drawPlayer();
 
-  // HUD message
-  if(flashTimer>0){
-    g.fillStyle='rgba(0,0,0,.55)'; const w=180, h=22;
-    g.fillRect(player.x-w/2, player.y-60, w, h);
+  if(flashT>0){
+    g.fillStyle='rgba(0,0,0,.55)'; const w=220, h=22;
+    g.fillRect(player.x-w/2, player.y-64, w, h);
     g.fillStyle='#fff'; g.font='12px ui-monospace';
-    g.fillText(flashText, player.x-w/2+10, player.y-44);
+    g.fillText(flashMsg, player.x-w/2+10, player.y-48);
   }
-  drawMini();
 }
 function tick(){ update(); render(); requestAnimationFrame(tick); }
 tick();
 
-/* ===== Touch dpad state update ===== */
-const actBtn=document.getElementById('act');
-const dstateEl=document.getElementById('dpad');
+/* ===== D-pad live state ===== */
 (function bindDpad(){
-  const map={up:'up',down:'down',left:'left',right:'right'};
-  dstateEl.querySelectorAll('button').forEach(b=>{
-    const dir=b.dataset.dir;
-    b.addEventListener('pointerdown',e=>{e.preventDefault();held.add(dir);updHeld();},{passive:false});
+  const cells = dpad.querySelectorAll('[data-dir]');
+  function set(dir,on){ if(on) held.add(dir); else held.delete(dir); updHeld(); }
+  cells.forEach(btn=>{
+    const dir=btn.dataset.dir;
+    btn.addEventListener('pointerdown',e=>{e.preventDefault();set(dir,true);},{passive:false});
+    btn.addEventListener('pointerup',e=>{e.preventDefault();set(dir,false);},{passive:false});
+    btn.addEventListener('pointerleave',e=>{e.preventDefault();set(dir,false);},{passive:false});
   });
 })();
-
 </script>
 </body>
 </html>
