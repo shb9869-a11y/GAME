@@ -3,294 +3,221 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-<title>SLEEEEP · Tall Grass Maze (Popup)</title>
+<title>SLEEEEP · Tall Grass Maze (Popup · Safe Mode)</title>
 <meta name="theme-color" content="#000000">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="SLEEEEP">
-<meta name="mobile-web-app-capable" content="yes">
 <style>
-  :root{
-    --fg:#ffffff;
-    --safe-top:env(safe-area-inset-top,0px);
-    --safe-bot:env(safe-area-inset-bottom,0px);
-    --safe-left:env(safe-area-inset-left,0px);
-    --safe-right:env(safe-area-inset-right,0px);
-  }
+  :root{ --fg:#fff; }
   *{box-sizing:border-box}
   html,body{height:100%;margin:0;background:#000;color:var(--fg);
-    font-family:ui-serif,Georgia,"Times New Roman",serif;}
+    font-family:ui-serif,Georgia,"Times New Roman",serif}
 
-  /* 화면 전체는 검정, 가운데 팝업 창 */
-  #desk{position:relative;width:100vw;height:100svh;
-    padding:var(--safe-top) var(--safe-right) var(--safe-bot) var(--safe-left);}
+  /* 바탕 검정 + 중앙 팝업 */
+  #desk{position:relative;width:100vw;height:100vh;overflow:hidden}
   .gameWin{
     position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
-    background:#000; /* 내부 배경 */
-    width:min(960px, 92vw); aspect-ratio:16/9; /* 팝업 크기 */
-    box-shadow:0 24px 60px rgba(0,0,0,.75), 0 0 0 1px rgba(255,255,255,.08);
+    width:960px;height:540px;background:#000; /* 팝업 고정크기 */
+    box-shadow:0 24px 60px rgba(0,0,0,.75),0 0 0 1px rgba(255,255,255,.08);
     overflow:hidden;
   }
 
-  /* 캔버스는 팝업 안에서 1:1 픽셀 정수배 */
-  #view{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  /* 캔버스: 팝업 안에 꽉 채움(정수배 스케일 아님, 안전 모드) */
+  #view{position:absolute;inset:0;width:100%;height:100%;
     image-rendering:pixelated;image-rendering:crisp-edges;background:#000}
 
-  /* 텍스트 버튼(사각 박스 없음) */
-  .tbtn{
-    position:absolute;padding:0 6px;height:28px;display:grid;place-items:center;
-    background:transparent;border:none;outline:none;border-radius:0;color:#fff;
+  /* 텍스트 버튼(박스 없음) */
+  .tbtn{position:absolute;background:transparent;border:none;color:#fff;
     font:800 14px/1 ui-serif,Georgia,"Times New Roman",serif;letter-spacing:.02em;
-    text-shadow:0 1px 0 #000a; cursor:pointer; user-select:none;
-  }
+    text-shadow:0 1px 0 #000a;cursor:pointer;user-select:none}
   #btnMap{left:10px;top:10px}
   #btnInv{right:10px;top:10px}
   #btnDialog{right:10px;bottom:10px}
 
   /* 투명 D-pad */
-  .dpad{
-    position:absolute;left:10px;bottom:10px;width:160px;height:160px;display:none;
-    grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:8px;z-index:3;
-  }
-  .dpad .cell{display:grid;place-items:center;background:transparent}
-  .key{
-    width:100%;height:100%;background:transparent;color:#fff;border:none;border-radius:0;outline:none;
-    font:800 18px/1 ui-serif,Georgia,"Times New Roman",serif;text-shadow:0 1px 0 #000a; cursor:pointer;
-  }
-  .key:active{transform:scale(.96)}
+  .dpad{position:absolute;left:10px;bottom:10px;width:150px;height:150px;
+    display:none;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:6px;z-index:3}
+  .dpad .cell{display:grid;place-items:center}
+  .key{background:transparent;border:none;color:#fff;font:800 18px ui-serif,Georgia,"Times New Roman",serif;cursor:pointer}
+  .key:active{transform:scale(.95)}
   @media (pointer:coarse){ .dpad{display:grid} }
 
-  /* 모달(빈 창만) */
-  .modal{position:absolute;inset:0;display:none;align-items:center;justify-content:center;z-index:5;background:#0008}
-  .sheet{min-width:480px;max-width:86%;min-height:280px;max-height:70%;overflow:auto;
-    background:#101018;color:#fff;border-radius:0;padding:16px}
-  .sheet h3{margin:0 0 12px;font:800 14px/1 ui-serif,Georgia,"Times New Roman",serif}
-  .close{float:right;background:transparent;color:#fff;border:none;font-weight:800;cursor:pointer}
-  /* 탈출 안내 토스트 */
-  #toast{position:absolute;left:50%;top:12px;transform:translateX(-50%);padding:6px 10px;
-    background:rgba(0,0,0,.55);font:800 12px ui-serif,Georgia,"Times New Roman",serif;display:none}
+  /* 오류 배너 */
+  #err{position:absolute;left:0;right:0;top:0;background:#b00020;color:#fff;
+    font:700 12px/1.3 ui-serif;padding:8px 12px;display:none;z-index:9}
 </style>
 </head>
 <body>
 <div id="desk">
   <div class="gameWin" id="gameWin">
-    <canvas id="view" width="960" height="540" aria-label="게임 화면"></canvas>
+    <div id="err"></div>
+    <canvas id="view" width="960" height="540"></canvas>
 
-    <!-- 텍스트 버튼 -->
     <button id="btnMap" class="tbtn">MAP</button>
     <button id="btnInv" class="tbtn">INVENTORY</button>
     <button id="btnDialog" class="tbtn">Dialogue</button>
 
-    <!-- 투명 D-pad -->
     <div id="dpad" class="dpad" aria-hidden="false">
       <div class="cell"></div><div class="cell"><button class="key" data-dir="up">↑</button></div><div class="cell"></div>
       <div class="cell"><button class="key" data-dir="left">←</button></div><div class="cell"></div><div class="cell"><button class="key" data-dir="right">→</button></div>
       <div class="cell"></div><div class="cell"><button class="key" data-dir="down">↓</button></div><div class="cell"></div>
     </div>
-
-    <!-- MAP / INVENTORY 빈 창 -->
-    <div id="mapModal" class="modal"><div class="sheet">
-      <button class="close" data-close>닫기</button><h3>MAP</h3>
-      <div style="height:220px;background:#0e0e13"></div>
-    </div></div>
-    <div id="invModal" class="modal"><div class="sheet">
-      <button class="close" data-close>닫기</button><h3>INVENTORY</h3>
-      <div style="height:220px;background:#0e0e13"></div>
-    </div></div>
-
-    <div id="toast">탈출 지점에 도착했습니다</div>
   </div>
 </div>
 
 <script>
-/* ===== 팝업 안 정수배 스케일 ===== */
-const win=document.getElementById('gameWin');
-const cv=document.getElementById('view');
-const g=cv.getContext('2d'); g.imageSmoothingEnabled=false;
-function fit(){
-  const wb=win.clientWidth, hb=win.clientHeight;
-  const s=Math.min(wb/cv.width, hb/cv.height);
-  const is=Math.max(1, Math.floor(s));
-  cv.style.width=(cv.width*is)+'px';
-  cv.style.height=(cv.height*is)+'px';
-  cv.style.left='50%'; cv.style.top='50%'; cv.style.transform='translate(-50%,-50%)';
-}
-new ResizeObserver(fit).observe(win); fit();
+(function(){
+  const err = document.getElementById('err');
+  function showErr(e){ err.textContent = 'ERROR: '+ e; err.style.display='block'; }
 
-/* ===== 팔레트 ===== */
-const C={
-  path:'#1e1e1e',
-  ground:'#000',
-  tuftDark:'#0b140d',
-  tuftMid :'#1f2e20',
-  tuftHi  :'#3b553a',
-  actor:'#f0e0bf', actorEdge:'#1a1a1a', actorHead:'#ffe8c9'
-};
+  try{
+    const cv = document.getElementById('view');
+    const g  = cv.getContext('2d',{alpha:false});
+    if(!g) throw 'Canvas 2D context unavailable';
+    g.imageSmoothingEnabled = false;
 
-/* ===== 타일/미로 ===== */
-const W=cv.width, H=cv.height;
-const TILE=20;                      // 48 x 27
-const COLS=(W/TILE)|0, ROWS=(H/TILE)|0;
-const WALL=1, OPEN=0;
-const grid=Array.from({length:ROWS},()=>Array(COLS).fill(WALL));
+    // ===== 기본 팔레트
+    const C={
+      path:'#1e1e1e',
+      ground:'#000',
+      tuftDark:'#0b140d', tuftMid:'#1f2e20', tuftHi:'#3b553a',
+      actor:'#f0e0bf', actorEdge:'#1a1a1a', actorHead:'#ffe8c9'
+    };
 
-/* 시드 고정 가능 (원하면 숫자 바꾸기) */
-let SEED=1337;
-function rnd(){ SEED = (SEED*1103515245 + 12345) & 0x7fffffff; return SEED/0x7fffffff; }
+    // ===== 타일/미로
+    const W=cv.width, H=cv.height;
+    const TILE=20;
+    const COLS=(W/TILE)|0, ROWS=(H/TILE)|0;
+    const WALL=1, OPEN=0;
+    const grid=Array.from({length:ROWS},()=>Array(COLS).fill(WALL));
 
-/* 랜덤 백트래킹 + 보장된 탈출 코어로 */
-function carveMaze(){
-  const inb=(x,y)=>x>0&&y>0&&x<COLS-1&&y<ROWS-1;
-  const neigh=(x,y)=>[[x+2,y],[x-2,y],[x,y+2],[x,y-2]]
-      .filter(([nx,ny])=>inb(nx,ny)&&grid[ny][nx]===WALL);
+    // 간단 PRNG (시드 고정)
+    let SEED=12345;
+    function rnd(){ SEED=(SEED*1664525+1013904223)>>>0; return SEED/0xFFFFFFFF; }
 
-  // 시작: 하단 중앙 근처 홀수 좌표로 스냅
-  let sx=((COLS/2)|0); sx-=sx%2?0:1;
-  let sy=ROWS-3;        sy-=sy%2?0:1;
+    // 미로: 백트래킹 + 중앙 세로 코어로(탈출 보장)
+    function carve(){
+      const inb=(x,y)=>x>0&&y>0&&x<COLS-1&&y<ROWS-1;
+      const neigh=(x,y)=>[[x+2,y],[x-2,y],[x,y+2],[x,y-2]]
+        .filter(([nx,ny])=>inb(nx,ny)&&grid[ny][nx]===WALL);
 
-  const stack=[[sx,sy]]; grid[sy][sx]=OPEN;
-  while(stack.length){
-    const [x,y]=stack[stack.length-1];
-    const nb=neigh(x,y);
-    if(nb.length===0){ stack.pop(); continue; }
-    const [nx,ny]=nb[(rnd()*nb.length)|0];
-    grid[(y+ny)/2][(x+nx)/2]=OPEN; grid[ny][nx]=OPEN; stack.push([nx,ny]);
-  }
+      let sx=((COLS/2)|0); if(!(sx&1)) sx--; // 홀수
+      let sy=ROWS-3;        if(!(sy&1)) sy--;
+      const st=[sx,sy]; const stack=[st]; grid[sy][sx]=OPEN;
 
-  // ===== 탈출 보장 코어로(세로 직통) =====
-  const exitX = ((COLS/2)|0);       // 중앙 열
-  for(let y=ROWS-2; y>=1; y--){     // 바닥~천장까지 관통
-    grid[y][exitX]=OPEN;
-  }
-  // 출구 틈(천장)
-  grid[0][exitX]=OPEN;
-
-  // 시작/출구 주변 넓힘(통로 폭 살짝)
-  for(let dy=-1;dy<=1;dy++) for(let dx=-1;dx<=1;dx++){
-    grid[sy+dy]?.[sx+dx] = OPEN;
-    grid[1+dy]?.[exitX+dx] = OPEN;
-  }
-
-  return {start:[sx,sy], exit:[exitX,0]};
-}
-const {start:START, exit:EXIT}=carveMaze();
-
-/* ===== 배경: 풀 타일 + 길 ===== */
-function prng(n){ n=(n<<13) ^ n; return (1.0 - ((n*(n*n*15731+789221)+1376312589)&0x7fffffff)/1073741824.0); }
-function drawBackground(){
-  g.fillStyle=C.ground; g.fillRect(0,0,W,H);
-  for(let ty=0;ty<ROWS;ty++){
-    for(let tx=0;tx<COLS;tx++){
-      const x=tx*TILE, y=ty*TILE;
-      if(grid[ty][tx]===OPEN){
-        g.fillStyle=C.path; g.fillRect(x,y,TILE,TILE);
-        g.fillStyle='rgba(255,255,255,.04)'; g.fillRect(x,y,TILE,2);
-        g.fillStyle='rgba(0,0,0,.25)'; g.fillRect(x,y+TILE-2,TILE,2);
-      }else{
-        const r=Math.abs(prng(tx*73856093 ^ ty*19349663));
-        g.fillStyle = r<0.33 ? C.tuftDark : (r<0.66 ? C.tuftMid : C.tuftHi);
-        const cx=x+TILE/2|0, cy=y+TILE/2|0;
-        g.fillRect(cx-1, cy-4, 2, 5);
-        g.fillRect(cx-5, cy-1, 2, 3);
-        g.fillRect(cx+3, cy-1, 2, 3);
-        if(r>0.7){ g.fillRect(cx-7, cy+4, 1,1); }
-        if(r<0.25){ g.fillRect(cx+6, cy+3, 1,1); }
+      while(stack.length){
+        const [x,y]=stack[stack.length-1];
+        const nb=neigh(x,y);
+        if(nb.length===0){ stack.pop(); continue; }
+        const [nx,ny]=nb[(rnd()*nb.length)|0];
+        grid[(y+ny)/2][(x+nx)/2]=OPEN; grid[ny][nx]=OPEN; stack.push([nx,ny]);
       }
+      const ex=((COLS/2)|0);
+      for(let y=ROWS-2;y>=1;y--) grid[y][ex]=OPEN; // 중앙 직통
+      grid[0][ex]=OPEN; // 천장 틈
+      // 주변 넓힘
+      for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
+        grid[sy+dy]?.[sx+dx]=OPEN;
+        grid[1+dy]?.[ex+dx]=OPEN;
+      }
+      return {start:[sx,sy], exit:[ex,0]};
     }
-  }
-  // 출구 표시(아주 은은)
-  g.fillStyle='rgba(255,255,255,.08)';
-  g.fillRect(EXIT[0]*TILE, 0, TILE, TILE);
-}
+    const {start:START, exit:EXIT}=carve();
 
-/* ===== 플레이어: 길 위에서만 이동 ===== */
-const player={
-  x: START[0]*TILE + TILE/2,
-  y: START[1]*TILE + TILE/2,
-  spd: 2.6, size:.7
-};
-function tileAtPx(px,py){
-  const tx=(px/TILE)|0, ty=(py/TILE)|0;
-  if(tx<0||ty<0||tx>=COLS||ty>=ROWS) return WALL;
-  return grid[ty][tx];
-}
-function moveOnPath(px,py,ax,ay,spd){
-  let nx=px+ax*spd, ny=py+ay*spd;
-  if(tileAtPx(nx,py)===OPEN) px=nx;
-  if(tileAtPx(px,ny)===OPEN) py=ny;
-  return [px,py];
-}
+    // ===== 배경(귀여운 풀 + 길)
+    function prng(n){ n=(n<<13)^n; return (1-((n*(n*n*15731+789221)+1376312589)&0x7fffffff)/1073741824.0); }
+    function drawBG(){
+      g.fillStyle=C.ground; g.fillRect(0,0,W,H);
+      for(let ty=0;ty<ROWS;ty++){
+        for(let tx=0;tx<COLS;tx++){
+          const x=tx*TILE, y=ty*TILE;
+          if(grid[ty][tx]===OPEN){
+            g.fillStyle=C.path; g.fillRect(x,y,TILE,TILE);
+            g.fillStyle='rgba(255,255,255,.05)'; g.fillRect(x,y,TILE,2);
+            g.fillStyle='rgba(0,0,0,.25)'; g.fillRect(x,y+TILE-2,TILE,2);
+          }else{
+            const r=Math.abs(prng(tx*73856093 ^ ty*19349663));
+            g.fillStyle = r<0.33?C.tuftDark:(r<0.66?C.tuftMid:C.tuftHi);
+            const cx=x+(TILE>>1), cy=y+(TILE>>1);
+            g.fillRect(cx-1, cy-4, 2, 5);
+            g.fillRect(cx-5, cy-1, 2, 3);
+            g.fillRect(cx+3, cy-1, 2, 3);
+            if(r>0.7) g.fillRect(cx-7, cy+4, 1,1);
+            if(r<0.25) g.fillRect(cx+6, cy+3, 1,1);
+          }
+        }
+      }
+      // 출구 강조(은은)
+      g.fillStyle='rgba(255,255,255,.08)';
+      g.fillRect(EXIT[0]*TILE, 0, TILE, TILE);
+    }
 
-/* ===== 입력 ===== */
-const keys=new Set();
-addEventListener('keydown',e=>{
-  const k=e.key.toLowerCase();
-  if(['arrowup','arrowdown','arrowleft','arrowright','w','a','s','d','e','enter'].includes(k)) e.preventDefault();
-  keys.add(k);
-  if(k==='e'||k==='enter') openDialog();
-});
-addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));
-const dpad=document.getElementById('dpad'); const held=new Set(); const dstate={ax:0,ay:0};
-function updHeld(){ let ax=0,ay=0; if(held.has('left')) ax-=1; if(held.has('right')) ax+=1; if(held.has('up')) ay-=1; if(held.has('down')) ay+=1; dstate.ax=ax; dstate.ay=ay; }
-dpad.querySelectorAll('[data-dir]').forEach(btn=>{
-  const dir=btn.dataset.dir;
-  const down=e=>{e.preventDefault();held.add(dir);updHeld();};
-  const up=e=>{e.preventDefault();held.delete(dir);updHeld();};
-  btn.addEventListener('pointerdown',down,{passive:false});
-  btn.addEventListener('pointerup',up,{passive:false});
-  btn.addEventListener('pointercancel',up,{passive:false});
-  btn.addEventListener('pointerleave',up,{passive:false});
-  btn.addEventListener('touchstart',down,{passive:false});
-  btn.addEventListener('touchend',up,{passive:false});
-  btn.addEventListener('touchcancel',up,{passive:false});
-});
+    // ===== 플레이어(길 위 전용 이동)
+    const player={
+      x: START[0]*TILE + (TILE>>1),
+      y: START[1]*TILE + (TILE>>1),
+      spd: 2.6, size:.7
+    };
+    function tileAt(px,py){
+      const tx=(px/TILE)|0, ty=(py/TILE)|0;
+      if(tx<0||ty<0||tx>=COLS||ty>=ROWS) return WALL;
+      return grid[ty][tx];
+    }
+    function move(px,py,ax,ay,s){
+      let nx=px+ax*s, ny=py+ay*s;
+      if(tileAt(nx,py)===OPEN) px=nx;
+      if(tileAt(px,ny)===OPEN) py=ny;
+      return [px,py];
+    }
+    function drawPlayer(){
+      const s=player.size;
+      g.fillStyle='rgba(0,0,0,.5)'; g.fillRect(player.x-10*s, player.y+10*s, 20*s, 4*s);
+      g.fillStyle=C.actor;     g.fillRect(player.x-10*s, player.y-16*s, 20*s, 12*s);
+      g.fillStyle=C.actorHead; g.fillRect(player.x-8*s,  player.y-28*s, 16*s, 10*s);
+      g.fillStyle=C.actorEdge; g.fillRect(player.x-10*s, player.y-4*s,  20*s, 2*s);
+    }
 
-/* ===== MAP/INV 모달 ===== */
-const mapModal=document.getElementById('mapModal');
-const invModal=document.getElementById('invModal');
-document.getElementById('btnMap').onclick=()=>mapModal.style.display='flex';
-document.getElementById('btnInv').onclick=()=>invModal.style.display='flex';
-[mapModal,invModal].forEach(m=>m.addEventListener('click',e=>{ if(e.target===m||e.target.dataset.close!=null) m.style.display='none';}));
+    // ===== 입력
+    const keys=new Set();
+    addEventListener('keydown',e=>{
+      const k=e.key.toLowerCase();
+      if(['arrowup','arrowdown','arrowleft','arrowright','w','a','s','d','e','enter'].includes(k)) e.preventDefault();
+      keys.add(k);
+    });
+    addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));
+    // 터치 D-pad
+    const dpad=document.getElementById('dpad'); const held=new Set(); const dstate={ax:0,ay:0};
+    function upd(){ let ax=0,ay=0; if(held.has('left')) ax-=1; if(held.has('right')) ax+=1; if(held.has('up')) ay-=1; if(held.has('down')) ay+=1; dstate.ax=ax; dstate.ay=ay; }
+    dpad.querySelectorAll('[data-dir]').forEach(b=>{
+      const dir=b.dataset.dir;
+      const down=e=>{e.preventDefault();held.add(dir);upd();};
+      const up  =e=>{e.preventDefault();held.delete(dir);upd();};
+      b.addEventListener('pointerdown',down,{passive:false});
+      b.addEventListener('pointerup',up,{passive:false});
+      b.addEventListener('pointerleave',up,{passive:false});
+      b.addEventListener('pointercancel',up,{passive:false});
+      b.addEventListener('touchstart',down,{passive:false});
+      b.addEventListener('touchend',up,{passive:false});
+      b.addEventListener('touchcancel',up,{passive:false});
+    });
 
-/* ===== Dialogue (자리만) ===== */
-document.getElementById('btnDialog').onclick=()=>openDialog();
-function openDialog(){ /* 추후 연결 */ }
+    // ===== 루프 (즉시 한 프레임 그린 뒤 시작)
+    function update(){
+      let ax=0,ay=0;
+      if(keys.has('arrowleft')||keys.has('a')) ax-=1;
+      if(keys.has('arrowright')||keys.has('d')) ax+=1;
+      if(keys.has('arrowup')||keys.has('w')) ay-=1;
+      if(keys.has('arrowdown')||keys.has('s')) ay+=1;
+      ax+=dstate.ax; ay+=dstate.ay;
+      const m=Math.hypot(ax,ay)||1; ax/=m; ay/=m;
+      [player.x,player.y]=move(player.x,player.y,ax,ay,player.spd);
+    }
+    function render(){
+      drawBG(); drawPlayer();
+    }
+    render();
+    (function loop(){ update(); render(); requestAnimationFrame(loop); })();
 
-/* ===== 토스트 ===== */
-const toast=document.getElementById('toast');
-let toastT=0; function showToast(msg){ toast.textContent=msg; toast.style.display='block'; toastT=90; }
-
-/* ===== 렌더링 ===== */
-function drawPlayer(){
-  const s=player.size;
-  g.fillStyle='rgba(0,0,0,.5)'; g.fillRect(player.x-10*s, player.y+10*s, 20*s, 4*s);
-  g.fillStyle=C.actor;     g.fillRect(player.x-10*s, player.y-16*s, 20*s, 12*s);
-  g.fillStyle=C.actorHead; g.fillRect(player.x-8*s,  player.y-28*s, 16*s, 10*s);
-  g.fillStyle=C.actorEdge; g.fillRect(player.x-10*s, player.y-4*s,  20*s, 2*s);
-}
-
-function update(){
-  let ax=0,ay=0;
-  if(keys.has('arrowleft')||keys.has('a')) ax-=1;
-  if(keys.has('arrowright')||keys.has('d')) ax+=1;
-  if(keys.has('arrowup')||keys.has('w')) ay-=1;
-  if(keys.has('arrowdown')||keys.has('s')) ay+=1;
-  ax+=dstate.ax; ay+=dstate.ay;
-  const m=Math.hypot(ax,ay)||1; ax/=m; ay/=m;
-
-  [player.x,player.y] = moveOnPath(player.x,player.y,ax,ay,player.spd);
-
-  // 출구 감지 (천장 타일)
-  const ex=EXIT[0]*TILE + TILE/2, ey=TILE/2;
-  if(Math.hypot(player.x-ex, player.y-ey)<14){ showToast('탈출 지점에 도착했습니다'); }
-  if(toastT>0){ toastT--; if(toastT===0) toast.style.display='none'; }
-}
-function render(){
-  drawBackground();
-  drawPlayer();
-}
-function loop(){ update(); render(); requestAnimationFrame(loop); }
-render(); requestAnimationFrame(loop);
+  }catch(e){ showErr(e); }
+})();
 </script>
 </body>
 </html>
