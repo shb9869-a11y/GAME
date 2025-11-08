@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-<title>SLEEEEP · Prologue — Red Roof House (Pixel)</title>
+<title>SLEEEEP · Red Roof House — UI Ready</title>
 <meta name="theme-color" content="#000000">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -17,57 +17,49 @@
   }
   *{box-sizing:border-box}
   html,body{height:100%;margin:0;background:var(--bg);color:var(--fg);
-    font-family:ui-serif, Georgia, "Times New Roman", serif;}
+    font-family:ui-serif,Georgia,"Times New Roman",serif;}
   #stage{position:relative;width:100vw;height:100svh;overflow:hidden;
     padding:var(--safe-top) var(--safe-right) var(--safe-bot) var(--safe-left);}
-  canvas{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  /* 캔버스: 정수배 스케일로 중앙 고정 */
+  #view{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
     image-rendering:pixelated;image-rendering:crisp-edges;background:#0d0d12}
-  /* ── Top buttons (no border, antique white text) */
-  .topbtn{
-    position:absolute;top:14px;height:36px;padding:0 14px;display:grid;place-items:center;
-    border:none;outline:none;background:rgba(255,255,255,.06);color:#fff;
-    border-radius:10px;font:700 13px/1 ui-serif, Georgia, "Times New Roman", serif;
-    letter-spacing:.02em;text-shadow:0 1px 0 rgba(0,0,0,.4);user-select:none;
-  }
-  .topbtn:focus{outline:none}
+
+  /* 상단 버튼(테두리/아웃라인 없음, 흰 엔틱 글자) */
+  .topbtn{position:absolute;top:14px;height:36px;padding:0 14px;display:grid;place-items:center;
+    background:rgba(255,255,255,.06);color:#fff;border:none;outline:none;border-radius:10px;
+    font:700 13px/1 ui-serif,Georgia,"Times New Roman",serif;letter-spacing:.02em;text-shadow:0 1px 0 #0007}
   #btnMap{left:14px}
   #btnInv{right:14px}
-  /* ── Minimal controls (no border) */
-  .dpad{
-    position:absolute;left:18px;bottom:18px;width:180px;height:180px;z-index:3;display:none;
-    grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:8px
-  }
+
+  /* 우상단 키 가이드 */
+  .guide{position:absolute;right:14px;top:64px;z-index:3;color:#fff}
+  .kbd{display:inline-grid;grid-auto-flow:row;gap:6px;background:rgba(0,0,0,.45);padding:10px 12px;border-radius:12px}
+  .row{display:flex;gap:6px;justify-content:center}
+  .key{min-width:38px;height:26px;display:grid;place-items:center;background:rgba(255,255,255,.10);
+    border-radius:8px;font:800 12px ui-serif,Georgia,"Times New Roman",serif}
+
+  /* 하단 컨트롤(십자키/액션 버튼) — 테두리 없음 */
+  .dpad{position:absolute;left:18px;bottom:18px;width:180px;height:180px;z-index:3;display:none;
+    grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:8px}
   .dpad .cell{display:grid;place-items:center}
-  .chip{
-    width:100%;height:100%;border-radius:12px;background:rgba(255,255,255,.08);
-    color:#fff;font:800 14px/1 ui-serif, Georgia, "Times New Roman", serif;
-    border:none;outline:none;text-shadow:0 1px 0 rgba(0,0,0,.4)
-  }
+  .chip{width:100%;height:100%;border-radius:12px;background:rgba(255,255,255,.08);
+    color:#fff;font:800 14px ui-serif,Georgia,"Times New Roman",serif;border:none;outline:none}
   .chip:active{background:rgba(255,255,255,.18)}
   @media (pointer:coarse){ .dpad{display:grid} }
-  .act{
-    position:absolute;right:18px;bottom:18px;z-index:3;width:120px;height:56px;display:grid;place-items:center;
+  .act{position:absolute;right:18px;bottom:18px;z-index:3;width:120px;height:56px;display:grid;place-items:center;
     border-radius:14px;background:rgba(255,255,255,.08);color:#fff;border:none;outline:none;
-    font:800 13px/1 ui-serif, Georgia, "Times New Roman", serif;text-shadow:0 1px 0 rgba(0,0,0,.4)
-  }
-  .hint{opacity:.85}
-  /* ── Modal (no borders on buttons) */
-  .modal{position:absolute;inset:0;display:none;align-items:center;justify-content:center;z-index:5;
-    background:rgba(0,0,0,.55)}
-  .sheet{min-width:520px;max-width:86vw;min-height:320px;max-height:72vh;overflow:auto;
-    border-radius:16px;background:#121218;border:1px dashed rgba(255,255,255,.18);padding:16px}
-  .sheet h3{margin:0 0 10px;font:800 14px/1 ui-serif, Georgia, "Times New Roman", serif;letter-spacing:.02em}
-  .close{float:right;background:transparent;color:#fff;border:none;outline:none;
-    border-radius:8px;padding:6px 10px;font-weight:800}
-  .grid{display:grid;grid-template-columns:repeat(6,48px);gap:8px;margin-top:10px}
-  .slot{width:48px;height:48px;border-radius:10px;background:rgba(255,255,255,.06);display:grid;place-items:center}
-  /* ── Rotate overlay */
-  #rotate{position:absolute;inset:0;display:none;background:#000c;color:#fff;z-index:10;
-    align-items:center;justify-content:center;text-align:center;padding:24px}
-  #rotate .box{max-width:520px;border-radius:14px;padding:18px 20px;background:#141418}
+    font:800 13px ui-serif,Georgia,"Times New Roman",serif}
+
+  /* 모달(내용은 빈 창만) */
+  .modal{position:absolute;inset:0;display:none;align-items:center;justify-content:center;z-index:5;background:#0008}
+  .sheet{min-width:520px;max-width:86vw;min-height:320px;max-height:72vh;overflow:auto;border-radius:16px;
+    background:#121218;padding:16px}
+  .sheet h3{margin:0 0 10px;font:800 14px ui-serif,Georgia,"Times New Roman",serif;letter-spacing:.02em}
+  .close{float:right;background:transparent;color:#fff;border:none;outline:none;font-weight:800}
+
   /* HUD */
-  #hud{position:absolute;left:14px;bottom:14px;padding:6px 8px;border-radius:10px;
-    background:rgba(255,255,255,.06);font:600 11px/1.2 ui-serif, Georgia, "Times New Roman", serif;z-index:3}
+  #hud{position:absolute;left:14px;bottom:14px;padding:6px 8px;border-radius:10px;background:rgba(255,255,255,.06);
+    font:600 11px/1.2 ui-serif,Georgia,"Times New Roman",serif;z-index:3}
 </style>
 </head>
 <body>
@@ -77,54 +69,50 @@
   <button id="btnMap" class="topbtn">MAP</button>
   <button id="btnInv" class="topbtn">INVENTORY</button>
 
+  <div class="guide">
+    <div class="kbd">
+      <div class="row"><div class="key">tab</div><div class="key">W</div><div class="key">enter</div></div>
+      <div class="row"><div class="key">A</div><div class="key">S</div><div class="key">D</div></div>
+    </div>
+  </div>
+
   <div id="dpad" class="dpad" aria-hidden="false">
     <div class="cell"></div><div class="cell"><button class="chip" data-dir="up">▲</button></div><div class="cell"></div>
     <div class="cell"><button class="chip" data-dir="left">◀</button></div><div class="cell"></div><div class="cell"><button class="chip" data-dir="right">▶</button></div>
     <div class="cell"></div><div class="cell"><button class="chip" data-dir="down">▼</button></div><div class="cell"></div>
   </div>
-  <button id="btnAct" class="act">ACT <span class="hint">E</span></button>
+  <button id="btnAct" class="act">ACT</button>
 
-  <div id="hud">← → ↑ ↓ 이동 · <b>E</b>로 대화/줍기</div>
+  <div id="hud">← → ↑ ↓ 이동 · E/Enter로 대화/줍기</div>
 
-  <!-- MAP modal (빈 창) -->
+  <!-- MAP (빈 창) -->
   <div id="mapModal" class="modal"><div class="sheet">
     <button class="close" data-close>닫기</button>
     <h3>MAP — 미리보기</h3>
-    <div style="height:240px;background:#0e0e13;border-radius:12px"></div>
+    <div style="height:240px;border-radius:12px;background:#0e0e13"></div>
   </div></div>
 
-  <!-- INVENTORY modal (빈 그리드) -->
+  <!-- INVENTORY (빈 그리드) -->
   <div id="invModal" class="modal"><div class="sheet">
     <button class="close" data-close>닫기</button>
     <h3>INVENTORY</h3>
-    <div class="grid">
-      <div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div>
-      <div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div>
-    </div>
+    <div style="height:240px;border-radius:12px;background:#0e0e13"></div>
   </div></div>
-
-  <div id="rotate"><div class="box">이 게임은 <b>가로 모드 전용</b>입니다.<br>기기를 가로로 돌려주세요.</div></div>
 </div>
 
 <script>
-/* ===== Orientation guard ===== */
-const rotate=document.getElementById('rotate');
-function checkOrient(){ rotate.style.display = (innerWidth>=innerHeight) ? 'none' : 'flex'; }
-addEventListener('resize',checkOrient,{passive:true}); checkOrient();
-
-/* ===== Canvas fit ===== */
+/* ===== 캔버스 스케일 고정: 첫 프레임 즉시 보이게 ===== */
 const stage=document.getElementById('stage');
 const cv=document.getElementById('view');
 const g=cv.getContext('2d'); g.imageSmoothingEnabled=false;
-function fit(){
-  const vw=stage.clientWidth, vh=stage.clientHeight;
-  const s=Math.floor(Math.min(vw/cv.width, vh/cv.height)); // 정수 배 스케일
+function fit(){ const vw=stage.clientWidth, vh=stage.clientHeight;
+  const s=Math.max(1, Math.floor(Math.min(vw/cv.width, vh/cv.height)));
   cv.style.width=(cv.width*s)+'px'; cv.style.height=(cv.height*s)+'px';
   cv.style.left='50%'; cv.style.top='50%'; cv.style.transform='translate(-50%,-50%)';
 }
-new ResizeObserver(fit).observe(stage); fit();
+new ResizeObserver(fit).observe(stage); fit(); // 첫 진입 강제
 
-/* ===== Pixel palette (컬러 기본, 흑백으로 바꾸고 싶으면 컬러값만 교체하면 됨) ===== */
+/* ===== 팔레트(픽셀 게임 톤) ===== */
 const C={
   grass1:'#24311f', grass2:'#1d281a', path:'#5e5138',
   trunk:'#6e5844', branch:'#a08a75',
@@ -132,14 +120,12 @@ const C={
   actor:'#ffe1a9', actorEdge:'#1e1e1e', actorHead:'#ffe9c9'
 };
 
-/* ===== World ===== */
+/* ===== 장면 요소 ===== */
 const W=cv.width, H=cv.height;
-// 플레이어(픽셀 풍 실루엣)
-const player={x:W*0.5, y:H*0.78, spd:2.4, trail:[]};
-// 임시 아이템(줍기 테스트)
+const player={x:W*0.5, y:H*0.78, spd:2.6, trail:[]};
 const items=[{x:W*0.52,y:H*0.74,type:'leaf',picked:false},{x:W*0.48,y:H*0.73,type:'stone',picked:false}];
 
-/* ===== Input (테두리 없는 버튼/키보드) ===== */
+/* ===== 입력 ===== */
 const keys=new Set();
 addEventListener('keydown',e=>{
   const k=e.key.toLowerCase();
@@ -148,8 +134,7 @@ addEventListener('keydown',e=>{
   if(k==='e'||k==='enter') act();
 });
 addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));
-const dpad=document.getElementById('dpad');
-const held=new Set(); const dstate={ax:0,ay:0};
+const dpad=document.getElementById('dpad'); const held=new Set(); const dstate={ax:0,ay:0};
 function updHeld(){ let ax=0,ay=0; if(held.has('left')) ax-=1; if(held.has('right')) ax+=1; if(held.has('up')) ay-=1; if(held.has('down')) ay+=1; dstate.ax=ax; dstate.ay=ay; }
 dpad.querySelectorAll('[data-dir]').forEach(btn=>{
   const dir=btn.dataset.dir;
@@ -165,7 +150,7 @@ dpad.querySelectorAll('[data-dir]').forEach(btn=>{
 });
 document.getElementById('btnAct').onclick=()=>act();
 
-/* ===== MAP/INVENTORY 빈 창 ===== */
+/* ===== 모달 열기/닫기 ===== */
 const mapModal=document.getElementById('mapModal');
 const invModal=document.getElementById('invModal');
 document.getElementById('btnMap').onclick=()=>mapModal.style.display='flex';
@@ -173,73 +158,60 @@ document.getElementById('btnInv').onclick=()=>invModal.style.display='flex';
 mapModal.addEventListener('click',e=>{ if(e.target===mapModal||e.target.dataset.close!=null) mapModal.style.display='none';});
 invModal.addEventListener('click',e=>{ if(e.target===invModal||e.target.dataset.close!=null) invModal.style.display='none';});
 
-/* ===== Scene: 정원 · 하얀 집 · 빨간 지붕 ===== */
+/* ===== 배경/오브젝트 그리기 ===== */
 function drawGrass(){
   g.fillStyle=C.grass1; g.fillRect(0,0,W,H);
-  // 도트 질감
-  for(let i=0;i<1400;i++){
-    g.fillStyle=(i%2)?C.grass2:C.grass1;
-    const x=(Math.random()*W)|0, y=(Math.random()*H)|0;
-    g.fillRect(x,y,2,2);
-  }
-  // 집으로 이어지는 길
+  for(let i=0;i<1400;i++){ g.fillStyle=(i%2)?C.grass2:C.grass1;
+    const x=(Math.random()*W)|0, y=(Math.random()*H)|0; g.fillRect(x,y,2,2); }
   g.fillStyle=C.path;
   g.beginPath();
-  g.moveTo(W*0.46,H); g.lineTo(W*0.54,H); g.lineTo(W*0.525,H*0.60); g.lineTo(W*0.475,H*0.60); g.closePath(); g.fill();
+  g.moveTo(W*0.46,H); g.lineTo(W*0.54,H); g.lineTo(W*0.525,H*0.60); g.lineTo(W*0.475,H*0.60);
+  g.closePath(); g.fill();
 }
 function drawTree(x,y,s=1){
-  // 기둥
   g.fillStyle=C.trunk; g.fillRect(x-2*s,y-24*s,4*s,24*s);
-  // 앙상한 가지(픽셀 선)
   g.strokeStyle=C.branch; g.lineWidth=1*s; g.beginPath();
-  for(let i=0;i<6;i++){ const bx=x+(Math.random()*26-13)*s; const by=y-24*s - i*9*s; g.moveTo(x,y-24*s - i*6*s); g.lineTo(bx,by); }
+  for(let i=0;i<6;i++){ const bx=x+(Math.random()*26-13)*s; const by=y-24*s - i*9*s;
+    g.moveTo(x,y-24*s - i*6*s); g.lineTo(bx,by); }
   g.stroke();
 }
 function drawHouse(){
   const cx=W*0.5, baseY=H*0.60, w=560, h=230;
-  // 본체(하얀 벽)
-  g.fillStyle=C.wall; g.fillRect(cx-w/2, baseY-h, w, h);
-  // 현관 매스
-  const pw=180, ph=126;
+  g.fillStyle=C.wall; g.fillRect(cx-w/2, baseY-h, w, h);      // 본체(하얀)
+  const pw=180, ph=126;                                       // 현관
   g.fillRect(cx-pw/2, baseY-ph, pw, ph);
-  // 지붕(빨강 두 톤)
-  g.fillStyle=C.roof; g.beginPath(); g.moveTo(cx-w/2, baseY-h); g.lineTo(cx, baseY-h-100); g.lineTo(cx+w/2, baseY-h); g.closePath(); g.fill();
-  g.fillStyle=C.roof2; g.beginPath(); g.moveTo(cx-pw/2, baseY-ph); g.lineTo(cx, baseY-ph-64); g.lineTo(cx+pw/2, baseY-ph); g.closePath(); g.fill();
-  // 창문
-  g.fillStyle=C.win;
+  g.fillStyle=C.roof;                                         // 지붕(빨강)
+  g.beginPath(); g.moveTo(cx-w/2, baseY-h); g.lineTo(cx, baseY-h-100); g.lineTo(cx+w/2, baseY-h); g.closePath(); g.fill();
+  g.fillStyle=C.roof2;                                        // 현관 지붕
+  g.beginPath(); g.moveTo(cx-pw/2, baseY-ph); g.lineTo(cx, baseY-ph-64); g.lineTo(cx+pw/2, baseY-ph); g.closePath(); g.fill();
+  g.fillStyle=C.win;                                          // 창문
   const cols=6, rows=2, ww=52, wh=30, gapX=36, gapY=34, offY=baseY-h+38;
   let sx=cx - (cols*ww + (cols-1)*gapX)/2;
-  for(let r=0;r<rows;r++){
-    for(let c=0;c<cols;c++){
-      const x=sx + c*(ww+gapX), y=offY + r*(wh+gapY);
-      g.fillRect(x,y,ww,wh);
-      g.fillStyle='rgba(0,0,0,.18)'; g.fillRect(x,y+wh-4,ww,4); g.fillStyle=C.win;
-    }
-  }
-  // 문 + 현관창
-  g.fillStyle=C.door; g.fillRect(cx-36, baseY-72, 72, 72);
-  g.fillStyle=C.win; g.fillRect(cx-56, baseY-ph+26, 112, 38);
+  for(let r=0;r<rows;r++){ for(let c=0;c<cols;c++){
+    const x=sx + c*(ww+gapX), y=offY + r*(wh+gapY);
+    g.fillRect(x,y,ww,wh); g.fillStyle='rgba(0,0,0,.18)'; g.fillRect(x,y+wh-4,ww,4); g.fillStyle=C.win;
+  } }
+  g.fillStyle=C.door; g.fillRect(cx-36, baseY-72, 72, 72);    // 문
+  g.fillStyle=C.win; g.fillRect(cx-56, baseY-ph+26, 112, 38); // 현관창
 }
 function drawItems(){
-  items.forEach(it=>{
-    if(it.picked) return;
+  items.forEach(it=>{ if(it.picked) return;
     g.fillStyle = (it.type==='leaf') ? '#8fcf6a' : '#c7c2b8';
     g.fillRect(it.x-3,it.y-3,6,6);
   });
 }
 function drawPlayer(){
-  // 잔상 도트
+  // 잔상
   g.globalAlpha=0.6;
   for(let i=0;i<player.trail.length;i++){
-    const t=player.trail[i]; const a=(i+1)/player.trail.length*0.45;
-    g.fillStyle=`rgba(255,255,255,${a})`;
-    g.fillRect((t.x|0)-1,(t.y|0)-1,2,2);
+    const t=player.trail[i], a=(i+1)/player.trail.length*0.45;
+    g.fillStyle=`rgba(255,255,255,${a})`; g.fillRect((t.x|0)-1,(t.y|0)-1,2,2);
   }
   g.globalAlpha=1;
   // 그림자
   g.fillStyle='rgba(0,0,0,.45)'; g.fillRect(player.x-12,player.y+12,24,5);
-  // 몸통/머리(픽셀 인물)
-  g.fillStyle=C.actor; g.fillRect(player.x-12,player.y-20,24,16);
+  // 몸/머리(픽셀 사람)
+  g.fillStyle=C.actor;     g.fillRect(player.x-12,player.y-20,24,16);
   g.fillStyle=C.actorHead; g.fillRect(player.x-10,player.y-34,20,12);
   g.fillStyle=C.actorEdge; g.fillRect(player.x-12,player.y-4,24,2);
 }
@@ -259,7 +231,7 @@ function act(){
   if(!did) flash('…');
 }
 
-/* ===== Loop ===== */
+/* ===== 루프: 첫 프레임부터 강제 렌더 ===== */
 function update(){
   let ax=0,ay=0;
   if(keys.has('arrowleft')||keys.has('a')) ax-=1;
@@ -271,8 +243,7 @@ function update(){
 
   const nx=player.x + ax*player.spd;
   const ny=player.y + ay*player.spd;
-  // 정원 영역 클램프
-  player.x = Math.max(60, Math.min(W-60, nx));
+  player.x = Math.max(60, Math.min(W-60, nx));            // 정원 영역 클램프
   player.y = Math.max(H*0.55, Math.min(H-40, ny));
 
   player.trail.push({x:player.x,y:player.y});
@@ -282,7 +253,6 @@ function update(){
 }
 function render(){
   drawGrass();
-  // 나무(앙상한 가지)
   for(let i=0;i<18;i++) drawTree((i*63+90)%W, 150+ (i%4)*20, 1.2);
   for(let i=0;i<14;i++) drawTree( (i*97+30)%W, 190+ (i%5)*22, 1.0);
   drawHouse();
@@ -292,33 +262,29 @@ function render(){
   if(flashT>0){
     g.fillStyle='rgba(0,0,0,.55)'; const w=220, h=22;
     g.fillRect(player.x-w/2, player.y-64, w, h);
-    g.fillStyle='#fff'; g.font='12px ui-serif, Georgia, "Times New Roman", serif';
+    g.fillStyle='#fff'; g.font='12px ui-serif,Georgia,"Times New Roman",serif';
     g.fillText(flashMsg, player.x-w/2+10, player.y-48);
   }
 }
 function tick(){ update(); render(); requestAnimationFrame(tick); }
-tick();
+render(); // 첫 프레임 즉시
+requestAnimationFrame(tick);
 
-/* ===== D-pad state ===== */
+/* ===== 터치 십자키 상태 ===== */
 (function bindDpad(){
-  const heldSet=dir=>({down:true,up:false}[dir]);
+  const set=(dir,on)=>{ if(on) held.add(dir); else held.delete(dir); updHeld(); };
   dpad.querySelectorAll('[data-dir]').forEach(btn=>{
     const dir=btn.dataset.dir;
-    const set=(on)=>{ if(on) held.add(dir); else held.delete(dir); updHeld(); };
-    btn.addEventListener('pointerdown',e=>{e.preventDefault();set(true);},{passive:false});
-    const off=e=>{e.preventDefault();set(false);};
+    btn.addEventListener('pointerdown',e=>{e.preventDefault();set(dir,true);},{passive:false});
+    const off=e=>{e.preventDefault();set(dir,false);};
     btn.addEventListener('pointerup',off,{passive:false});
     btn.addEventListener('pointerleave',off,{passive:false});
     btn.addEventListener('pointercancel',off,{passive:false});
-    btn.addEventListener('touchstart',e=>{e.preventDefault();set(true);},{passive:false});
+    btn.addEventListener('touchstart',e=>{e.preventDefault();set(dir,true);},{passive:false});
     btn.addEventListener('touchend',off,{passive:false});
     btn.addEventListener('touchcancel',off,{passive:false});
   });
 })();
-
-/* ===== Act button hint (no border) ===== */
-document.getElementById('btnAct').addEventListener('keydown',e=>{ if(e.key==='Enter') act(); });
-
 </script>
 </body>
 </html>
