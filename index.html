@@ -2,51 +2,89 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-<title>SLEEEEP · Popup Maze (Guaranteed Paint)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no"/>
+<title>SLEEEEP · Popup Maze (Fail-safe)</title>
 <meta name="theme-color" content="#000000">
 <style>
   :root{ --fg:#fff }
-  *{box-sizing:border-box}
-  html,body{height:100%;margin:0;background:#000;color:var(--fg);font-family:ui-serif,Georgia,"Times New Roman",serif}
-  #desk{position:relative;width:100vw;height:100vh;overflow:hidden}
-  /* 중앙 팝업(고정크기) */
+  *{ box-sizing:border-box }
+  html,body{ height:100%; margin:0; background:#000; color:var(--fg);
+    font-family:ui-serif,Georgia,"Times New Roman",serif }
+
+  /* 중앙 팝업(반드시 보이게) */
+  #desk{ position:relative; width:100vw; height:100vh; overflow:hidden }
   .gameWin{
-    position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
-    width:960px;height:540px;background:#000;
-    box-shadow:0 24px 60px rgba(0,0,0,.75),0 0 0 1px rgba(255,255,255,.08);
+    position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+    width:min(960px, 92vw); aspect-ratio:16/9;
+    background:#000; box-shadow:0 24px 60px rgba(0,0,0,.75), 0 0 0 1px rgba(255,255,255,.08);
     overflow:hidden;
   }
-  /* 캔버스는 팝업에 100%로(정수배 스케일 신경X) */
-  #view{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelated;image-rendering:crisp-edges;background:#000}
-  /* 글자만 버튼 */
-  .tbtn{position:absolute;background:transparent;border:none;color:#fff;font:800 14px/1 ui-serif,Georgia,"Times New Roman",serif;letter-spacing:.02em;text-shadow:0 1px 0 #000a;cursor:pointer;user-select:none}
-  #btnMap{left:10px;top:10px}
-  #btnInv{right:10px;top:10px}
-  #btnDialog{right:10px;bottom:10px}
+
+  /* JS 실패 시에도 보이는 정적 미로(배경 그리드) */
+  .fallback{
+    position:absolute; inset:0; display:grid;
+    grid-template-columns:repeat(48, 1fr);
+    grid-template-rows:repeat(27, 1fr);
+    /* 잔디 느낌 배경 (픽셀풍 도트) */
+    background:
+      radial-gradient(#3b553a 1px, transparent 2px) 0 0/8px 8px,
+      radial-gradient(#1f2e20 1px, transparent 2px) 4px 4px/8px 8px,
+      #0b140d;
+  }
+  /* 중앙 세로 통로(탈출 보장) – JS 없어도 보임 */
+  .fallback .path { background:#1e1e1e }
+  /* 시작/출구 표시 */
+  .start { outline:2px solid #fff }
+  .exit  { background:#303030 !important }
+
+  /* 캔버스(있으면 이게 렌더 주도) */
+  #view{ position:absolute; inset:0; width:100%; height:100%;
+    image-rendering:pixelated; image-rendering:crisp-edges; background:transparent; display:block }
+
+  /* 텍스트 버튼(사각 박스/테두리 없음) */
+  .tbtn{
+    position:absolute; padding:0 6px; height:28px; background:transparent; border:none; color:#fff;
+    font:800 14px/1 ui-serif,Georgia,"Times New Roman",serif; letter-spacing:.02em;
+    text-shadow:0 1px 0 #000a; cursor:pointer; user-select:none
+  }
+  #btnMap{ left:10px; top:10px }
+  #btnInv{ right:10px; top:10px }
+  #btnDialog{ right:10px; bottom:10px }
+
   /* 투명 D-pad */
-  .dpad{position:absolute;left:10px;bottom:10px;width:150px;height:150px;display:none;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:6px;z-index:3}
-  .dpad .cell{display:grid;place-items:center}
-  .key{background:transparent;border:none;color:#fff;font:800 18px ui-serif,Georgia,"Times New Roman",serif;cursor:pointer}
-  .key:active{transform:scale(.95)}
-  @media (pointer:coarse){ .dpad{display:grid} }
-  /* 에러 배너 */
-  #err{position:absolute;left:0;right:0;top:0;background:#b00020;color:#fff;font:700 12px/1.3 ui-serif;padding:8px 12px;display:none;z-index:9}
-  /* 로드 확인용 배지(초기에 1초 표시) */
-  #ok{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);padding:6px 10px;background:#0a0a0a;color:#fff;font:800 12px ui-serif;z-index:8}
+  .dpad{
+    position:absolute; left:10px; bottom:10px; width:150px; height:150px; display:none;
+    grid-template-columns:repeat(3,1fr); grid-template-rows:repeat(3,1fr); gap:6px; z-index:3
+  }
+  .dpad .cell{ display:grid; place-items:center }
+  .key{ background:transparent; border:none; color:#fff; font:800 18px ui-serif,Georgia,"Times New Roman",serif; cursor:pointer }
+  .key:active{ transform:scale(.95) }
+  @media (pointer:coarse){ .dpad{ display:grid } }
+
+  /* 에러/상태 표시 */
+  #banner{ position:absolute; left:0; right:0; top:0; padding:8px 12px; font:800 12px ui-serif; display:none }
+  .ok{ background:#0a0a0a; color:#fff }
+  .err{ background:#b00020; color:#fff }
 </style>
 </head>
 <body>
 <div id="desk">
   <div class="gameWin" id="gameWin">
-    <div id="err"></div>
-    <div id="ok">LOADED</div>
-    <canvas id="view" width="960" height="540"></canvas>
+    <!-- 상태 배너 -->
+    <div id="banner" class="ok">POPUP LOADED (fallback active)</div>
 
-    <button id="btnMap" class="tbtn">MAP</button>
-    <button id="btnInv" class="tbtn">INVENTORY</button>
-    <button id="btnDialog" class="tbtn">Dialogue</button>
+    <!-- 정적 미로(항상 보임) -->
+    <div id="fallback" class="fallback" aria-hidden="false"></div>
 
+    <!-- 캔버스(성공 시 그 위에 그림) -->
+    <canvas id="view" width="960" height="540" aria-label="게임 화면"></canvas>
+
+    <!-- 텍스트 버튼 -->
+    <button id="btnMap" class="tbtn" type="button">MAP</button>
+    <button id="btnInv" class="tbtn" type="button">INVENTORY</button>
+    <button id="btnDialog" class="tbtn" type="button">Dialogue</button>
+
+    <!-- 투명 D-pad -->
     <div id="dpad" class="dpad" aria-hidden="false">
       <div class="cell"></div><div class="cell"><button class="key" data-dir="up">↑</button></div><div class="cell"></div>
       <div class="cell"><button class="key" data-dir="left">←</button></div><div class="cell"></div><div class="cell"><button class="key" data-dir="right">→</button></div>
@@ -55,137 +93,158 @@
   </div>
 </div>
 
+<noscript>
+  <div style="position:fixed;inset:0;display:grid;place-items:center;color:#fff;font:800 14px ui-serif">
+    JavaScript가 꺼져 있어요. 그래도 팝업/미로는 보여야 합니다.
+  </div>
+</noscript>
+
 <script>
-document.addEventListener('DOMContentLoaded', () => {
-  const err = document.getElementById('err');
-  const ok  = document.getElementById('ok');
-  setTimeout(()=> ok.style.display='none', 1000);
-
-  function showErr(e){ err.textContent = 'ERROR: ' + e; err.style.display='block'; console.error(e); }
-
-  try{
-    const cv = document.getElementById('view');
-    const g  = cv.getContext('2d', {alpha:false});
-    if(!g) throw 'Canvas 2D context unavailable';
-    g.imageSmoothingEnabled = false;
-
-    // 즉시 가시성 보장(바탕 칠하기)
-    g.fillStyle = '#002b00'; g.fillRect(0,0,cv.width,cv.height);
-    g.fillStyle = '#ffffff'; g.fillText('SLEEEEP POPUP', 12, 20);
-
-    // ===== 팔레트
-    const C = {
-      path:'#1e1e1e', ground:'#000',
-      tuftDark:'#0b140d', tuftMid:'#1f2e20', tuftHi:'#3b553a',
-      actor:'#f0e0bf', actorEdge:'#1a1a1a', actorHead:'#ffe8c9'
-    };
-
-    // ===== 타일/미로(탈출 보장)
-    const W=cv.width, H=cv.height, TILE=20;
-    const COLS=(W/TILE)|0, ROWS=(H/TILE)|0;
-    const WALL=1, OPEN=0;
-    const grid=Array.from({length:ROWS},()=>Array(COLS).fill(WALL));
-    let SEED=7; function rnd(){ SEED=(SEED*1664525+1013904223)>>>0; return SEED/0xFFFFFFFF; }
-
-    function carve(){
-      const inb=(x,y)=>x>0&&y>0&&x<COLS-1&&y<ROWS-1;
-      const neigh=(x,y)=>[[x+2,y],[x-2,y],[x,y+2],[x,y-2]].filter(([nx,ny])=>inb(nx,ny)&&grid[ny][nx]===WALL);
-      let sx=((COLS/2)|0); if(!(sx&1)) sx--;
-      let sy=ROWS-3;        if(!(sy&1)) sy--;
-      const stack=[[sx,sy]]; grid[sy][sx]=OPEN;
-      while(stack.length){
-        const [x,y]=stack[stack.length-1];
-        const nb=neigh(x,y);
-        if(nb.length===0){ stack.pop(); continue; }
-        const [nx,ny]=nb[(rnd()*nb.length)|0];
-        grid[(y+ny)/2][(x+nx)/2]=OPEN; grid[ny][nx]=OPEN; stack.push([nx,ny]);
-      }
-      const ex=((COLS/2)|0);
-      for(let y=ROWS-2;y>=1;y--) grid[y][ex]=OPEN; // 중앙 세로 코어로
-      grid[0][ex]=OPEN; // 천장 탈출
-      for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
-        grid[sy+dy]?.[sx+dx]=OPEN; grid[1+dy]?.[ex+dx]=OPEN;
-      }
-      return {start:[sx,sy], exit:[ex,0]};
+/* === Fallback 미로를 즉시 구성: 중앙 세로 통로 보장 === */
+(function buildFallback(){
+  const host = document.getElementById('fallback');
+  const cols = 48, rows = 27;
+  // 중앙 세로 통로
+  const mid = (cols/2)|0;
+  for(let r=0;r<rows;r++){
+    const cell = document.createElement('div');
+    if((r>1 && r<rows-1) && r%1===0) cell.className = 'path';
+    host.appendChild(cell);
+    for(let c=1;c<cols;c++){
+      const cell2 = document.createElement('div');
+      if(c===mid) cell2.className='path';
+      host.appendChild(cell2);
     }
-    const {start:START, exit:EXIT}=carve();
+  }
+  // 시작/출구 표시
+  const idxStart = (rows-3)*cols + mid;
+  const idxExit  = 0*cols + mid;
+  host.children[idxStart]?.classList.add('start');
+  host.children[idxExit]?.classList.add('exit');
+})();
 
-    // ===== 배경(정적 귀여운 풀 + 길)
-    function prng(n){ n=(n<<13)^n; return (1-((n*(n*n*15731+789221)+1376312589)&0x7fffffff)/1073741824.0); }
-    function drawBG(){
-      g.fillStyle=C.ground; g.fillRect(0,0,W,H);
-      for(let ty=0;ty<ROWS;ty++){
-        for(let tx=0;tx<COLS;tx++){
-          const x=tx*TILE, y=ty*TILE;
-          if(grid[ty][tx]===OPEN){
-            g.fillStyle=C.path; g.fillRect(x,y,TILE,TILE);
-            g.fillStyle='rgba(255,255,255,.05)'; g.fillRect(x,y,TILE,2);
-            g.fillStyle='rgba(0,0,0,.25)'; g.fillRect(x,y+TILE-2,TILE,2);
-          }else{
-            const r=Math.abs(prng(tx*73856093 ^ ty*19349663));
-            g.fillStyle = r<0.33?C.tuftDark:(r<0.66?C.tuftMid:C.tuftHi);
-            const cx=x+(TILE>>1), cy=y+(TILE>>1);
-            g.fillRect(cx-1, cy-4, 2, 5);
-            g.fillRect(cx-5, cy-1, 2, 3);
-            g.fillRect(cx+3, cy-1, 2, 3);
-            if(r>0.7)  g.fillRect(cx-7, cy+4, 1,1);
-            if(r<0.25) g.fillRect(cx+6, cy+3, 1,1);
-          }
+/* === 캔버스가 되면, 그 위에 실제 렌더 (안되면 fallback 유지) === */
+(function main(){
+  const banner = document.getElementById('banner');
+  function ok(msg){ banner.textContent = msg; banner.className='ok'; banner.style.display='block'; setTimeout(()=>banner.style.display='none', 1200); }
+  function err(msg){ banner.textContent = 'ERROR: '+msg; banner.className='err'; banner.style.display='block'; }
+
+  const cv = document.getElementById('view');
+  const g  = cv.getContext('2d', {alpha:false});
+  if(!g){ err('Canvas 2D not available (fallback only)'); return; }
+  g.imageSmoothingEnabled = false;
+
+  // 팔레트
+  const C={ path:'#1e1e1e', ground:'#000',
+    tuftDark:'#0b140d', tuftMid:'#1f2e20', tuftHi:'#3b553a',
+    actor:'#f0e0bf', actorEdge:'#1a1a1a', actorHead:'#ffe8c9' };
+
+  // 타일/미로
+  const W=cv.width, H=cv.height, TILE=20;
+  const COLS=(W/TILE)|0, ROWS=(H/TILE)|0;
+  const WALL=1, OPEN=0;
+  const grid=Array.from({length:ROWS},()=>Array(COLS).fill(WALL));
+  let SEED=777; function rnd(){ SEED=(SEED*1664525+1013904223)>>>0; return SEED/0xFFFFFFFF; }
+
+  function carve(){
+    const inb=(x,y)=>x>0&&y>0&&x<COLS-1&&y<ROWS-1;
+    const neigh=(x,y)=>[[x+2,y],[x-2,y],[x,y+2],[x,y-2]]
+      .filter(([nx,ny])=>inb(nx,ny)&&grid[ny][nx]===WALL);
+    let sx=((COLS/2)|0); if(!(sx&1)) sx--;
+    let sy=ROWS-3;        if(!(sy&1)) sy--;
+    const stack=[[sx,sy]]; grid[sy][sx]=OPEN;
+    while(stack.length){
+      const [x,y]=stack[stack.length-1];
+      const nb=neigh(x,y);
+      if(nb.length===0){ stack.pop(); continue; }
+      const [nx,ny]=nb[(rnd()*nb.length)|0];
+      grid[(y+ny)/2][(x+nx)/2]=OPEN; grid[ny][nx]=OPEN; stack.push([nx,ny]);
+    }
+    // 중앙 세로 통로 = 탈출 보장
+    const ex=((COLS/2)|0);
+    for(let y=ROWS-2;y>=1;y--) grid[y][ex]=OPEN;
+    grid[0][ex]=OPEN;
+    for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
+      grid[sy+dy]?.[sx+dx]=OPEN; grid[1+dy]?.[ex+dx]=OPEN;
+    }
+    return {start:[sx,sy], exit:[ex,0]};
+  }
+  const {start:START, exit:EXIT}=carve();
+
+  function prng(n){ n=(n<<13)^n; return (1-((n*(n*n*15731+789221)+1376312589)&0x7fffffff)/1073741824.0); }
+  function drawBG(){
+    g.fillStyle=C.ground; g.fillRect(0,0,W,H);
+    for(let ty=0;ty<ROWS;ty++){
+      for(let tx=0;tx<COLS;tx++){
+        const x=tx*TILE, y=ty*TILE;
+        if(grid[ty][tx]===OPEN){
+          g.fillStyle=C.path; g.fillRect(x,y,TILE,TILE);
+          g.fillStyle='rgba(255,255,255,.05)'; g.fillRect(x,y,TILE,2);
+          g.fillStyle='rgba(0,0,0,.25)'; g.fillRect(x,y+TILE-2,TILE,2);
+        }else{
+          const r=Math.abs(prng(tx*73856093 ^ ty*19349663));
+          g.fillStyle = r<0.33?C.tuftDark:(r<0.66?C.tuftMid:C.tuftHi);
+          const cx=x+(TILE>>1), cy=y+(TILE>>1);
+          g.fillRect(cx-1, cy-4, 2, 5);
+          g.fillRect(cx-5, cy-1, 2, 3);
+          g.fillRect(cx+3, cy-1, 2, 3);
+          if(r>0.7)  g.fillRect(cx-7, cy+4, 1,1);
+          if(r<0.25) g.fillRect(cx+6, cy+3, 1,1);
         }
       }
-      // 출구 은은 강조
-      g.fillStyle='rgba(255,255,255,.08)';
-      g.fillRect(EXIT[0]*TILE, 0, TILE, TILE);
     }
+    // 출구 표식(은은)
+    g.fillStyle='rgba(255,255,255,.08)';
+    g.fillRect(EXIT[0]*TILE, 0, TILE, TILE);
+  }
 
-    // ===== 플레이어(길 위 이동만)
-    const player={ x: START[0]*TILE + TILE/2, y: START[1]*TILE + TILE/2, spd: 2.6, size:.7 };
-    function tileAt(px,py){ const tx=(px/TILE)|0, ty=(py/TILE)|0; if(tx<0||ty<0||tx>=COLS||ty>=ROWS) return WALL; return grid[ty][tx]; }
-    function move(px,py,ax,ay,s){ let nx=px+ax*s, ny=py+ay*s; if(tileAt(nx,py)===OPEN) px=nx; if(tileAt(px,ny)===OPEN) py=ny; return [px,py]; }
-    function drawPlayer(){
-      const s=player.size;
-      g.fillStyle='rgba(0,0,0,.5)'; g.fillRect(player.x-10*s, player.y+10*s, 20*s, 4*s);
-      g.fillStyle=C.actor;     g.fillRect(player.x-10*s, player.y-16*s, 20*s, 12*s);
-      g.fillStyle=C.actorHead; g.fillRect(player.x-8*s,  player.y-28*s, 16*s, 10*s);
-      g.fillStyle=C.actorEdge; g.fillRect(player.x-10*s, player.y-4*s,  20*s, 2*s);
-    }
+  const player={ x: START[0]*TILE + TILE/2, y: START[1]*TILE + TILE/2, spd: 2.6, size:.7 };
+  function tileAt(px,py){ const tx=(px/TILE)|0, ty=(py/TILE)|0; if(tx<0||ty<0||tx>=COLS||ty>=ROWS) return WALL; return grid[ty][tx]; }
+  function move(px,py,ax,ay,s){ let nx=px+ax*s, ny=py+ay*s; if(tileAt(nx,py)===OPEN) px=nx; if(tileAt(px,ny)===OPEN) py=ny; return [px,py]; }
+  function drawPlayer(){
+    const s=player.size;
+    g.fillStyle='rgba(0,0,0,.5)'; g.fillRect(player.x-10*s, player.y+10*s, 20*s, 4*s);
+    g.fillStyle=C.actor;     g.fillRect(player.x-10*s, player.y-16*s, 20*s, 12*s);
+    g.fillStyle=C.actorHead; g.fillRect(player.x-8*s,  player.y-28*s, 16*s, 10*s);
+    g.fillStyle=C.actorEdge; g.fillRect(player.x-10*s, player.y-4*s,  20*s, 2*s);
+  }
 
-    // ===== 입력
-    const keys=new Set();
-    addEventListener('keydown',e=>{ const k=e.key.toLowerCase(); if(['arrowup','arrowdown','arrowleft','arrowright','w','a','s','d'].includes(k)) e.preventDefault(); keys.add(k); });
-    addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));
-    const held=new Set(); const dstate={ax:0,ay:0};
-    function upd(){ let ax=0,ay=0; if(held.has('left')) ax-=1; if(held.has('right')) ax+=1; if(held.has('up')) ay-=1; if(held.has('down')) ay+=1; dstate.ax=ax; dstate.ay=ay; }
-    document.querySelectorAll('[data-dir]').forEach(b=>{
-      const dir=b.dataset.dir;
-      const down=e=>{e.preventDefault();held.add(dir);upd();};
-      const up  =e=>{e.preventDefault();held.delete(dir);upd();};
-      b.addEventListener('pointerdown',down,{passive:false});
-      b.addEventListener('pointerup',up,{passive:false});
-      b.addEventListener('pointerleave',up,{passive:false});
-      b.addEventListener('pointercancel',up,{passive:false});
-      b.addEventListener('touchstart',down,{passive:false});
-      b.addEventListener('touchend',up,{passive:false});
-      b.addEventListener('touchcancel',up,{passive:false});
-    });
+  const keys=new Set();
+  addEventListener('keydown',e=>{ const k=e.key.toLowerCase(); if(['arrowup','arrowdown','arrowleft','arrowright','w','a','s','d'].includes(k)) e.preventDefault(); keys.add(k); });
+  addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));
 
-    // ===== 루프(즉시 1프레임 그리고 시작)
-    function update(){
-      let ax=0,ay=0;
-      if(keys.has('arrowleft')||keys.has('a')) ax-=1;
-      if(keys.has('arrowright')||keys.has('d')) ax+=1;
-      if(keys.has('arrowup')||keys.has('w')) ay-=1;
-      if(keys.has('arrowdown')||keys.has('s')) ay+=1;
-      ax+=dstate.ax; ay+=dstate.ay;
-      const m=Math.hypot(ax,ay)||1; ax/=m; ay/=m;
-      [player.x,player.y] = move(player.x,player.y,ax,ay,player.spd);
-    }
-    function render(){ drawBG(); drawPlayer(); }
-    render();
-    (function loop(){ update(); render(); requestAnimationFrame(loop); })();
+  const held=new Set(); const dstate={ax:0,ay:0};
+  const setHeld=(dir,on)=>{ if(on) held.add(dir); else held.delete(dir); let ax=0,ay=0; if(held.has('left')) ax-=1; if(held.has('right')) ax+=1; if(held.has('up')) ay-=1; if(held.has('down')) ay+=1; dstate.ax=ax; dstate.ay=ay; };
+  document.querySelectorAll('[data-dir]').forEach(b=>{
+    const dir=b.dataset.dir;
+    b.addEventListener('pointerdown',e=>{e.preventDefault();setHeld(dir,true);},{passive:false});
+    const off=e=>{e.preventDefault();setHeld(dir,false);};
+    b.addEventListener('pointerup',off,{passive:false});
+    b.addEventListener('pointerleave',off,{passive:false});
+    b.addEventListener('pointercancel',off,{passive:false});
+    b.addEventListener('touchstart',e=>{e.preventDefault();setHeld(dir,true);},{passive:false});
+    b.addEventListener('touchend',off,{passive:false});
+    b.addEventListener('touchcancel',off,{passive:false});
+  });
 
-  }catch(e){ showErr(e); }
-});
+  function update(){
+    let ax=0,ay=0;
+    if(keys.has('arrowleft')||keys.has('a')) ax-=1;
+    if(keys.has('arrowright')||keys.has('d')) ax+=1;
+    if(keys.has('arrowup')||keys.has('w')) ay-=1;
+    if(keys.has('arrowdown')||keys.has('s')) ay+=1;
+    ax+=dstate.ax; ay+=dstate.ay;
+    const m=Math.hypot(ax,ay)||1; ax/=m; ay/=m;
+    [player.x,player.y] = move(player.x,player.y,ax,ay,player.spd);
+  }
+  function render(){ drawBG(); drawPlayer(); }
+
+  // 첫 프레임 즉시
+  render();
+  requestAnimationFrame(function loop(){ update(); render(); requestAnimationFrame(loop); });
+
+  ok('Canvas active (fallback hidden under canvas)');
+})();
 </script>
 </body>
 </html>
