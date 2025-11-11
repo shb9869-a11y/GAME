@@ -5,7 +5,89 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no"/>
 <meta name="theme-color" content="#000000">
 <title>SLEEEEP · Tall Grass Maze</title>
-<link rel="stylesheet" href="css/style.css">
+<style>
+  :root{ --fg:#fff; --bg:#000; --accent:#e94560; --panel-bg:#101018; }
+  *{ box-sizing:border-box; }
+  html,body{ height:100%; margin:0; background:#000; color:var(--fg);
+    font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace; overflow:hidden; }
+  body{ display:flex; align-items:center; justify-content:center; }
+
+  #desk{ position:relative; width:100vw; height:100vh; overflow:hidden; display:flex; align-items:center; justify-content:center; }
+  
+  .gameWin{
+    position:relative; width:min(1080px, 92vw); aspect-ratio:16/9; background:#000;
+    box-shadow:0 24px 60px rgba(0,0,0,.8), 0 0 0 1px rgba(255,255,255,.1);
+    overflow:hidden; }
+
+  #view{
+    position:absolute; inset:0; width:100%; height:100%;
+    image-rendering:pixelated; image-rendering:crisp-edges; background:#000; display:block; }
+
+  .scan{
+    position:absolute; inset:0; pointer-events:none; opacity:.14; mix-blend-mode:overlay;
+    background:repeating-linear-gradient(to bottom, rgba(255,255,255,.12) 0px, rgba(255,255,255,.12) 1px, rgba(0,0,0,0) 3px, rgba(0,0,0,0) 4px); }
+
+  /* 태블릿 온스크린 컨트롤러 (가로 모드 최적화) */
+  .tablet-controls{
+    position:absolute; bottom:20px; left:50%; transform:translateX(-50%);
+    display:flex; gap:30px; align-items:flex-end; z-index:10; }
+
+  /* 방향키 (왼쪽) */
+  .dirpad{
+    display:grid; grid-template-columns:repeat(3,60px); grid-template-rows:repeat(3,60px);
+    gap:4px; background:rgba(0,0,0,.4); padding:12px; border-radius:12px; }
+
+  .dir-btn{
+    background:rgba(255,255,255,.08); border:2px solid rgba(255,255,255,.25);
+    border-radius:8px; color:#fff; font-size:24px; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    transition:all .1s; user-select:none; -webkit-tap-highlight-color:transparent; }
+  .dir-btn:active{ background:rgba(255,255,255,.15); transform:scale(.95); }
+  .dir-btn:nth-child(2){ grid-column:2; grid-row:1; }
+  .dir-btn:nth-child(3){ grid-column:1; grid-row:2; }
+  .dir-btn:nth-child(4){ grid-column:2; grid-row:2; display:none; }
+  .dir-btn:nth-child(5){ grid-column:3; grid-row:2; }
+  .dir-btn:nth-child(6){ grid-column:2; grid-row:3; }
+
+  /* 대화/행동 버튼 (오른쪽) */
+  .action-btn{
+    width:90px; height:90px; background:rgba(255,255,255,.08);
+    border:2px solid rgba(255,255,255,.25); border-radius:50%;
+    color:#fff; font-size:18px; font-weight:800; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    transition:all .1s; user-select:none; -webkit-tap-highlight-color:transparent; }
+  .action-btn:active{ background:rgba(255,255,255,.15); transform:scale(.95); }
+
+  /* 헤드업 디스플레이 */
+  #stageInfo{
+    position:absolute; top:12px; left:12px; font:600 14px ui-monospace;
+    background:rgba(0,0,0,.5); padding:8px 12px; border-radius:6px; }
+  
+  #hint{
+    position:absolute; top:12px; left:50%; transform:translateX(-50%);
+    font:600 14px ui-monospace; background:rgba(0,0,0,.5); padding:8px 12px;
+    border-radius:6px; pointer-events:none; }
+
+  /* 스테이지 클리어 팝업 */
+  #clearPopup{
+    position:absolute; inset:0; display:none; align-items:center; justify-content:center;
+    background:rgba(0,0,0,.85); z-index:20; }
+  .clearBox{
+    background:var(--panel-bg); border:2px solid var(--accent); border-radius:12px;
+    padding:40px; text-align:center; min-width:320px; }
+  .clearBox h2{ margin:0 0 20px; font:800 24px ui-serif; color:var(--accent); }
+  .clearBox button{
+    background:transparent; border:2px solid var(--fg); color:var(--fg);
+    padding:12px 24px; font:600 16px ui-monospace; cursor:pointer;
+    border-radius:6px; margin:0 8px; transition:all .2s; }
+  .clearBox button:hover{ background:var(--fg); color:var(--bg); }
+
+  @media (max-width:768px){
+    .tablet-controls{ gap:20px; }
+    .dirpad{ grid-template-columns:repeat(3,50px); grid-template-rows:repeat(3,50px); }
+    .action-btn{ width:70px; height:70px; font-size:16px; }
+  }
+</style>
 </head>
 <body>
 <div id="desk">
@@ -13,32 +95,371 @@
     <canvas id="view" width="960" height="540" aria-label="게임 화면"></canvas>
     <div class="scan"></div>
     
-    <button id="btnMap" class="tbtn" type="button">MAP</button>
-    <button id="btnInv" class="tbtn" type="button">INVENTORY</button>
-    <button id="btnDialog" class="tbtn" type="button">Dialogue</button>
-    <div id="hint">EXIT ↑  ·  Move: ← ↑ → ↓ / WASD  ·  E/Enter: Interact</div>
-
-    <div class="dpad" id="dpad" aria-hidden="false">
-      <div class="cell"></div><div class="cell"><button class="key" data-dir="up">↑</button></div><div class="cell"></div>
-      <div class="cell"><button class="key" data-dir="left">←</button></div><div class="cell"></div><div class="cell"><button class="key" data-dir="right">→</button></div>
-      <div class="cell"></div><div class="cell"><button class="key" data-dir="down">↓</button></div><div class="cell"></div>
+    <div id="stageInfo">STAGE <span id="stageNum">1</span></div>
+    <div id="hint">EXIT ↑  ·  탈출구를 찾아나서자</div>
+    
+    <!-- 태블릿 온스크린 컨트롤러 -->
+    <div class="tablet-controls">
+      <div class="dirpad">
+        <div></div>
+        <button class="dir-btn" data-dir="up">↑</button>
+        <div></div>
+        <button class="dir-btn" data-dir="left">←</button>
+        <div></div>
+        <button class="dir-btn" data-dir="right">→</button>
+        <div></div>
+        <button class="dir-btn" data-dir="down">↓</button>
+        <div></div>
+      </div>
+      <button class="action-btn" data-action="interact">TALK</button>
     </div>
 
-    <div id="mapModal" class="modal"><div class="sheet">
-      <button class="close" data-close>닫기</button><h3>MAP</h3>
-      <div id="mini" style="height:220px;background:#0e0e13"></div>
-    </div></div>
-    
-    <div id="invModal" class="modal"><div class="sheet">
-      <button class="close" data-close>닫기</button><h3>INVENTORY</h3>
-      <div style="height:220px;background:#0e0e13"></div>
-    </div></div>
+    <!-- 스테이지 클리어 팝업 -->
+    <div id="clearPopup">
+      <div class="clearBox">
+        <h2>STAGE CLEAR!</h2>
+        <p style="margin:0 0 24px; opacity:.8;">다음 스테이지로 이동합니다</p>
+        <button id="nextStageBtn">다음 스테이지</button>
+        <button id="restartBtn">다시 시작</button>
+      </div>
+    </div>
   </div>
 </div>
 
-<script src="js/audio.js"></script>
-<script src="js/maze.js"></script>
-<script src="js/player.js"></script>
-<script src="js/main.js"></script>
+<script>
+// ====== Audio Manager ======
+class AudioManager {
+  constructor() {
+    this.SFX_ON = new URLSearchParams(location.search).get('sfx') !== '0';
+    this.ready = false;
+  }
+
+  init() {
+    if (!this.SFX_ON || this.ready) return;
+    this.AC = new (window.AudioContext || window.webkitAudioContext)();
+    this.master = this.AC.createGain();
+    this.master.gain.value = 0.35;
+    this.master.connect(this.AC.destination);
+
+    this.footGain = this.AC.createGain();
+    this.footGain.gain.value = 0;
+    this.footGain.connect(this.master);
+
+    this.rustleGain = this.AC.createGain();
+    this.rustleGain.gain.value = 0;
+    this.rustleGain.connect(this.master);
+
+    const noiseBuf = this.AC.createBuffer(1, this.AC.sampleRate * 2, this.AC.sampleRate);
+    const data = noiseBuf.getChannelData(0);
+    for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * 0.35;
+    
+    const noise = this.AC.createBufferSource();
+    noise.buffer = noiseBuf;
+    noise.loop = true;
+    const bp = this.AC.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.frequency.value = 2200;
+    bp.Q.value = 1.3;
+    noise.connect(bp).connect(this.rustleGain);
+    noise.start();
+    this.ready = true;
+  }
+
+  async unlock() {
+    try { this.init(); if (this.AC?.state === 'suspended') await this.AC.resume(); } catch (e) {}
+  }
+
+  footstep() {
+    if (!this.ready) return;
+    const t = this.AC.currentTime;
+    const osc = this.AC.createOscillator();
+    osc.type = 'triangle';
+    const g = this.AC.createGain();
+    g.gain.value = 0;
+    osc.frequency.setValueAtTime(120 + Math.random() * 25, t);
+    g.gain.linearRampToValueAtTime(0.35, t + 0.005);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.10);
+    osc.connect(g).connect(this.footGain);
+    osc.start(t);
+    osc.stop(t + 0.12);
+
+    this.rustleGain.gain.cancelScheduledValues(t);
+    this.rustleGain.gain.linearRampToValueAtTime(0.22, t + 0.01);
+    this.rustleGain.gain.exponentialRampToValueAtTime(0.02, t + 0.25);
+  }
+}
+
+const audio = new AudioManager();
+['pointerdown', 'touchstart', 'keydown'].forEach(ev => 
+  addEventListener(ev, () => audio.unlock(), { passive: true }));
+
+// ====== Maze Generator ======
+class Maze {
+  constructor(seed) {
+    this.TILE = 28; // 타일 크기 증가로 더 단순한 느낌
+    this.W = 960;
+    this.H = 540;
+    this.COLS = (this.W / this.TILE) | 0;
+    this.ROWS = (this.H / this.TILE) | 0;
+    this.OPEN = 0;
+    this.WALL = 1;
+    this.SEED = seed;
+    this.grid = Array.from({ length: this.ROWS }, () => Array(this.COLS).fill(this.WALL));
+    this.colors = {
+      grassD: '#0b0f0b', grassM: '#171f17', grassH: '#293329',
+      path: '#cfd6d9', edgeTop: '#f5f9fb', edgeBot: '#4a5053',
+      exitMark: 'rgba(255,255,255,.25)'
+    };
+  }
+
+  rnd() { this.SEED = (this.SEED * 1664525 + 1013904223) >>> 0; return this.SEED / 0xFFFFFFFF; }
+
+  generate() {
+    // 더 단순한 미로: 중앙 직선 + 약간의 곁가지
+    const centerX = ((this.COLS / 2) | 0);
+    const startY = this.ROWS - 3;
+    
+    // 중앙 직선 길 만들기
+    for (let y = 0; y < this.ROWS; y++) {
+      this.grid[y][centerX] = this.OPEN;
+      // 양쪽으로 1칸씩 넓게
+      if (centerX > 0) this.grid[y][centerX - 1] = this.OPEN;
+      if (centerX < this.COLS - 1) this.grid[y][centerX + 1] = this.OPEN;
+    }
+
+    // 간단한 가로 지점 추가
+    for (let y = startY; y > 2; y -= 4) {
+      const branchX = centerX + (this.rnd() > 0.5 ? 4 : -4);
+      const branchLen = 3 + (this.rnd() * 3) | 0;
+      for (let x = 0; x < branchLen; x++) {
+        const bx = branchX + x;
+        if (bx > 0 && bx < this.COLS - 1) {
+          this.grid[y][bx] = this.OPEN;
+          // 위아래로 1칸씩
+          if (y > 0) this.grid[y - 1][bx] = this.OPEN;
+          if (y < this.ROWS - 1) this.grid[y + 1][bx] = this.OPEN;
+        }
+      }
+    }
+
+    return { start: [centerX, startY], exit: [centerX, 0] };
+  }
+
+  prng(n) { n = (n << 13) ^ n; return (1 - ((n * (n * n * 15731 + 789221) + 1376312589) & 0x7fffffff) / 1073741824.0); }
+
+  draw(ctx) {
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, this.W, this.H);
+    
+    for (let y = 0; y < this.ROWS; y++) {
+      for (let x = 0; x < this.COLS; x++) {
+        const tx = x * this.TILE;
+        const ty = y * this.TILE;
+        if (this.grid[y][x] === this.OPEN) {
+          ctx.fillStyle = this.colors.path;
+          ctx.fillRect(tx, ty, this.TILE, this.TILE);
+          ctx.fillStyle = this.colors.edgeTop;
+          ctx.fillRect(tx, ty, this.TILE, 1);
+          ctx.fillStyle = this.colors.edgeBot;
+          ctx.fillRect(tx, ty + this.TILE - 1, this.TILE, 1);
+        } else {
+          const r = Math.abs(this.prng(x * 73856093 ^ y * 19349663));
+          ctx.fillStyle = r < 0.33 ? this.colors.grassD : r < 0.66 ? this.colors.grassM : this.colors.grassH;
+          const cx = tx + (this.TILE >> 1);
+          const cy = ty + (this.TILE >> 1);
+          ctx.fillRect(cx - 1, cy - 4, 2, 5);
+          ctx.fillRect(cx - 4, cy - 1, 2, 3);
+          ctx.fillRect(cx + 2, cy - 1, 2, 3);
+          if (r > 0.7) ctx.fillRect(cx - 6, cy + 4, 1, 1);
+          if (r < 0.25) ctx.fillRect(cx + 5, cy + 3, 1, 1);
+        }
+      }
+    }
+  }
+
+  isOpen(px, py) {
+    const tx = (px / this.TILE) | 0;
+    const ty = (py / this.TILE) | 0;
+    if (tx < 0 || ty < 0 || tx >= this.COLS || ty >= this.ROWS) return false;
+    return this.grid[ty][tx] === this.OPEN;
+  }
+}
+
+// ====== Player ======
+class Player {
+  constructor(start, tileSize) {
+    this.x = start[0] * tileSize + (tileSize >> 1);
+    this.y = start[1] * tileSize + (tileSize >> 1);
+    this.spd = 3.5; // 이동 속도 증가
+    this.size = 0.9;
+    this.lastStepX = this.x;
+    this.lastStepY = this.y;
+    this.stepAcc = 0;
+    this.STEP_DIST = 10;
+    this.colors = { fill: '#ffffff', edge: '#111', shadow: 'rgba(0,0,0,.55)' };
+  }
+
+  move(ax, ay, maze) {
+    let moved = false;
+    const m = Math.hypot(ax, ay) || 1;
+    ax /= m; ay /= m;
+    const nx = this.x + ax * this.spd;
+    const ny = this.y + ay * this.spd;
+    if (maze.isOpen(nx, this.y)) { this.x = nx; moved = true; }
+    if (maze.isOpen(this.x, ny)) { this.y = ny; moved = true; }
+    if (moved) {
+      const dx = this.x - this.lastStepX;
+      const dy = this.y - this.lastStepY;
+      this.stepAcc += Math.hypot(dx, dy);
+      if (this.stepAcc >= this.STEP_DIST) { audio.footstep(); this.stepAcc = 0; }
+      this.lastStepX = this.x; this.lastStepY = this.y;
+    }
+  }
+
+  draw(ctx) {
+    const s = this.size;
+    const px = this.x;
+    const py = this.y;
+    ctx.fillStyle = this.colors.shadow;
+    ctx.fillRect(px - 6 * s, py + 6 * s, 12 * s, 3 * s);
+    ctx.fillStyle = this.colors.fill;
+    ctx.fillRect(px - 6 * s, py - 10 * s, 12 * s, 10 * s);
+    ctx.fillRect(px - 5 * s, py - 16 * s, 10 * s, 6 * s);
+    ctx.fillStyle = this.colors.edge;
+    ctx.fillRect(px - 6 * s, py - 10 * s, 12 * s, 1 * s);
+    ctx.fillRect(px - 6 * s, py - 1 * s, 12 * s, 1 * s);
+    ctx.fillRect(px - 6 * s, py - 10 * s, 1 * s, 10 * s);
+    ctx.fillRect(px + 5 * s, py - 10 * s, 1 * s, 10 * s);
+    ctx.fillRect(px - 5 * s, py - 16 * s, 10 * s, 1 * s);
+    ctx.fillRect(px - 5 * s, py - 10 * s, 10 * s, 1 * s);
+    ctx.fillRect(px - 5 * s, py - 16 * s, 1 * s, 6 * s);
+    ctx.fillRect(px + 4 * s, py - 16 * s, 1 * s, 6 * s);
+  }
+}
+
+// ====== Game ======
+class Game {
+  constructor() {
+    this.canvas = document.getElementById('view');
+    this.ctx = this.canvas.getContext('2d', { alpha: false });
+    this.ctx.imageSmoothingEnabled = false;
+    this.keys = new Set();
+    this.dstate = { ax: 0, ay: 0 };
+    this.stage = 1;
+    this.maze = new Maze(this.stage * 1000 + 2025);
+    const { start, exit } = this.maze.generate();
+    this.start = start;
+    this.exit = exit;
+    this.player = new Player(start, this.maze.TILE);
+    this.setupControls();
+    this.gameLoop();
+  }
+
+  setupControls() {
+    addEventListener('keydown', e => {
+      const k = e.key.toLowerCase();
+      if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'w', 'a', 's', 'd', 'e', 'enter'].includes(k)) {
+        e.preventDefault();
+        this.keys.add(k);
+      }
+    });
+    addEventListener('keyup', e => this.keys.delete(e.key.toLowerCase()));
+
+    // 온스크린 컨트롤러
+    const held = new Set();
+    const setHeld = (dir, on) => {
+      if (on) held.add(dir); else held.delete(dir);
+      let ax = 0, ay = 0;
+      if (held.has('left')) ax -= 1;
+      if (held.has('right')) ax += 1;
+      if (held.has('up')) ay -= 1;
+      if (held.has('down')) ay += 1;
+      this.dstate.ax = ax; this.dstate.ay = ay;
+    };
+
+    document.querySelectorAll('[data-dir]').forEach(b => {
+      const dir = b.dataset.dir;
+      const off = e => { e.preventDefault(); setHeld(dir, false); };
+      b.addEventListener('pointerdown', e => { e.preventDefault(); setHeld(dir, true); }, { passive: false });
+      b.addEventListener('pointerup', off, { passive: false });
+      b.addEventListener('pointerleave', off, { passive: false });
+    });
+
+    document.querySelector('[data-action="interact"]').onclick = () => this.interact();
+
+    // 클리어 팝업
+    document.getElementById('nextStageBtn').onclick = () => this.nextStage();
+    document.getElementById('restartBtn').onclick = () => this.restart();
+  }
+
+  interact() {
+    // 대화/상호작용 버튼 (현재는 플레이서 주변 검사)
+    const dx = this.player.x - (this.exit[0] * this.maze.TILE + this.maze.TILE / 2);
+    const dy = this.player.y - (this.exit[1] * this.maze.TILE + this.maze.TILE / 2);
+    if (Math.hypot(dx, dy) < 40) {
+      this.showClear();
+    }
+  }
+
+  checkExit() {
+    const exitX = this.exit[0] * this.maze.TILE + this.maze.TILE / 2;
+    const exitY = this.exit[1] * this.maze.TILE + this.maze.TILE / 2;
+    const dx = this.player.x - exitX;
+    const dy = this.player.y - exitY;
+    if (Math.hypot(dx, dy) < this.maze.TILE / 2) {
+      this.showClear();
+    }
+  }
+
+  showClear() {
+    document.getElementById('clearPopup').style.display = 'flex';
+  }
+
+  nextStage() {
+    this.stage++;
+    document.getElementById('stageNum').textContent = this.stage;
+    document.getElementById('clearPopup').style.display = 'none';
+    this.maze = new Maze(this.stage * 1000 + 2025);
+    const { start, exit } = this.maze.generate();
+    this.start = start;
+    this.exit = exit;
+    this.player = new Player(start, this.maze.TILE);
+  }
+
+  restart() {
+    document.getElementById('clearPopup').style.display = 'none';
+    this.player = new Player(this.start, this.maze.TILE);
+  }
+
+  update() {
+    let ax = 0, ay = 0;
+    if (this.keys.has('arrowleft') || this.keys.has('a')) ax -= 1;
+    if (this.keys.has('arrowright') || this.keys.has('d')) ax += 1;
+    if (this.keys.has('arrowup') || this.keys.has('w')) ay -= 1;
+    if (this.keys.has('arrowdown') || this.keys.has('s')) ay += 1;
+    ax += this.dstate.ax;
+    ay += this.dstate.ay;
+    this.player.move(ax, ay, this.maze);
+    this.checkExit();
+  }
+
+  render() {
+    this.maze.draw(this.ctx);
+    this.player.draw(this.ctx);
+    // 출구 화살표
+    this.ctx.fillStyle = 'rgba(255,255,255,.4)';
+    this.ctx.fillRect(this.exit[0] * this.maze.TILE + this.maze.TILE / 2 - 8, 6, 16, 3);
+    this.ctx.fillRect(this.exit[0] * this.maze.TILE + this.maze.TILE / 2 - 2, 2, 4, 4);
+  }
+
+  gameLoop() {
+    this.update();
+    this.render();
+    requestAnimationFrame(() => this.gameLoop());
+  }
+}
+
+window.addEventListener('load', () => new Game());
+</script>
 </body>
 </html>
