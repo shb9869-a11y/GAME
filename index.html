@@ -1,129 +1,40 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no"/>
-<title>SLEEEEP – Maze</title>
-<style>
-  html,body{margin:0;padding:0;background:#000;height:100%;display:flex;align-items:center;justify-content:center;}
-  #gameWrap{
-    width:960px;
-    height:540px;
-    background:#000;
-    position:relative;
-    box-shadow:0 0 30px rgba(0,0,0,.9),0 0 0 1px #222;
-    overflow:hidden;
-  }
-  canvas{width:100%;height:100%;image-rendering:pixelated;image-rendering:crisp-edges;display:block;}
-
-  .tbtn{
-    position:absolute;background:transparent;border:none;color:#fff;
-    font:600 14px ui-monospace;cursor:pointer;text-shadow:0 1px 0 #000;
-  }
-  #mapBtn{left:10px;top:10px;}
-  #invBtn{right:10px;top:10px;}
-  #dlgBtn{right:10px;bottom:10px;}
-
-  #dpad{position:absolute;left:10px;bottom:10px;display:grid;grid-template-columns:repeat(3,1fr);gap:4px;}
-  .key{background:transparent;border:none;color:#fff;font:700 18px ui-serif;cursor:pointer;}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>픽셀 미로 탐험기</title>
+    <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-<div id="gameWrap">
-  <canvas id="view" width="960" height="540"></canvas>
+    <div class="game-container">
+        <div class="game-screen">
+            <canvas id="gameCanvas"></canvas>
+        </div>
+        <div class="ui-panel">
+            <div class="player-info">
+                <h2>🎮 플레이어 정보</h2>
+                <div class="pixel-character" id="pixelChar"></div>
+                <p>이름: <span id="playerName">탐험가</span></p>
+                <p>위치: <span id="playerPos">X:0 Y:0</span></p>
+                <p>이동 횟수: <span id="moveCount">0</span></p>
+            </div>
+            
+            <div class="controls">
+                <h3>⌨️ 조작법</h3>
+                <p>방향키 ↑↓←→ 이동</p>
+                <p>ESC: 일시정지</p>
+            </div>
 
-  <button id="mapBtn" class="tbtn">MAP</button>
-  <button id="invBtn" class="tbtn">INVENTORY</button>
-  <button id="dlgBtn" class="tbtn">Dialogue</button>
+            <div class="minimap">
+                <h3>🗺️ 미니맵</h3>
+                <canvas id="minimap"></canvas>
+            </div>
+        </div>
+    </div>
 
-  <div id="dpad">
-    <div></div><button class="key" data-d="up">↑</button><div></div>
-    <button class="key" data-d="left">←</button><div></div><button class="key" data-d="right">→</button>
-    <div></div><button class="key" data-d="down">↓</button><div></div>
-  </div>
-</div>
-
-<script>
-const cv=document.getElementById("view"), g=cv.getContext("2d");
-g.imageSmoothingEnabled=false;
-
-const TILE=16;
-const COLS=(cv.width/TILE)|0, ROWS=(cv.height/TILE)|0;
-const WALL=1, OPEN=0;
-
-let SEED=2025;
-function rnd(){SEED=(SEED*1664525+1013904223)>>>0;return SEED/0xFFFFFFFF;}
-
-const grid=[...Array(ROWS)].map(()=>Array(COLS).fill(WALL));
-
-function carve(){
-  const sx=((COLS/2)|0)|1, sy=ROWS-3;
-  const stack=[[sx,sy]];
-  grid[sy][sx]=OPEN;
-  const dirs=[[2,0],[-2,0],[0,2],[0,-2]];
-  while(stack.length){
-    const [x,y]=stack[stack.length-1];
-    const cand=dirs.map(d=>[x+d[0],y+d[1]])
-      .filter(([nx,ny])=>nx>1&&ny>1&&nx<COLS-1&&ny<ROWS-1&&grid[ny][nx]===WALL);
-    if(!cand.length){stack.pop();continue;}
-    const [nx,ny]=cand[(rnd()*cand.length)|0];
-    grid[(y+ny)/2][(x+nx)/2]=OPEN; grid[ny][nx]=OPEN;
-    stack.push([nx,ny]);
-  }
-  for(let y=sy;y>=1;y--) grid[y][sx]=OPEN;
-  return {start:[sx,sy], exit:[sx,0]};
-}
-const {start,exit}=carve();
-
-const player={x:start[0]*TILE+8,y:start[1]*TILE+8,spd:1.8};
-
-function tile(px,py){
-  return grid[(py/TILE)|0]?.[(px/TILE)|0] ?? WALL;
-}
-
-function move(ax,ay){
-  const nx=player.x+ax*player.spd, ny=player.y+ay*player.spd;
-  if(tile(nx,player.y)===OPEN) player.x=nx;
-  if(tile(player.x,ny)===OPEN) player.y=ny;
-}
-
-function draw(){
-  for(let y=0;y<ROWS;y++){
-    for(let x=0;x<COLS;x++){
-      if(grid[y][x]===OPEN){
-        g.fillStyle="#dfe3e5"; g.fillRect(x*TILE,y*TILE,TILE,TILE);
-      }else{
-        g.fillStyle=y%2? "#1a221a":"#0f150f";
-        g.fillRect(x*TILE,y*TILE,TILE,TILE);
-      }
-    }
-  }
-  g.fillStyle="rgba(255,255,255,.25)";
-  g.fillRect(exit[0]*TILE,0,TILE,TILE);
-  g.fillStyle="#fff";
-  g.fillRect(player.x-5,player.y-10,10,10);
-}
-
-const keys=new Set();
-addEventListener("keydown",e=>{keys.add(e.key);});
-addEventListener("keyup",e=>{keys.delete(e.key);});
-
-document.querySelectorAll(".key").forEach(btn=>{
-  btn.onpointerdown=()=>keys.add(btn.dataset.d);
-  btn.onpointerup=()=>keys.delete(btn.dataset.d);
-});
-
-function loop(){
-  let ax=0,ay=0;
-  if(keys.has("ArrowUp")||keys.has("w")||keys.has("up")) ay=-1;
-  if(keys.has("ArrowDown")||keys.has("s")||keys.has("down")) ay=1;
-  if(keys.has("ArrowLeft")||keys.has("a")||keys.has("left")) ax=-1;
-  if(keys.has("ArrowRight")||keys.has("d")||keys.has("right")) ax=1;
-  if(ax||ay){const m=Math.hypot(ax,ay); ax/=m; ay/=m; move(ax,ay);}
-  draw();
-  requestAnimationFrame(loop);
-}
-draw(); loop();
-</script>
+    <script src="js/maze.js"></script>
+    <script src="js/player.js"></script>
+    <script src="js/game.js"></script>
 </body>
 </html>
