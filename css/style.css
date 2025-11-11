@@ -1,0 +1,78 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background: #1a1a2e;
+    color: #eee;
+    font-family: 'Press Start 2P', 'Courier New', monospace;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    image-rendering: pixelated;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: crisp-edges;
+}
+
+.game-container {
+    display: flex;
+    gap: 20px;
+    padding: 20px;
+    background: #16213e;
+    border-radius: 10px;
+    box-shadow: 0 0 30px rgba(0, 255, 255, 0.3);
+}
+
+.game-screen {
+    border: 4px solid #000;
+    background: #000;
+}
+
+#gameCanvas {
+    display: block;
+    background: #0f0f1e;
+    image-rendering: pixelated;
+}
+
+.ui-panel {
+    width: 250px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.player-info, .controls, .minimap {
+    background: #0f3460;
+    padding: 15px;
+    border: 2px solid #e94560;
+    border-radius: 5px;
+}
+
+h2, h3 {
+    color: #ffd700;
+    margin-bottom: 10px;
+    font-size: 14px;
+}
+
+.pixel-character {
+    width: 32px;
+    height: 32px;
+    margin: 10px auto;
+    background: #ff6b6b;
+    position: relative;
+    box-shadow: 
+        0 0 0 1px #000,
+        8px 0 0 0 #ffb347,
+        16px 0 0 0 #ff6b6b,
+        24px 0 0 0 #ffb347;
+}
+
+#minimap {
+    width: 100%;
+    height: 150px;
+    background: #000;
+    border: 1px solid #444;
+}
