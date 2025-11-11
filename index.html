@@ -1,40 +1,44 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>픽셀 미로 탐험기</title>
-    <link rel="stylesheet" href="css/style.css">
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no"/>
+<meta name="theme-color" content="#000000">
+<title>SLEEEEP · Tall Grass Maze</title>
+<link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-    <div class="game-container">
-        <div class="game-screen">
-            <canvas id="gameCanvas"></canvas>
-        </div>
-        <div class="ui-panel">
-            <div class="player-info">
-                <h2>🎮 플레이어 정보</h2>
-                <div class="pixel-character" id="pixelChar"></div>
-                <p>이름: <span id="playerName">탐험가</span></p>
-                <p>위치: <span id="playerPos">X:0 Y:0</span></p>
-                <p>이동 횟수: <span id="moveCount">0</span></p>
-            </div>
-            
-            <div class="controls">
-                <h3>⌨️ 조작법</h3>
-                <p>방향키 ↑↓←→ 이동</p>
-                <p>ESC: 일시정지</p>
-            </div>
+<div id="desk">
+  <div class="gameWin" id="gameWin">
+    <canvas id="view" width="960" height="540" aria-label="게임 화면"></canvas>
+    <div class="scan"></div>
+    
+    <button id="btnMap" class="tbtn" type="button">MAP</button>
+    <button id="btnInv" class="tbtn" type="button">INVENTORY</button>
+    <button id="btnDialog" class="tbtn" type="button">Dialogue</button>
+    <div id="hint">EXIT ↑  ·  Move: ← ↑ → ↓ / WASD  ·  E/Enter: Interact</div>
 
-            <div class="minimap">
-                <h3>🗺️ 미니맵</h3>
-                <canvas id="minimap"></canvas>
-            </div>
-        </div>
+    <div class="dpad" id="dpad" aria-hidden="false">
+      <div class="cell"></div><div class="cell"><button class="key" data-dir="up">↑</button></div><div class="cell"></div>
+      <div class="cell"><button class="key" data-dir="left">←</button></div><div class="cell"></div><div class="cell"><button class="key" data-dir="right">→</button></div>
+      <div class="cell"></div><div class="cell"><button class="key" data-dir="down">↓</button></div><div class="cell"></div>
     </div>
 
-    <script src="js/maze.js"></script>
-    <script src="js/player.js"></script>
-    <script src="js/game.js"></script>
+    <div id="mapModal" class="modal"><div class="sheet">
+      <button class="close" data-close>닫기</button><h3>MAP</h3>
+      <div id="mini" style="height:220px;background:#0e0e13"></div>
+    </div></div>
+    
+    <div id="invModal" class="modal"><div class="sheet">
+      <button class="close" data-close>닫기</button><h3>INVENTORY</h3>
+      <div style="height:220px;background:#0e0e13"></div>
+    </div></div>
+  </div>
+</div>
+
+<script src="js/audio.js"></script>
+<script src="js/maze.js"></script>
+<script src="js/player.js"></script>
+<script src="js/main.js"></script>
 </body>
 </html>
