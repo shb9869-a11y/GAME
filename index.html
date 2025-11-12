@@ -3,29 +3,34 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no, interactive-widget=resizes-content" />
-<title>Top-Down Mono</title>
+<title>Top-Down Mono — Maze → Field → House</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#000000">
-
 <style>
   :root{
-    --bg:#000000; --fg:#ffffff; --accent:#cccccc;
-    --hud-pad: clamp(10px, 2.2vmin, 16px);
-    --btn: clamp(48px, 10vmin, 80px);
-    --gap: clamp(6px, 1.8vmin, 10px);
+    --bg:#000; --fg:#fff; --mut:#aaa;
+    --hud-pad: clamp(12px, 2.2vmin, 18px);
+    --btn: clamp(56px, 10vmin, 84px);
+    --gap: clamp(8px, 1.6vmin, 12px);
     --radius: 16px;
+    --glass: rgba(255,255,255,.06);
+    --line: rgba(255,255,255,.22);
   }
   *{box-sizing:border-box}
-  html,body{height:100%; margin:0; background:var(--bg); color:var(--fg); font-family:ui-sans-serif,system-ui,AppleSDGothicNeo,"Noto Sans KR",Segoe UI,Roboto; -webkit-text-size-adjust:100%;}
-  body, button { -webkit-tap-highlight-color: transparent; }
-  * { -webkit-user-select: none; user-select: none; }
-  canvas{display:block; width:100vw; height:100svh; touch-action:none}
+  html,body{height:100%;margin:0;background:var(--bg);color:var(--fg);
+    font-family:ui-sans-serif,system-ui,Apple SD Gothic Neo,"Noto Sans KR",Segoe UI,Roboto;
+    -webkit-text-size-adjust:100%;}
+  body, button{-webkit-tap-highlight-color:transparent}
+  *{-webkit-user-select:none;user-select:none}
+  canvas{display:block;width:100vw;height:100svh;touch-action:none}
 
+  /* HUD */
   #hud{pointer-events:none}
-  #hud, .corner{position:fixed; inset:0}
-  .corner{display:flex; padding:calc(env(safe-area-inset-bottom,0) + var(--hud-pad)) var(--hud-pad) var(--hud-pad) var(--hud-pad);}
-  .bl{justify-content:flex-start; align-items:flex-end}
-  .br{justify-content:flex-end; align-items:flex-end}
+  #hud,.corner{position:fixed;inset:0}
+  .corner{display:flex;padding:
+    calc(env(safe-area-inset-bottom,0) + var(--hud-pad)) var(--hud-pad) var(--hud-pad) var(--hud-pad)}
+  .bl{justify-content:flex-start;align-items:flex-end}
+  .br{justify-content:flex-end;align-items:flex-end}
 
   .dpad{
     pointer-events:auto; position:relative;
@@ -35,69 +40,60 @@
   }
   .dpad .spacer{opacity:0}
   .btn{
-    pointer-events:auto;
-    display:flex; align-items:center; justify-content:center;
+    pointer-events:auto; display:flex; align-items:center; justify-content:center;
     width: var(--btn); height: var(--btn);
-    background: rgba(255,255,255,.06);
-    border:1px solid rgba(255,255,255,.18);
+    background: var(--glass); border:1.2px solid var(--fg);
     border-radius: var(--radius);
-    backdrop-filter: blur(6px);
-    transition: transform .05s ease, background .2s ease;
+    color: var(--fg);
+    transition: transform .05s ease, background .2s ease, color .2s ease, border-color .2s ease;
   }
-  .btn:active{ transform: scale(.96); background: rgba(255,255,255,.12); }
-  .btn svg{ width:60%; height:60% }
+  .btn:active{ transform:scale(.96); background:#fff; color:#000; border-color:#fff; }
+  .btn .arrow{ width: 0; height: 0; border-style: solid; }
+  .btn[data-dir="up"]    .arrow{ border-width: 0 12px 18px 12px; border-color: transparent transparent currentColor transparent; }
+  .btn[data-dir="down"]  .arrow{ border-width: 18px 12px 0 12px; border-color: currentColor transparent transparent transparent; }
+  .btn[data-dir="left"]  .arrow{ border-width: 12px 18px 12px 0; border-color: transparent currentColor transparent transparent; }
+  .btn[data-dir="right"] .arrow{ border-width: 12px 0 12px 18px; border-color: transparent transparent transparent currentColor; }
 
   .talk{
-    pointer-events:auto;
-    width: calc(var(--btn)*1.2); height: calc(var(--btn)*1.2);
+    pointer-events:auto; width: calc(var(--btn)*1.2); height: calc(var(--btn)*1.2);
     display:flex; align-items:center; justify-content:center;
-    background: rgba(255,255,255,.06);
-    border:1px solid rgba(255,255,255,.18);
-    border-radius: 50%;
-    backdrop-filter: blur(6px);
+    background: var(--glass); border:1.2px solid var(--fg); border-radius:50%;
+    transition: transform .05s ease, background .2s ease, color .2s ease, border-color .2s ease;
   }
-  .talk:active{ transform: scale(.96); background: rgba(255,255,255,.12) }
+  .talk:active{ transform:scale(.96); background:#fff; color:#000; border-color:#fff; }
+  .talk svg{ width: 56%; height: 56%; color: currentColor; }
 
+  /* Dialog */
   #dialog{
     position:fixed; left:50%; bottom:calc(env(safe-area-inset-bottom,0) + 12px);
     transform:translateX(-50%);
     max-width:min(720px, 92vw);
-    background: rgba(0,0,0,.88);
-    border:1px solid rgba(255,255,255,.18);
-    border-radius: 14px;
-    padding: 12px 14px;
-    line-height:1.45;
+    background:#000; border:1px solid var(--line);
+    border-radius:14px; padding:12px 14px; line-height:1.45;
     font-size: clamp(12px, 2vmin, 16px);
     box-shadow: 0 8px 30px rgba(0,0,0,.35);
     display:none;
   }
-  #dialog strong{ color: var(--accent); }
+  #dialog strong{color:var(--mut)}
 </style>
 </head>
 <body>
 <canvas id="game"></canvas>
 
+<!-- HUD -->
 <div id="hud" aria-hidden="true">
   <div class="corner bl">
     <div class="dpad" id="dpad" role="group" aria-label="방향 패드">
-      <button class="btn" data-dir="up" style="grid-area:1/2" aria-label="위">
-        <svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 5l7 8h-5v6h-4v-6H5z"/></svg>
-      </button>
-      <button class="btn" data-dir="left" style="grid-area:2/1" aria-label="왼쪽">
-        <svg viewBox="0 0 24 24"><path fill="currentColor" d="M5 12l8-7v5h6v4h-6v5z"/></svg>
-      </button>
+      <button class="btn" data-dir="up" style="grid-area:1/2" aria-label="위"><span class="arrow"></span></button>
+      <button class="btn" data-dir="left" style="grid-area:2/1" aria-label="왼쪽"><span class="arrow"></span></button>
       <div class="spacer" style="grid-area:2/2"></div>
-      <button class="btn" data-dir="right" style="grid-area:2/3" aria-label="오른쪽">
-        <svg viewBox="0 0 24 24"><path fill="currentColor" d="M19 12l-8 7v-5H5v-4h6V5z"/></svg>
-      </button>
-      <button class="btn" data-dir="down" style="grid-area:3/2" aria-label="아래">
-        <svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 19l-7-8h5V5h4v6h5z"/></svg>
-      </button>
+      <button class="btn" data-dir="right" style="grid-area:2/3" aria-label="오른쪽"><span class="arrow"></span></button>
+      <button class="btn" data-dir="down" style="grid-area:3/2" aria-label="아래"><span class="arrow"></span></button>
     </div>
   </div>
   <div class="corner br">
     <button id="talkBtn" class="talk" aria-label="대화">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M21 6h-2v8H7l-4 4V6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2z"/></svg>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M21 6H5a2 2 0 0 0-2 2v12l4-4h14a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2Z"/></svg>
     </button>
   </div>
 </div>
@@ -108,257 +104,253 @@
 (()=>{
   const canvas = document.getElementById('game');
   const ctx = canvas.getContext('2d');
-  const DPR = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
-
-  let W=0, H=0;
-  function resize(){
-    W = Math.floor(window.innerWidth * DPR);
-    H = Math.floor(window.innerHeight * DPR);
-    canvas.width = W; canvas.height = H;
-  }
+  const DPR = Math.max(1, Math.min(2, window.devicePixelRatio||1));
+  let W=0,H=0;
+  function resize(){ W=Math.floor(innerWidth*DPR); H=Math.floor(innerHeight*DPR); canvas.width=W; canvas.height=H; }
   addEventListener('resize', resize, {passive:true}); resize();
 
-  // ----- 월드 구성 -----
-  const world = { w: 1600, h: 1200 };
+  // ==== 게임 상태 ====
+  const TILE=40;                   // 타일 크기(월드 단위)
+  const SPEED=2.2;                 // 이동 속도
+  const Scene = { MAZE:0, FIELD:1, HOUSE:2 };
+  let scene = Scene.MAZE;
 
-  // 집과 문 영역
-  const house = { x: 600, y: 220, w: 400, h: 360 };
-  const door = { x: house.x + house.w/2 - 30, y: house.y + house.h - 60, w: 60, h: 60 };
-
-  // 나무 앙상한 가지 배열 (100개 이상)
-  const trees = Array.from({length:120}, (_,i)=>({
-    x: (i*23 % (world.w-80)) + 40,
-    y: (i*67 % (world.h-120)) + 60,
-    r: 16 + (i%4)*2
-  })).filter(t => !(
-    t.x > house.x-50 && t.x < house.x+house.w+50 && 
-    t.y > house.y-50 && t.y < house.y+house.h+50
-  ));
+  // 카메라(필드에서만 사용)
+  const cam = {x:0,y:0,w:W/DPR,h:H/DPR};
+  function updateCamera(px,py,worldW,worldH){
+    cam.w=W/DPR; cam.h=H/DPR;
+    cam.x = Math.max(0, Math.min(worldW-cam.w, px-cam.w/2));
+    cam.y = Math.max(0, Math.min(worldH-cam.h, py-cam.h/2));
+  }
 
   // 플레이어
-  const player = {
-    x: world.w/2, y: world.h-180,
-    w: 24, h: 28,
-    speed: 2.2,
-    vx:0, vy:0
-  };
+  const player = { x: TILE*10+20, y: TILE*18+20, w:24, h:28 }; // 미로 아래쪽에서 시작
 
-  // 카메라
-  const cam = {x:0, y:0, w:W/DPR, h:H/DPR};
-  function updateCamera(){
-    cam.w = W/DPR; cam.h = H/DPR;
-    cam.x = Math.max(0, Math.min(world.w - cam.w, player.x - cam.w/2));
-    cam.y = Math.max(0, Math.min(world.h - cam.h, player.y - cam.h/2));
+  // ==== 미로 맵(타일: 1=벽, 0=길) ====
+  // 출구는 최상단 중앙(0번째 행 가운데)을 비워둠
+  const MAZE_W=21, MAZE_H=20;
+  const maze = [];
+  for(let y=0;y<MAZE_H;y++){
+    const row = [];
+    for(let x=0;x<MAZE_W;x++){
+      let v = (x===0||y===0||x===MAZE_W-1||y===MAZE_H-1) ? 1 : 0; // 테두리
+      // 간단 패턴으로 벽 생성
+      if(!v && y%2===0 && x%2===0) v = 1;
+      if(!v && y%3===0 && (x%5===2)) v = 1;
+      row.push(v);
+    }
+    maze.push(row);
+  }
+  // 최상단 중앙 출구 열기
+  for(let i=-1;i<=1;i++){
+    if(maze[0] && maze[0][Math.floor(MAZE_W/2)+i]!==undefined) maze[0][Math.floor(MAZE_W/2)+i]=0;
+    if(maze[1]) maze[1][Math.floor(MAZE_W/2)+i]=0;
   }
 
-  // ----- 입력 -----
-  const keys = {up:false,down:false,left:false,right:false};
-  const keyMap = { 'ArrowUp':'up', 'KeyW':'up', 'ArrowDown':'down', 'KeyS':'down', 'ArrowLeft':'left', 'KeyA':'left', 'ArrowRight':'right', 'KeyD':'right' };
-  addEventListener('keydown', e=>{
-    const dir = keyMap[e.code]; if(dir){ keys[dir]=true; e.preventDefault(); }
-    if(e.code==='KeyE') toggleDoor();
-  }, {passive:false});
-  addEventListener('keyup', e=>{
-    const dir = keyMap[e.code]; if(dir){ keys[dir]=false; e.preventDefault(); }
-  }, {passive:false});
+  // 충돌 검사 (미로/집벽 공용)
+  function rectsOverlap(a,b){ return a.x<b.x+b.w && a.x+a.w>b.x && a.y<b.y+b.h && a.y+a.h>b.y; }
 
-  // D-Pad
-  const dpad = document.getElementById('dpad');
-  let activeTouches = new Set();
-  function setDir(dir, val){ keys[dir]=val; }
+  // ==== 들판 & 집 ====
+  const field = { w: 2200, h: 1600 };
+  const house = { x: field.w/2 - 150, y: 180, w: 300, h: 300 };     // 하얀 사각형 집(위쪽 위치)
+  const door  = { x: house.x + house.w/2 - 30, y: house.y + house.h - 60, w:60, h:60 };
+
+  // ==== 입력 ====
+  const keys={up:false,down:false,left:false,right:false};
+  const mapKey={ArrowUp:'up',KeyW:'up',ArrowDown:'down',KeyS:'down',ArrowLeft:'left',KeyA:'left',ArrowRight:'right',KeyD:'right'};
+  addEventListener('keydown',e=>{const d=mapKey[e.code]; if(d){keys[d]=true; e.preventDefault();} if(e.code==='KeyE') interact();},{passive:false});
+  addEventListener('keyup',e=>{const d=mapKey[e.code]; if(d){keys[d]=false; e.preventDefault();}},{passive:false});
+
+  const dpad=document.getElementById('dpad');
+  let active=new Set();
+  function setDir(d,v){ keys[d]=v; }
   dpad.querySelectorAll('.btn').forEach(btn=>{
-    const dir = btn.dataset.dir;
-    const on = (e)=>{ activeTouches.add(e.pointerId||'mouse'); setDir(dir,true); btn.setPointerCapture?.(e.pointerId); };
-    const off= (e)=>{ activeTouches.delete(e.pointerId||'mouse'); setDir(dir,false); };
-    btn.addEventListener('pointerdown', on);
-    btn.addEventListener('pointerup', off);
-    btn.addEventListener('pointercancel', off);
-    btn.addEventListener('pointerleave', e=>{ if(!activeTouches.size) setDir(dir,false); });
+    const dir=btn.dataset.dir;
+    const on = e=>{ active.add(e.pointerId||'m'); setDir(dir,true); btn.setPointerCapture?.(e.pointerId); };
+    const off= e=>{ active.delete(e.pointerId||'m'); setDir(dir,false); };
+    btn.addEventListener('pointerdown',on);
+    btn.addEventListener('pointerup',off);
+    btn.addEventListener('pointercancel',off);
+    btn.addEventListener('pointerleave',e=>{ if(!active.size) setDir(dir,false); });
   });
-  document.getElementById('talkBtn').addEventListener('click', toggleDoor);
+  document.getElementById('talkBtn').addEventListener('click', interact);
 
-  // ----- 충돌 처리 -----
-  function rectsOverlap(a,b){ return a.x < b.x+b.w && a.x+a.w > b.x && a.y < b.y+b.h && a.y+a.h > b.y; }
-  
-  let inHouse = false;
-  function toggleDoor(){
-    const p = {x:player.x-12, y:player.y-14, w:24, h:28};
-    const doorArea = {x:door.x-10, y:door.y-10, w:door.w+20, h:door.h+20};
-    
-    if(rectsOverlap(p, doorArea)){
+  // ==== 대화 ====
+  const dialog = document.getElementById('dialog'); let dialogTimer=0;
+  function say(text,ms=2200){ dialog.textContent=''; const who=document.createElement('strong'); who.textContent='VOICE'; dialog.appendChild(who); dialog.append(' · '+text); dialog.style.display='block'; clearTimeout(dialogTimer); dialogTimer=setTimeout(()=>dialog.style.display='none',ms); }
+
+  // ==== 상호작용 ====
+  let inHouse=false;
+  function interact(){
+    if(scene===Scene.FIELD && !inHouse){
+      const p={x:player.x-12,y:player.y-14,w:24,h:28};
+      const nearDoor = rectsOverlap(p,{x:door.x-8,y:door.y-8,w:door.w+16,h:door.h+16});
+      if(nearDoor){ inHouse=true; say('집 안으로 들어왔다.'); }
+    }else if(scene===Scene.FIELD && inHouse){
+      inHouse=false; say('집 밖으로 나왔다.');
+    }else if(scene===Scene.MAZE){
+      say('출구를 찾아 위쪽으로 나가자.');
+    }
+  }
+
+  // ==== 루프 ====
+  let last=0;
+  requestAnimationFrame(function loop(ts){
+    const dt=(ts-last)||16; last=ts;
+    const ax=(keys.right?1:0)-(keys.left?1:0);
+    const ay=(keys.down?1:0)-(keys.up?1:0);
+    const len=Math.hypot(ax,ay)||1;
+    const step = SPEED*(dt/16)*2.2;
+    let nx=player.x+(ax/len)*step, ny=player.y+(ay/len)*step;
+
+    if(scene===Scene.MAZE){
+      // 미로 충돌
+      const hitbox={x:nx-12,y:ny-14,w:24,h:28};
+      const mw=MAZE_W*TILE, mh=MAZE_H*TILE;
+      // 벽 충돌 체크(주변 타일만)
+      const minTX = Math.max(0, Math.floor((hitbox.x-2)/TILE));
+      const maxTX = Math.min(MAZE_W-1, Math.floor((hitbox.x+hitbox.w+2)/TILE));
+      const minTY = Math.max(0, Math.floor((hitbox.y-2)/TILE));
+      const maxTY = Math.min(MAZE_H-1, Math.floor((hitbox.y+hitbox.h+2)/TILE));
+      let blocked=false;
+      for(let ty=minTY; ty<=maxTY; ty++){
+        for(let tx=minTX; tx<=maxTX; tx++){
+          if(maze[ty][tx]===1){
+            const cell={x:tx*TILE,y:ty*TILE,w:TILE,h:TILE};
+            if(rectsOverlap(hitbox,cell)){ blocked=true; break; }
+          }
+        } if(blocked)break;
+      }
+      if(!blocked){ player.x=nx; player.y=ny; }
+
+      // 최상단 탈출(화면 위쪽으로 나가면)
+      if(player.y < 10){
+        // 들판으로 전환
+        scene=Scene.FIELD;
+        player.x = field.w/2; player.y = field.h - 140; // 들판 아래쪽에서 등장
+        say('들판이다. 질서정연한 갈대가 바람에 흔들린다…',2600);
+      }
+    } else if(scene===Scene.FIELD){
       if(!inHouse){
-        inHouse = true;
-        player.x = house.x + house.w/2;
-        player.y = house.y + house.h/2;
-        showDialog('집 안으로 들어왔다.', 2000);
+        // 집 벽 충돌(문만 통과)
+        const hit={x:nx-12,y:ny-14,w:24,h:28};
+        const wall={x:house.x,y:house.y,w:house.w,h:house.h};
+        if(rectsOverlap(hit, wall) && !rectsOverlap(hit, door)){
+          // 막기
+        }else{
+          player.x=nx; player.y=ny;
+        }
+        updateCamera(player.x,player.y,field.w,field.h);
       }else{
-        inHouse = false;
-        player.x = door.x + door.w/2;
-        player.y = door.y + door.h + 30;
-        showDialog('밖으로 나왔다.', 2000);
+        // 실내 자유 이동(작은 방)
+        player.x = Math.max(house.x+30, Math.min(house.x+house.w-30, nx));
+        player.y = Math.max(house.y+40, Math.min(house.y+house.h-40, ny));
+        updateCamera(house.x,house.y,house.w,house.h); // 고정
       }
     }
-  }
 
-  function resolveCollision(px, py){
-    if(inHouse) return {x:px, y:py}; // 실내에서는 자유롭게
-    const p = {x:px-12, y:py-14, w:24, h:28};
-    const wall = {x:house.x, y:house.y, w:house.w, h:house.h};
-    
-    if(rectsOverlap(p, wall) && !rectsOverlap(p, door)){
-      return {x: player.x, y: player.y};
-    }
-    return {x:px, y:py};
-  }
-
-  // ----- 대화 -----
-  const dialog = document.getElementById('dialog');
-  let dialogTimer = 0;
-  function showDialog(text, ms=2000){
-    dialog.textContent='';
-    const who = document.createElement('strong'); who.textContent='...';
-    dialog.appendChild(who);
-    dialog.append(' '+text);
-    dialog.style.display='block';
-    clearTimeout(dialogTimer);
-    dialogTimer = setTimeout(()=> dialog.style.display='none', ms);
-  }
-
-  // ----- 루프 -----
-  let last=0;
-  function loop(ts){
-    const dt = (ts-last)||16; last = ts;
-    const ax = (keys.right?1:0) - (keys.left?1:0);
-    const ay = (keys.down?1:0) - (keys.up?1:0);
-    const len = Math.hypot(ax,ay) || 1;
-    const speed = player.speed * (dt/16);
-    let nx = player.x + (ax/len)*speed*2.2;
-    let ny = player.y + (ay/len)*speed*2.2;
-
-    const fixed = resolveCollision(nx, ny);
-    player.x = Math.max(12, Math.min(world.w-12, fixed.x));
-    player.y = Math.max(14, Math.min(world.h-14, fixed.y));
-    if(!inHouse) updateCamera();
     render();
     requestAnimationFrame(loop);
-  }
+  });
 
-  // ----- 렌더링 -----
+  // ==== 렌더링 ====
   function render(){
-    ctx.save();
-    ctx.scale(DPR, DPR);
-    
-    if(inHouse){
-      // 실내
-      ctx.fillStyle = '#111111';
-      ctx.fillRect(0,0,W/DPR,H/DPR);
-      ctx.fillStyle = '#333333';
-      ctx.fillRect(100, 100, 200, 120); // 가구
-      ctx.fillStyle = '#888888';
-      ctx.fillRect(W/DPR/2-30, H/DPR-60, 60, 60); // 출구 문
-    }else{
-      // 야외
-      ctx.fillStyle = '#000000';
-      ctx.fillRect(0,0,W/DPR,H/DPR);
-      
-      // 잔디 패턴
-      for(let i=0;i<500;i++){
-        ctx.fillStyle = i%2? '#111111':'#222222';
-        const x = (i*47 % world.w) - cam.x, y = (i*91 % world.h) - cam.y;
-        ctx.fillRect(x, y, 6, 2);
+    ctx.save(); ctx.scale(DPR,DPR);
+    const vw=W/DPR, vh=H/DPR;
+    ctx.fillStyle='#000'; ctx.fillRect(0,0,vw,vh);
+
+    if(scene===Scene.MAZE){
+      // 미로 배경(모노톤)
+      ctx.fillStyle='#111'; ctx.fillRect(0,0,vw,vh);
+      // 미로 타일 그리기(카메라 없이 고정 센터)
+      // 화면 중앙에 미로가 놓이도록 오프셋 계산
+      const ox = Math.floor(vw/2 - (MAZE_W*TILE)/2);
+      const oy = Math.floor(vh/2 - (MAZE_H*TILE)/2);
+      // 벽
+      ctx.fillStyle='#fff';
+      for(let y=0;y<MAZE_H;y++){
+        for(let x=0;x<MAZE_W;x++){
+          if(maze[y][x]===1) ctx.fillRect(ox+x*TILE, oy+y*TILE, TILE, TILE);
+        }
       }
+      // 출구 표시
+      ctx.fillStyle='#aaa';
+      ctx.fillRect(ox+Math.floor(MAZE_W/2-1)*TILE, oy, TILE*3, 6);
 
-      // 흙길
-      ctx.fillStyle = '#333333';
-      ctx.strokeStyle = '#222222';
-      ctx.lineWidth = 2;
-      const path = new Path2D();
-      path.rect(house.x+house.w/2-60 - cam.x, house.y+house.h - cam.y, 120, 220);
-      ctx.fill(path); ctx.stroke(path);
-
-      // 집
-      drawHouse();
-
-      // 나무
-      trees.forEach(t=>{
-        const x=t.x - cam.x, y=t.y - cam.y;
-        ctx.fillStyle = '#111111'; ctx.beginPath(); ctx.arc(x,y,t.r,0,Math.PI*2); ctx.fill();
-        ctx.strokeStyle = '#000000'; ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x,y+t.r+14); ctx.stroke();
-      });
-
-      // 문
-      ctx.fillStyle = '#888888';
-      ctx.fillRect(door.x - cam.x, door.y - cam.y, door.w, door.h);
-      ctx.strokeStyle = 'rgba(255,255,255,.25)';
-      ctx.strokeRect(door.x - cam.x, door.y - cam.y, door.w, door.h);
+      // 플레이어
+      const px = ox + player.x, py = oy + player.y;
+      drawPlayer(px, py);
     }
 
-    // 플레이어
-    const px = Math.round(player.x - (inHouse ? 0 : cam.x)), py = Math.round(player.y - (inHouse ? 0 : cam.y));
-    drawPlayer(px, py);
+    if(scene===Scene.FIELD){
+      // 들판(갈대: 규칙적 격자)
+      if(!inHouse){
+        // 바탕
+        ctx.fillStyle='#0a0a0a'; ctx.fillRect(0,0,vw,vh);
+
+        // 갈대: 규칙 격자(밝은 줄기 + 끝 이파리)
+        ctx.strokeStyle='#fff'; ctx.lineWidth=1;
+        const spacing=60, margin=80;
+        for(let y=margin; y<field.h-margin; y+=spacing){
+          for(let x=margin; x<field.w-margin; x+=spacing){
+            const sx = x - cam.x, sy = y - cam.y;
+            if(sx<-20||sx>vw+20||sy<-40||sy>vh+40) continue;
+            ctx.beginPath(); ctx.moveTo(sx, sy+16); ctx.lineTo(sx, sy-16); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(sx, sy-16); ctx.lineTo(sx+6, sy-24); ctx.lineTo(sx-6, sy-24); ctx.closePath(); ctx.stroke();
+          }
+        }
+
+        // 집(하얀 사각형 + 격자 무늬)
+        drawGridHouse(house.x - cam.x, house.y - cam.y, house.w, house.h);
+        // 문
+        ctx.fillStyle='#000'; ctx.fillRect(door.x - cam.x, door.y - cam.y, door.w, door.h);
+        ctx.strokeStyle='rgba(255,255,255,.5)'; ctx.strokeRect(door.x - cam.x, door.y - cam.y, door.w, door.h);
+
+        // 플레이어
+        drawPlayer(Math.round(player.x - cam.x), Math.round(player.y - cam.y));
+      }else{
+        // 실내(흑백 작은 방 + 바닥 격자)
+        ctx.fillStyle='#111'; ctx.fillRect(0,0,vw,vh);
+        const hx = house.x - cam.x, hy = house.y - cam.y;
+        ctx.fillStyle='#fff'; ctx.fillRect(hx,hy,house.w,house.h);
+        ctx.strokeStyle='#000'; ctx.lineWidth=1;
+        const step=30;
+        for(let x=0;x<=house.w;x+=step){ ctx.beginPath(); ctx.moveTo(hx+x,hy); ctx.lineTo(hx+x,hy+house.h); ctx.stroke(); }
+        for(let y=0;y<=house.h;y+=step){ ctx.beginPath(); ctx.moveTo(hx,hy+y); ctx.lineTo(hx+house.w,hy+y); ctx.stroke(); }
+        // 출구 문 위치 표시(안쪽)
+        ctx.fillStyle='#000'; ctx.fillRect(hx+house.w/2-30, hy+house.h-60, 60,60);
+        drawPlayer(Math.round(player.x - cam.x), Math.round(player.y - cam.y));
+      }
+    }
+
     ctx.restore();
   }
 
-  function drawHouse(){
-    const x = house.x - cam.x, y = house.y - cam.y, w = house.w, h = house.h;
-    // 본체
-    ctx.fillStyle = '#dddddd';
-    ctx.strokeStyle = '#bbbbbb';
-    ctx.lineWidth = 2;
-    ctx.fillRect(x,y,w,h);
-    ctx.strokeRect(x,y,w,h);
-    // 지붕
-    ctx.fillStyle = '#555555';
-    ctx.beginPath();
-    ctx.moveTo(x-10, y); ctx.lineTo(x+w+10, y); ctx.lineTo(x+w-70, y-80); ctx.lineTo(x+70, y-80); ctx.closePath(); ctx.fill();
-
-    // 현관 지붕
-    const wx = x + w/2 - 80, wy = y + h - 160;
-    ctx.fillStyle = '#eeeeee';
-    ctx.fillRect(wx, wy, 160, 160);
-    ctx.fillStyle = '#555555';
-    ctx.beginPath();
-    ctx.moveTo(wx-8, wy); ctx.lineTo(wx+168, wy); ctx.lineTo(wx+80, wy-70); ctx.closePath(); ctx.fill();
-
-    // 창문 (밀도 증가)
-    ctx.fillStyle = '#888888';
-    const winW=28, winH=24, gapX=20, gapY=25, startX=25;
-    for(let i=0;i<5;i++){
-      for(let j=0;j<3;j++){
-        const cx = x+startX + i*(winW+gapX), cy = y+30 + j*(winH+gapY);
-        drawWindow(cx, cy, winW, winH);
-      }
-    }
-    // 현관 창문 추가
-    drawWindow(wx+45, wy+35, 70, 50);
+  function drawGridHouse(x,y,w,h){
+    ctx.fillStyle='#fff'; ctx.fillRect(x,y,w,h);
+    ctx.strokeStyle='#000'; ctx.lineWidth=1;
+    const step=24;
+    for(let i=0;i<=w;i+=step){ ctx.beginPath(); ctx.moveTo(x+i,y); ctx.lineTo(x+i,y+h); ctx.stroke(); }
+    for(let j=0;j<=h;j+=step){ ctx.beginPath(); ctx.moveTo(x,y+j); ctx.lineTo(x+w,y+j); ctx.stroke(); }
   }
 
-  function drawWindow(x,y,w,h){
-    ctx.fillStyle = '#666666';
-    ctx.fillRect(x,y,w,h);
-    ctx.strokeStyle = '#444444'; ctx.strokeRect(x,y,w,h);
-    ctx.strokeStyle = 'rgba(255,255,255,.2)';
-    ctx.beginPath();
-    ctx.moveTo(x+6,y+h/2); ctx.lineTo(x+w-6,y+h/2);
-    ctx.moveTo(x+w/2,y+6); ctx.lineTo(x+w/2,y+h-6);
-    ctx.stroke();
-  }
-
-  function drawPlayer(px, py){
-    // 그림자
-    ctx.fillStyle = 'rgba(255,255,255,.2)';
+  function drawPlayer(px,py){
+    // 그림자(화이트 톤)
+    ctx.fillStyle='rgba(255,255,255,.25)';
     ctx.beginPath(); ctx.ellipse(px, py+12, 10, 6, 0, 0, Math.PI*2); ctx.fill();
-    // 몸통
-    ctx.fillStyle = '#444444'; ctx.fillRect(px-10, py-14, 20, 18);
-    // 머리
-    ctx.fillStyle = '#bbbbbb'; ctx.fillRect(px-9, py-28, 18, 14);
-    // 다리
-    ctx.fillStyle = '#222222';
-    ctx.fillRect(px-9, py+4, 8, 12);
-    ctx.fillRect(px+1, py+4, 8, 12);
+    // 몸통/머리(모노톤)
+    ctx.fillStyle='#444'; ctx.fillRect(px-10, py-14, 20, 18);  // 몸통
+    ctx.fillStyle='#bbb'; ctx.fillRect(px-9,  py-28, 18, 14);  // 머리
+    ctx.fillStyle='#222'; ctx.fillRect(px-9,  py+4, 8, 12);    // 다리1
+    ctx.fillRect(px+1,      py+4, 8, 12);                     // 다리2
   }
 
-  requestAnimationFrame(loop);
+  // 안내 멘트
+  setTimeout(()=>{ 
+    if(scene===Scene.MAZE) {
+      say('미로를 위로 돌파해 들판으로 나가자. 문 앞에서 [E] 또는 대화 버튼.');
+    }
+  }, 600);
 })();
 </script>
 </body>
