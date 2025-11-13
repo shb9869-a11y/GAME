@@ -103,7 +103,7 @@
     white:'#ffffff',
     houseGrid:'#000000',
     reed:'#e8e8f5',
-    grayBuilding:'#666666'  // 회색 건물 색상
+    grayBuilding:'#666666'
   };
 
   // ---------- Game State ----------
@@ -114,13 +114,13 @@
   const COLS=25, ROWS=17;
   const SPEED=2.0;
 
-  const player={x:(Math.floor(COLS/2))*CELL+CELL/2, y:(ROWS-2)*CELL+CELL/2, r:8};
+  // 플레이어 시작 위치를 미로 중앙으로 조정
+  const player={x:(Math.floor(COLS/2))*CELL+CELL/2, y:(Math.floor(ROWS/2))*CELL+CELL/2, r:24}; // 크기 증가
 
   const field={w:2200,h:1600};
   const house={x:field.w/2-160,y:140,w:320,h:320};
   const door ={x:house.x+house.w/2-30,y:house.y+house.h-60,w:60,h:60};
   
-  // 회색 건물 (들판 상단에 배치)
   const grayBuilding={x:field.w/2-120,y:200,w:240,h:180};
   const grayDoor={x:grayBuilding.x+grayBuilding.w/2-25,y:grayBuilding.y+grayBuilding.h-40,w:50,h:40};
   
@@ -128,7 +128,7 @@
 
   // ---------- Maze generation (DFS) ----------
   const cells=Array.from({length:ROWS},(_,y)=>Array.from({length:COLS},(_,x)=>({x,y,v:false,w:[true,true,true,true]})));
-  const stack=[]; let cur=cells[ROWS-2][Math.floor(COLS/2)]; cur.v=true; stack.push(cur);
+  const stack=[]; let cur=cells[Math.floor(ROWS/2)][Math.floor(COLS/2)]; cur.v=true; stack.push(cur);
   const dir4=[[0,-1,0],[1,0,1],[0,1,2],[-1,0,3]];
   while(stack.length){
     const c=stack[stack.length-1];
@@ -200,16 +200,14 @@
     if(scene===Scene.MAZE){ say('위쪽 출구로 나가자.'); return; }
     if(scene!==Scene.FIELD) return;
     
-    // 하얀 집 상호작용
+    const p={x:player.x-15,y:player.y-20,w:30,h:40};
+    
     if(!inGrayBuilding){
-      const p={x:player.x-10,y:player.y-12,w:20,h:24};
       const nearHouse=hitRect(p,{x:door.x-8,y:door.y-8,w:door.w+16,h:door.h+16});
       if(!inHouse && nearHouse){ inHouse=true; say('집 안으로 들어왔다.'); return; }
       else if(inHouse){ inHouse=false; say('집 밖으로 나왔다.'); return; }
     }
     
-    // 회색 건물 상호작용
-    const p={x:player.x-10,y:player.y-12,w:20,h:24};
     const nearGray=hitRect(p,{x:grayDoor.x-8,y:grayDoor.y-8,w:grayDoor.w+16,h:grayDoor.h+16});
     if(!inGrayBuilding && nearGray){ inGrayBuilding=true; say('회색 건물에 들어왔다. 차가운 철골 냄새가 난다.'); }
     else if(inGrayBuilding){ inGrayBuilding=false; say('회색 건물에서 나왔다.'); }
@@ -275,6 +273,8 @@
       }
 
       graves.forEach(g=> drawGrave(g.x, g.y));
+      
+      // **플레이어를 미로에서 확실히 그리기**
       drawPlayer(player.x, player.y);
     }
 
@@ -298,14 +298,14 @@
         ctx.fillStyle='#000'; ctx.fillRect(door.x-ox, door.y-oy, door.w, door.h);
         ctx.strokeStyle='rgba(255,255,255,.65)'; ctx.strokeRect(door.x-ox, door.y-oy, door.w, door.h);
         
-        // 회색 건물 (상단)
+        // 회색 건물
         ctx.fillStyle=COL.grayBuilding; ctx.fillRect(grayBuilding.x-ox, grayBuilding.y-oy, grayBuilding.w, grayBuilding.h);
         ctx.fillStyle='#000'; ctx.fillRect(grayDoor.x-ox, grayDoor.y-oy, grayDoor.w, grayDoor.h);
         ctx.strokeStyle='rgba(255,255,255,.65)'; ctx.strokeRect(grayDoor.x-ox, grayDoor.y-oy, grayDoor.w, grayDoor.h);
 
+        // **플레이어를 들판에서 확실히 그리기**
         drawPlayer(player.x-ox, player.y-oy);
       }else if(inHouse){
-        // 실내
         const hx=house.x-ox, hy=house.y-oy;
         ctx.fillStyle='#111'; ctx.fillRect(0,0,vw,vh);
         ctx.fillStyle='#fff'; ctx.fillRect(hx,hy,house.w,house.h);
@@ -314,9 +314,10 @@
         for(let i=0;i<=house.w;i+=s){ctx.beginPath();ctx.moveTo(hx+i,hy);ctx.lineTo(hx+i,hy+house.h);ctx.stroke();}
         for(let j=0;j<=house.h;j+=s){ctx.beginPath();ctx.moveTo(hx,hy+j);ctx.lineTo(hx+house.w,hy+j);ctx.stroke();}
         ctx.fillStyle='#000'; ctx.fillRect(hx+house.w/2-30, hy+house.h-60, 60, 60);
+        
+        // **집 안에서 플레이어 그리기**
         drawPlayer(player.x-ox, player.y-oy);
       }else if(inGrayBuilding){
-        // 회색 건물 실내
         const hx=grayBuilding.x-ox, hy=grayBuilding.y-oy;
         ctx.fillStyle='#111'; ctx.fillRect(0,0,vw,vh);
         ctx.fillStyle='#666'; ctx.fillRect(hx,hy,grayBuilding.w,grayBuilding.h);
@@ -325,6 +326,8 @@
         for(let i=0;i<=grayBuilding.w;i+=s){ctx.beginPath();ctx.moveTo(hx+i,hy);ctx.lineTo(hx+i,hy+grayBuilding.h);ctx.stroke();}
         for(let j=0;j<=grayBuilding.h;j+=s){ctx.beginPath();ctx.moveTo(hx,hy+j);ctx.lineTo(hx+grayBuilding.w,hy+j);ctx.stroke();}
         ctx.fillStyle='#000'; ctx.fillRect(hx+grayBuilding.w/2-25, hy+grayBuilding.h-40, 50, 40);
+        
+        // **회색 건물 안에서 플레이어 그리기**
         drawPlayer(player.x-ox, player.y-oy);
       }
     }
@@ -332,16 +335,36 @@
     ctx.restore();
   }
 
-  // ---------- Pixel sprites ----------
+  // ---------- 플레이어 스프라이트를 3배 크기로 확대 ----------
   function drawPlayer(px,py){
-    ctx.fillStyle='rgba(0,0,0,.45)'; ctx.fillRect(px-9,py-15,18,1);
-    ctx.fillStyle='rgba(0,0,0,.35)';
-    ctx.beginPath(); ctx.ellipse(px, py+9, 9, 5, 0, 0, Math.PI*2); ctx.fill();
-    ctx.fillStyle='#ff7a00'; ctx.fillRect(px-8,py-14,16,16);
-    ctx.fillStyle='#ffa64d'; ctx.fillRect(px-8,py-14,16,6);
-    ctx.fillStyle='#331400'; ctx.fillRect(px-10,py-4,4,6); ctx.fillRect(px+6,py-4,4,6);
-    ctx.fillStyle='#351a00'; ctx.fillRect(px-7,py+2,6,10); ctx.fillRect(px+1,py+2,6,10);
-    ctx.strokeStyle='#000'; ctx.lineWidth=2; ctx.strokeRect(px-8,py-14,16,16);
+    // **디버그용 빨간 원으로 플레이어 위치 확실히 표시**
+    ctx.fillStyle = '#ff0000';
+    ctx.beginPath();
+    ctx.arc(px, py, 8, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 그림자 (크기 증가)
+    ctx.fillStyle = 'rgba(0,0,0,.35)';
+    ctx.beginPath();
+    ctx.ellipse(px, py + 20, 16, 8, 0, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // 본체 (주황색) - 3배 크기
+    ctx.fillStyle = '#ff7a00';
+    ctx.fillRect(px - 15, py - 30, 30, 30);
+    
+    // 상단 하이라이트
+    ctx.fillStyle = '#ffa64d';
+    ctx.fillRect(px - 15, py - 30, 30, 12);
+    
+    // 외곽선 (두께 증가)
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(px - 15, py - 30, 30, 30);
+    
+    // **중심점 표시**
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(px - 2, py - 2, 4, 4);
   }
 
   function drawGrave(cx,cy){
