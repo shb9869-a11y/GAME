@@ -9,10 +9,10 @@
 <style>
   :root{
     --fg:#fff; --mut:#cfcfe8;
-    --hud-pad: clamp(10px,2vmin,16px);
-    --btn: clamp(52px,10vmin,84px);
-    --gap: clamp(8px,1.6vmin,12px);
-    --radius: 16px;
+    --hud-pad: clamp(8px, 1.5vmin, 14px);
+    --btn: clamp(42px, 8vmin, 72px);
+    --gap: clamp(6px, 1.2vmin, 10px);
+    --radius: 14px;
   }
   *{box-sizing:border-box}
   html,body{height:100%;margin:0;background:#0a0a0f;color:var(--fg);
@@ -20,16 +20,34 @@
   body,button{-webkit-tap-highlight-color:transparent}
   *{-webkit-user-select:none;user-select:none}
 
+  /* Portrait orientation lock - rotate to landscape */
+  @media (orientation: portrait) {
+    .wrap {
+      transform: rotate(-90deg);
+      transform-origin: center center;
+      width: 100vh;
+      height: 100vw;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      translate: -50% -50%;
+      padding: 0 !important;
+    }
+    body {
+      overflow: hidden;
+    }
+  }
+
   /* Popup canvas */
   .wrap{position:fixed;inset:0;display:grid;place-items:center;padding:clamp(8px,3vmin,28px)}
-  .stage{position:relative;width:min(96vw,960px);aspect-ratio:16/9;background:#000;border-radius:18px;
+  .stage{position:relative;width:min(94vw,900px);max-height:94vh;aspect-ratio:16/9;background:#000;border-radius:18px;
     border:1.2px solid rgba(255,255,255,.28);box-shadow:0 24px 80px rgba(0,0,0,.75),0 0 0 1px rgba(255,255,255,.06) inset;overflow:hidden}
   canvas{display:block;width:100%;height:100%;touch-action:none}
 
   /* HUD anchored to popup */
   #hud{pointer-events:none}
   #hud,.corner{position:absolute;inset:0}
-  .corner{display:flex;padding:calc(env(safe-area-inset-bottom,0)+var(--hud-pad)) var(--hud-pad) var(--hud-pad) var(--hud-pad)}
+  .corner{display:flex;padding:calc(env(safe-area-inset-top,0) + var(--hud-pad)) var(--hud-pad) calc(env(safe-area-inset-bottom,0) + var(--hud-pad)) var(--hud-pad)}
   .bl{justify-content:flex-start;align-items:flex-end}
   .br{justify-content:flex-end;align-items:flex-end}
 
@@ -40,19 +58,19 @@
     background:rgba(255,255,255,.04);border:1.2px solid #fff;color:#fff;border-radius:var(--radius);transition:transform .05s,background .2s,color .2s}
   .btn:active{transform:scale(.96);background:#fff;color:#000}
   .btn .arrow{width:0;height:0;border-style:solid}
-  .btn[data-dir="up"] .arrow{border-width:0 12px 18px 12px;border-color:transparent transparent currentColor transparent}
-  .btn[data-dir="down"] .arrow{border-width:18px 12px 0 12px;border-color:currentColor transparent transparent transparent}
-  .btn[data-dir="left"] .arrow{border-width:12px 18px 12px 0;border-color:transparent currentColor transparent transparent}
-  .btn[data-dir="right"] .arrow{border-width:12px 0 12px 18px;border-color:transparent transparent transparent currentColor}
+  .btn[data-dir="up"] .arrow{border-width:0 10px 15px 10px;border-color:transparent transparent currentColor transparent}
+  .btn[data-dir="down"] .arrow{border-width:15px 10px 0 10px;border-color:currentColor transparent transparent transparent}
+  .btn[data-dir="left"] .arrow{border-width:10px 15px 10px 0;border-color:transparent currentColor transparent transparent}
+  .btn[data-dir="right"] .arrow{border-width:10px 0 10px 15px;border-color:transparent transparent transparent currentColor}
 
   .talk{pointer-events:auto;width:calc(var(--btn)*1.2);height:calc(var(--btn)*1.2);display:flex;align-items:center;justify-content:center;
     background:rgba(255,255,255,.04);border:1.2px solid #fff;border-radius:50%;transition:transform .05s,background .2s,color .2s}
   .talk:active{transform:scale(.96);background:#fff;color:#000}
   .talk svg{width:58%;height:58%;color:currentColor}
 
-  #dialog{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);max-width:min(720px,92%);
-    background:#000;border:1px solid rgba(255,255,255,.22);border-radius:14px;padding:12px 14px;font-size:clamp(12px,1.8vmin,16px);
-    line-height:1.45;display:none}
+  #dialog{position:absolute;left:50%;bottom:calc(env(safe-area-inset-bottom,0) + 12px);transform:translateX(-50%);max-width:min(680px,88%);
+    background:#000;border:1px solid rgba(255,255,255,.22);border-radius:14px;padding:12px 14px;font-size:clamp(12px,1.6vmin,15px);
+    line-height:1.45;display:none;pointer-events:none}
   #dialog strong{color:var(--mut)}
 </style>
 </head>
@@ -93,12 +111,12 @@
 
   // ---------- Palette ----------
   const COL = {
-    bg:'#1e1733',      // 보라 바닥
-    dot:'#3b2f63',     // 바닥 점
-    wall:'#0a0814',    // 검은 벽
-    outline:'#000000', // 외곽 라인
-    grave:'#2a2148',   // 무덤 몸통
-    graveHL:'#6d59c7', // 무덤 하이라이트
+    bg:'#1e1733',
+    dot:'#3b2f63',
+    wall:'#0a0814',
+    outline:'#000000',
+    grave:'#2a2148',
+    graveHL:'#6d59c7',
     white:'#ffffff',
     houseGrid:'#000000',
     reed:'#e8e8f5'
@@ -108,14 +126,12 @@
   const Scene={MAZE:0,FIELD:1,HOUSE:2};
   let scene=Scene.MAZE, inHouse=false;
 
-  const CELL=32, WALL=6;         // 미로 셀/벽 두께
-  const COLS=25, ROWS=17;        // 16:9 비율에 맞춤
-  const SPEED=2.0;               // 이동 속도
+  const CELL=32, WALL=6;
+  const COLS=25, ROWS=17;
+  const SPEED=2.0;
 
-  // Player (빨간/주황 픽셀)
   const player={x:(Math.floor(COLS/2))*CELL+CELL/2, y:(ROWS-2)*CELL+CELL/2, r:8};
 
-  // Field & House
   const field={w:2200,h:1600};
   const house={x:field.w/2-160,y:140,w:320,h:320};
   const door ={x:house.x+house.w/2-30,y:house.y+house.h-60,w:60,h:60};
@@ -135,16 +151,14 @@
       c.w[n.i]=false; nx.w[(n.i+2)%4]=false; nx.v=true; stack.push(nx);
     }else stack.pop();
   }
-  // 최상단 중앙 출구 개방
   const exitX=Math.floor(COLS/2);
   cells[0][exitX].w[0]=false; if(cells[1]) cells[1][exitX].w[0]=false;
 
-  // 미로 안에 '무덤' 장식 좌표(막힌 셀에 희박하게 배치)
   const graves=[];
   for(let y=1;y<ROWS-1;y++){
     for(let x=1;x<COLS-1;x++){
       const c=cells[y][x];
-      const deadEnd = c.w.filter(Boolean).length===3; // 막다른길
+      const deadEnd = c.w.filter(Boolean).length===3;
       if(deadEnd && Math.random()<0.45){
         graves.push({x:x*CELL+CELL/2, y:y*CELL+CELL/2});
       }
@@ -152,7 +166,7 @@
   }
 
   // ---------- Input ----------
-  const keys={up:false,down:false,left:false,right:false};
+  const keys={up:false,down:false,left:false,false};
   const mapKey={ArrowUp:'up',KeyW:'up',ArrowDown:'down',KeyS:'down',ArrowLeft:'left',KeyA:'left',ArrowRight:'right',KeyD:'right'};
   addEventListener('keydown',e=>{const d=mapKey[e.code]; if(d){keys[d]=true;e.preventDefault()} if(e.code==='KeyE') interact()},{passive:false});
   addEventListener('keyup',e=>{const d=mapKey[e.code]; if(d){keys[d]=false;e.preventDefault()}},{passive:false});
@@ -179,19 +193,15 @@
   function hitRect(a,b){return a.x<b.x+b.w && a.x+a.w>b.x && a.y<b.y+b.h && a.y+a.h>b.y}
 
   function stepMaze(nx,ny){
-    // 간단한 벽 충돌(셀 중심 기준)
     const cx=Math.floor(player.x/CELL), cy=Math.floor(player.y/CELL);
-    // 좌우
     if(nx<player.x && cells[cy][cx].w[3]) nx=player.x;
     if(nx>player.x && cells[cy][cx].w[1]) nx=player.x;
-    // 상하
     if(ny<player.y && cells[cy][cx].w[0]) ny=player.y;
     if(ny>player.y && cells[cy][cx].w[2]) ny=player.y;
 
     player.x=Math.max(CELL+player.r, Math.min(CELL*(COLS-1)-player.r, nx));
     player.y=Math.max(CELL+player.r, Math.min(CELL*(ROWS-1)-player.r, ny));
 
-    // 최상단 출구 통과 → 들판
     if(player.y < CELL && !cells[0][Math.floor(player.x/CELL)].w[0]){
       scene=Scene.FIELD; player.x=field.w/2; player.y=field.h-140; say('들판이다. 줄 맞춘 갈대가 흔들린다…',2600);
     }
@@ -226,7 +236,6 @@
         cam.x=Math.max(0,Math.min(field.w-vw,player.x-vw/2));
         cam.y=Math.max(0,Math.min(field.h-vh,player.y-vh/2));
       }else{
-        // 방 내부 제한 & 카메라 고정
         player.x=Math.max(house.x+30,Math.min(house.x+house.w-30,player.x+(ax/len)*v));
         player.y=Math.max(house.y+40,Math.min(house.y+house.h-40,player.y+(ay/len)*v));
         cam.x=house.x; cam.y=house.y;
@@ -244,16 +253,13 @@
     ctx.clearRect(0,0,vw,vh);
 
     if(scene===Scene.MAZE){
-      // 보라 바닥 + 도트
       ctx.fillStyle=COL.bg; ctx.fillRect(0,0,vw,vh);
       ctx.fillStyle=COL.dot;
       for(let i=0;i<800;i++){ const x=(i*37)% (COLS*CELL), y=(i*89)% (ROWS*CELL); ctx.fillRect(x, y, 2, 2); }
 
-      // 외곽 프레임
       ctx.strokeStyle=COL.outline; ctx.lineWidth=4;
       ctx.strokeRect(4,4,COLS*CELL-8,ROWS*CELL-8);
 
-      // 미로 벽(검은 선)
       ctx.strokeStyle=COL.wall; ctx.lineWidth=WALL; ctx.lineCap='square';
       for(let y=0;y<ROWS;y++){
         for(let x=0;x<COLS;x++){
@@ -265,20 +271,15 @@
         }
       }
 
-      // 무덤 픽셀 스프라이트(장식) — 길 위에 드문드문
       graves.forEach(g=> drawGrave(g.x, g.y));
-
-      // 플레이어
       drawPlayer(player.x, player.y);
     }
 
     if(scene===Scene.FIELD){
       const ox=cam.x, oy=cam.y;
-      // 어두운 바탕
       ctx.fillStyle='#120f20'; ctx.fillRect(0,0,vw,vh);
 
       if(!inHouse){
-        // 줄 맞춘 갈대
         ctx.strokeStyle=COL.reed; ctx.lineWidth=1;
         const spacing=60, margin=80;
         for(let gy=margin;gy<field.h-margin;gy+=spacing){
@@ -288,15 +289,12 @@
             ctx.beginPath(); ctx.moveTo(x,y-16); ctx.lineTo(x+6,y-24); ctx.lineTo(x-6,y-24); ctx.closePath(); ctx.stroke();
           }
         }
-        // 하얀 사각형 집(격자)
         drawGridHouse(house.x-ox, house.y-oy, house.w, house.h);
-        // 문
         ctx.fillStyle='#000'; ctx.fillRect(door.x-ox, door.y-oy, door.w, door.h);
         ctx.strokeStyle='rgba(255,255,255,.65)'; ctx.strokeRect(door.x-ox, door.y-oy, door.w, door.h);
 
         drawPlayer(player.x-ox, player.y-oy);
       }else{
-        // 실내 격자 바닥
         const hx=house.x-ox, hy=house.y-oy;
         ctx.fillStyle='#111'; ctx.fillRect(0,0,vw,vh);
         ctx.fillStyle='#fff'; ctx.fillRect(hx,hy,house.w,house.h);
@@ -314,28 +312,21 @@
 
   // ---------- Pixel sprites ----------
   function drawPlayer(px,py){
-    // 검은 외곽선 느낌
     ctx.fillStyle='rgba(0,0,0,.45)'; ctx.fillRect(px-9,py-15,18,1);
-    // 그림자
     ctx.fillStyle='rgba(0,0,0,.35)';
     ctx.beginPath(); ctx.ellipse(px, py+9, 9, 5, 0, 0, Math.PI*2); ctx.fill();
-    // 본체(주황)
     ctx.fillStyle='#ff7a00'; ctx.fillRect(px-8,py-14,16,16);
-    ctx.fillStyle='#ffa64d'; ctx.fillRect(px-8,py-14,16,6);     // 상단 하이라이트
-    // 팔 테두리
+    ctx.fillStyle='#ffa64d'; ctx.fillRect(px-8,py-14,16,6);
     ctx.fillStyle='#331400'; ctx.fillRect(px-10,py-4,4,6); ctx.fillRect(px+6,py-4,4,6);
-    // 다리
     ctx.fillStyle='#351a00'; ctx.fillRect(px-7,py+2,6,10); ctx.fillRect(px+1,py+2,6,10);
-    // 두툼한 검은 아웃라인
     ctx.strokeStyle='#000'; ctx.lineWidth=2; ctx.strokeRect(px-8,py-14,16,16);
   }
 
   function drawGrave(cx,cy){
     const x=cx-10, y=cy-12;
     ctx.fillStyle=COL.grave; ctx.fillRect(x,y,20,16);
-    ctx.fillStyle='#000'; ctx.fillRect(x+2,y+14,16,4); // 그림자
-    ctx.fillStyle=COL.graveHL; ctx.fillRect(x+3,y+3,6,4); // 하이라이트 픽셀
-    // 외곽선
+    ctx.fillStyle='#000'; ctx.fillRect(x+2,y+14,16,4);
+    ctx.fillStyle=COL.graveHL; ctx.fillRect(x+3,y+3,6,4);
     ctx.strokeStyle='#000'; ctx.lineWidth=2; ctx.strokeRect(x,y,20,16);
   }
 
@@ -347,7 +338,6 @@
     for(let j=0;j<=h;j+=s){ctx.beginPath();ctx.moveTo(x,y+j);ctx.lineTo(x+w,y+j);ctx.stroke();}
   }
 
-  // 안내 멘트
   setTimeout(()=>{ if(scene===Scene.MAZE) say('보라색 미로를 위로 통과하세요. 문 앞에서 [E] 또는 말풍선 버튼.'); }, 600);
 })();
 </script>
