@@ -3,16 +3,16 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no,interactive-widget=resizes-content"/>
-<title>Pixel Maze → Field → House</title>
+<title>Pixel Maze — Landscape Only</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#000000">
 <style>
   :root{
     --fg:#fff; --mut:#cfcfe8;
-    --hud-pad: clamp(8px, 1.5vmin, 14px);
-    --btn: clamp(42px, 8vmin, 72px);
-    --gap: clamp(6px, 1.2vmin, 10px);
-    --radius: 14px;
+    --hud-pad: 16px;            /* JS에서 스테이지 크기에 맞춰 btn 크기만 동적으로 조절 */
+    --btnPx: 72px;              /* JS로 업데이트됨 (짧은 변의 18%) */
+    --gap: 10px;
+    --radius: 16px;
   }
   *{box-sizing:border-box}
   html,body{height:100%;margin:0;background:#0a0a0f;color:var(--fg);
@@ -20,65 +20,90 @@
   body,button{-webkit-tap-highlight-color:transparent}
   *{-webkit-user-select:none;user-select:none}
 
-  /* Portrait orientation lock - rotate to landscape */
-  @media (orientation: portrait) {
-    .wrap {
-      transform: rotate(-90deg);
-      transform-origin: center center;
-      width: 100vh;
-      height: 100vw;
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      translate: -50% -50%;
-      padding: 0 !important;
-    }
-    body {
-      overflow: hidden;
-    }
+  /* ===== Rotate Guard (Landscape only) ===== */
+  .guard{
+    position:fixed; inset:0; display:none; place-items:center; background:#000; color:#fff; z-index:9999;
   }
+  .guard.show{ display:grid; }
+  .guard .box{ text-align:center; max-width:80ch; padding:24px; border:1px solid rgba(255,255,255,.15); border-radius:16px; background:rgba(255,255,255,.03) }
+  .guard h2{ margin:0 0 8px; font-size:18px }
+  .guard p{ margin:0; opacity:.8; font-size:14px }
 
-  /* Popup canvas */
-  .wrap{position:fixed;inset:0;display:grid;place-items:center;padding:clamp(8px,3vmin,28px)}
-  .stage{position:relative;width:min(94vw,900px);max-height:94vh;aspect-ratio:16/9;background:#000;border-radius:18px;
-    border:1.2px solid rgba(255,255,255,.28);box-shadow:0 24px 80px rgba(0,0,0,.75),0 0 0 1px rgba(255,255,255,.06) inset;overflow:hidden}
-  canvas{display:block;width:100%;height:100%;touch-action:none}
+  /* ===== Popup stage ===== */
+  .wrap{position:fixed; inset:0; display:grid; place-items:center; padding:clamp(8px,3vmin,28px)}
+  .stage{
+    position:relative;
+    width:min(96vw, 1200px);
+    aspect-ratio:16/9;
+    background:#000; border-radius:18px;
+    border:1.2px solid rgba(255,255,255,.28);
+    box-shadow:0 24px 80px rgba(0,0,0,.75), 0 0 0 1px rgba(255,255,255,.06) inset;
+    overflow:hidden;
+  }
+  canvas{display:block; width:100%; height:100%; touch-action:none}
 
-  /* HUD anchored to popup */
+  /* ===== HUD anchored to popup ===== */
   #hud{pointer-events:none}
-  #hud,.corner{position:absolute;inset:0}
-  .corner{display:flex;padding:calc(env(safe-area-inset-top,0) + var(--hud-pad)) var(--hud-pad) calc(env(safe-area-inset-bottom,0) + var(--hud-pad)) var(--hud-pad)}
-  .bl{justify-content:flex-start;align-items:flex-end}
-  .br{justify-content:flex-end;align-items:flex-end}
+  #hud,.corner{position:absolute; inset:0}
+  .corner{
+    display:flex;
+    padding: calc(env(safe-area-inset-bottom,0) + var(--hud-pad)) var(--hud-pad) var(--hud-pad) var(--hud-pad);
+  }
+  .bl{justify-content:flex-start; align-items:flex-end}
+  .br{justify-content:flex-end; align-items:flex-end}
 
-  .dpad{pointer-events:auto;position:relative;width:calc(var(--btn)*3);height:calc(var(--btn)*3);
-    display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:var(--gap)}
+  .dpad{
+    pointer-events:auto; position:relative;
+    width: calc(var(--btnPx) * 3 + var(--gap) * 2);
+    height: calc(var(--btnPx) * 3 + var(--gap) * 2);
+    display:grid; grid-template-columns: repeat(3,1fr); grid-template-rows: repeat(3,1fr);
+    gap: var(--gap);
+  }
   .dpad .spacer{opacity:0}
-  .btn{pointer-events:auto;display:flex;align-items:center;justify-content:center;width:var(--btn);height:var(--btn);
-    background:rgba(255,255,255,.04);border:1.2px solid #fff;color:#fff;border-radius:var(--radius);transition:transform .05s,background .2s,color .2s}
-  .btn:active{transform:scale(.96);background:#fff;color:#000}
-  .btn .arrow{width:0;height:0;border-style:solid}
-  .btn[data-dir="up"] .arrow{border-width:0 10px 15px 10px;border-color:transparent transparent currentColor transparent}
-  .btn[data-dir="down"] .arrow{border-width:15px 10px 0 10px;border-color:currentColor transparent transparent transparent}
-  .btn[data-dir="left"] .arrow{border-width:10px 15px 10px 0;border-color:transparent currentColor transparent transparent}
-  .btn[data-dir="right"] .arrow{border-width:10px 0 10px 15px;border-color:transparent transparent transparent currentColor}
 
-  .talk{pointer-events:auto;width:calc(var(--btn)*1.2);height:calc(var(--btn)*1.2);display:flex;align-items:center;justify-content:center;
-    background:rgba(255,255,255,.04);border:1.2px solid #fff;border-radius:50%;transition:transform .05s,background .2s,color .2s}
-  .talk:active{transform:scale(.96);background:#fff;color:#000}
-  .talk svg{width:58%;height:58%;color:currentColor}
+  .btn{
+    pointer-events:auto; display:flex; align-items:center; justify-content:center;
+    width: var(--btnPx); height: var(--btnPx);
+    background: rgba(255,255,255,.04); border:1.2px solid #fff; color:#fff; border-radius: var(--radius);
+    transition: transform .05s, background .2s, color .2s;
+  }
+  .btn:active{ transform:scale(.96); background:#fff; color:#000 }
+  .btn .arrow{ width:0; height:0; border-style:solid }
+  .btn[data-dir="up"]    .arrow{ border-width:0 12px 18px 12px;  border-color:transparent transparent currentColor transparent }
+  .btn[data-dir="down"]  .arrow{ border-width:18px 12px 0 12px;  border-color:currentColor transparent transparent transparent }
+  .btn[data-dir="left"]  .arrow{ border-width:12px 18px 12px 0;   border-color:transparent currentColor transparent transparent }
+  .btn[data-dir="right"] .arrow{ border-width:12px 0 12px 18px;   border-color:transparent transparent transparent currentColor }
 
-  #dialog{position:absolute;left:50%;bottom:calc(env(safe-area-inset-bottom,0) + 12px);transform:translateX(-50%);max-width:min(680px,88%);
-    background:#000;border:1px solid rgba(255,255,255,.22);border-radius:14px;padding:12px 14px;font-size:clamp(12px,1.6vmin,15px);
-    line-height:1.45;display:none;pointer-events:none}
-  #dialog strong{color:var(--mut)}
+  .talk{
+    pointer-events:auto; width: calc(var(--btnPx) * 1.2); height: calc(var(--btnPx) * 1.2);
+    display:flex; align-items:center; justify-content:center;
+    background: rgba(255,255,255,.04); border:1.2px solid #fff; border-radius:50%;
+    transition: transform .05s, background .2s, color .2s;
+  }
+  .talk:active{ transform:scale(.96); background:#fff; color:#000 }
+  .talk svg{ width:58%; height:58%; color:currentColor }
+
+  #dialog{
+    position:absolute; left:50%; bottom:12px; transform:translateX(-50%);
+    max-width:min(720px,92%); background:#000; border:1px solid rgba(255,255,255,.22);
+    border-radius:14px; padding:12px 14px; line-height:1.45; font-size:clamp(12px,1.8vmin,16px);
+    display:none
+  }
+  #dialog strong{ color:var(--mut) }
 </style>
 </head>
 <body>
+<!-- Rotate guard -->
+<div id="guard" class="guard"><div class="box">
+  <h2>가로 모드로 돌려주세요</h2>
+  <p>이 콘텐츠는 가로모드만 지원합니다. 기기를 회전하면 자동으로 시작합니다.</p>
+</div></div>
+
 <div class="wrap">
-  <div class="stage">
+  <div id="stage" class="stage">
     <canvas id="game"></canvas>
 
+    <!-- HUD -->
     <div id="hud" aria-hidden="true">
       <div class="corner bl">
         <div class="dpad" id="dpad" role="group" aria-label="방향 패드">
@@ -102,27 +127,37 @@
 
 <script>
 (()=>{
-  // ---------- Canvas ----------
-  const canvas=document.getElementById('game');
-  const ctx=canvas.getContext('2d');
-  const DPR=Math.max(1,Math.min(2,window.devicePixelRatio||1));
-  function fit(){const r=canvas.getBoundingClientRect();canvas.width=Math.floor(r.width*DPR);canvas.height=Math.floor(r.height*DPR)}
-  addEventListener('resize',fit,{passive:true}); fit();
+  // ===== Orientation guard =====
+  const guard = document.getElementById('guard');
+  const stage = document.getElementById('stage');
+  const prefersLandscape = () => window.innerWidth >= window.innerHeight;
+  function applyOrientationUI(){
+    const landscape = prefersLandscape();
+    guard.classList.toggle('show', !landscape);
+    stage.style.visibility = landscape ? 'visible' : 'hidden';
+  }
+  addEventListener('resize', applyOrientationUI, {passive:true});
+  applyOrientationUI();
 
-  // ---------- Palette ----------
-  const COL = {
-    bg:'#1e1733',
-    dot:'#3b2f63',
-    wall:'#0a0814',
-    outline:'#000000',
-    grave:'#2a2148',
-    graveHL:'#6d59c7',
-    white:'#ffffff',
-    houseGrid:'#000000',
-    reed:'#e8e8f5'
-  };
+  // ===== Canvas / DPR sizing inside popup =====
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const DPR = Math.max(1, Math.min(2, window.devicePixelRatio||1));
+  function fitCanvas(){
+    const r = stage.getBoundingClientRect();
+    // 버튼 크기 = 스테이지 짧은 변의 18% (최소 48, 최대 110)
+    const short = Math.min(r.width, r.height);
+    const btn = Math.max(48, Math.min(110, Math.floor(short * 0.18)));
+    document.documentElement.style.setProperty('--btnPx', btn + 'px');
 
-  // ---------- Game State ----------
+    canvas.width  = Math.floor(r.width  * DPR);
+    canvas.height = Math.floor(r.height * DPR);
+  }
+  addEventListener('resize', fitCanvas, {passive:true});
+  fitCanvas();
+
+  // ======= (아래는 이전 게임 로직: 미로 → 들판 → 집) =======
+  const COL = { bg:'#1e1733', dot:'#3b2f63', wall:'#0a0814', outline:'#000', grave:'#2a2148', graveHL:'#6d59c7', white:'#fff', houseGrid:'#000', reed:'#e8e8f5' };
   const Scene={MAZE:0,FIELD:1,HOUSE:2};
   let scene=Scene.MAZE, inHouse=false;
 
@@ -137,7 +172,7 @@
   const door ={x:house.x+house.w/2-30,y:house.y+house.h-60,w:60,h:60};
   let cam={x:0,y:0};
 
-  // ---------- Maze generation (DFS) ----------
+  // --- Maze gen (DFS) ---
   const cells=Array.from({length:ROWS},(_,y)=>Array.from({length:COLS},(_,x)=>({x,y,v:false,w:[true,true,true,true]})));
   const stack=[]; let cur=cells[ROWS-2][Math.floor(COLS/2)]; cur.v=true; stack.push(cur);
   const dir4=[[0,-1,0],[1,0,1],[0,1,2],[-1,0,3]];
@@ -159,14 +194,12 @@
     for(let x=1;x<COLS-1;x++){
       const c=cells[y][x];
       const deadEnd = c.w.filter(Boolean).length===3;
-      if(deadEnd && Math.random()<0.45){
-        graves.push({x:x*CELL+CELL/2, y:y*CELL+CELL/2});
-      }
+      if(deadEnd && Math.random()<0.45){ graves.push({x:x*CELL+CELL/2, y:y*CELL+CELL/2}); }
     }
   }
 
-  // ---------- Input ----------
-  const keys={up:false,down:false,left:false,false};
+  // --- Input ---
+  const keys={up:false,down:false,left:false,right:false};
   const mapKey={ArrowUp:'up',KeyW:'up',ArrowDown:'down',KeyS:'down',ArrowLeft:'left',KeyA:'left',ArrowRight:'right',KeyD:'right'};
   addEventListener('keydown',e=>{const d=mapKey[e.code]; if(d){keys[d]=true;e.preventDefault()} if(e.code==='KeyE') interact()},{passive:false});
   addEventListener('keyup',e=>{const d=mapKey[e.code]; if(d){keys[d]=false;e.preventDefault()}},{passive:false});
@@ -183,13 +216,13 @@
   });
   document.getElementById('talkBtn').addEventListener('click', interact);
 
-  // ---------- Dialog ----------
+  // --- Dialog ---
   const dialog=document.getElementById('dialog'); let dTimer=0;
   function say(t,ms=2300){dialog.textContent=''; const who=document.createElement('strong'); who.textContent='VOICE';
     dialog.appendChild(who); dialog.append(' · '+t); dialog.style.display='block';
     clearTimeout(dTimer); dTimer=setTimeout(()=>dialog.style.display='none',ms); }
 
-  // ---------- Helpers ----------
+  // --- Helpers ---
   function hitRect(a,b){return a.x<b.x+b.w && a.x+a.w>b.x && a.y<b.y+b.h && a.y+a.h>b.y}
 
   function stepMaze(nx,ny){
@@ -216,7 +249,7 @@
     else if(inHouse){ inHouse=false; say('집 밖으로 나왔다.'); }
   }
 
-  // ---------- Loop ----------
+  // --- Loop ---
   let last=0;
   requestAnimationFrame(function loop(ts){
     const dt=(ts-last)||16; last=ts;
@@ -225,9 +258,10 @@
     const len=Math.hypot(ax,ay)||1;
     const v=SPEED*(dt/16)*2.0;
 
+    if(guard.classList.contains('show')){ requestAnimationFrame(loop); return; } // 세로모드일 때 렌더 스킵
+
     if(scene===Scene.MAZE){
-      const nx=player.x+(ax/len)*v, ny=player.y+(ay/len)*v;
-      stepMaze(nx,ny);
+      stepMaze(player.x+(ax/len)*v, player.y+(ay/len)*v);
     }else if(scene===Scene.FIELD){
       if(!inHouse){
         player.x=Math.max(20,Math.min(field.w-20,player.x+(ax/len)*v*1.2));
@@ -246,31 +280,24 @@
     requestAnimationFrame(loop);
   });
 
-  // ---------- Render ----------
+  // --- Render ---
   function render(){
     const vw=canvas.width/DPR, vh=canvas.height/DPR;
     ctx.save(); ctx.scale(DPR,DPR);
     ctx.clearRect(0,0,vw,vh);
 
     if(scene===Scene.MAZE){
-      ctx.fillStyle=COL.bg; ctx.fillRect(0,0,vw,vh);
-      ctx.fillStyle=COL.dot;
-      for(let i=0;i<800;i++){ const x=(i*37)% (COLS*CELL), y=(i*89)% (ROWS*CELL); ctx.fillRect(x, y, 2, 2); }
+      ctx.fillStyle='#1e1733'; ctx.fillRect(0,0,vw,vh);
+      ctx.fillStyle='#3b2f63'; for(let i=0;i<800;i++){ const x=(i*37)%(COLS*CELL), y=(i*89)%(ROWS*CELL); ctx.fillRect(x,y,2,2); }
+      ctx.strokeStyle='#000'; ctx.lineWidth=4; ctx.strokeRect(4,4,COLS*CELL-8,ROWS*CELL-8);
 
-      ctx.strokeStyle=COL.outline; ctx.lineWidth=4;
-      ctx.strokeRect(4,4,COLS*CELL-8,ROWS*CELL-8);
-
-      ctx.strokeStyle=COL.wall; ctx.lineWidth=WALL; ctx.lineCap='square';
-      for(let y=0;y<ROWS;y++){
-        for(let x=0;x<COLS;x++){
-          const c=cells[y][x], sx=x*CELL, sy=y*CELL;
-          if(c.w[0]){ctx.beginPath();ctx.moveTo(sx,sy);ctx.lineTo(sx+CELL,sy);ctx.stroke();}
-          if(c.w[1]){ctx.beginPath();ctx.moveTo(sx+CELL,sy);ctx.lineTo(sx+CELL,sy+CELL);ctx.stroke();}
-          if(c.w[2]){ctx.beginPath();ctx.moveTo(sx,sy+CELL);ctx.lineTo(sx+CELL,sy+CELL);ctx.stroke();}
-          if(c.w[3]){ctx.beginPath();ctx.moveTo(sx,sy);ctx.lineTo(sx,sy+CELL);ctx.stroke();}
-        }
-      }
-
+      ctx.strokeStyle='#0a0814'; ctx.lineWidth=WALL; ctx.lineCap='square';
+      for(let y=0;y<ROWS;y++){ for(let x=0;x<COLS;x++){ const c=cells[y][x], sx=x*CELL, sy=y*CELL;
+        if(c.w[0]){ctx.beginPath();ctx.moveTo(sx,sy);ctx.lineTo(sx+CELL,sy);ctx.stroke();}
+        if(c.w[1]){ctx.beginPath();ctx.moveTo(sx+CELL,sy);ctx.lineTo(sx+CELL,sy+CELL);ctx.stroke();}
+        if(c.w[2]){ctx.beginPath();ctx.moveTo(sx,sy+CELL);ctx.lineTo(sx+CELL,sy+CELL);ctx.stroke();}
+        if(c.w[3]){ctx.beginPath();ctx.moveTo(sx,sy);ctx.lineTo(sx,sy+CELL);ctx.stroke();}
+      }}      
       graves.forEach(g=> drawGrave(g.x, g.y));
       drawPlayer(player.x, player.y);
     }
@@ -280,7 +307,7 @@
       ctx.fillStyle='#120f20'; ctx.fillRect(0,0,vw,vh);
 
       if(!inHouse){
-        ctx.strokeStyle=COL.reed; ctx.lineWidth=1;
+        ctx.strokeStyle='#e8e8f5'; ctx.lineWidth=1;
         const spacing=60, margin=80;
         for(let gy=margin;gy<field.h-margin;gy+=spacing){
           for(let gx=margin;gx<field.w-margin;gx+=spacing){
@@ -292,7 +319,6 @@
         drawGridHouse(house.x-ox, house.y-oy, house.w, house.h);
         ctx.fillStyle='#000'; ctx.fillRect(door.x-ox, door.y-oy, door.w, door.h);
         ctx.strokeStyle='rgba(255,255,255,.65)'; ctx.strokeRect(door.x-ox, door.y-oy, door.w, door.h);
-
         drawPlayer(player.x-ox, player.y-oy);
       }else{
         const hx=house.x-ox, hy=house.y-oy;
@@ -310,35 +336,32 @@
     ctx.restore();
   }
 
-  // ---------- Pixel sprites ----------
+  // --- Sprites ---
   function drawPlayer(px,py){
-    ctx.fillStyle='rgba(0,0,0,.45)'; ctx.fillRect(px-9,py-15,18,1);
-    ctx.fillStyle='rgba(0,0,0,.35)';
-    ctx.beginPath(); ctx.ellipse(px, py+9, 9, 5, 0, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle='rgba(0,0,0,.35)'; ctx.beginPath(); ctx.ellipse(px, py+9, 9, 5, 0, 0, Math.PI*2); ctx.fill();
     ctx.fillStyle='#ff7a00'; ctx.fillRect(px-8,py-14,16,16);
     ctx.fillStyle='#ffa64d'; ctx.fillRect(px-8,py-14,16,6);
     ctx.fillStyle='#331400'; ctx.fillRect(px-10,py-4,4,6); ctx.fillRect(px+6,py-4,4,6);
     ctx.fillStyle='#351a00'; ctx.fillRect(px-7,py+2,6,10); ctx.fillRect(px+1,py+2,6,10);
     ctx.strokeStyle='#000'; ctx.lineWidth=2; ctx.strokeRect(px-8,py-14,16,16);
   }
-
   function drawGrave(cx,cy){
     const x=cx-10, y=cy-12;
-    ctx.fillStyle=COL.grave; ctx.fillRect(x,y,20,16);
+    ctx.fillStyle='#2a2148'; ctx.fillRect(x,y,20,16);
     ctx.fillStyle='#000'; ctx.fillRect(x+2,y+14,16,4);
-    ctx.fillStyle=COL.graveHL; ctx.fillRect(x+3,y+3,6,4);
+    ctx.fillStyle='#6d59c7'; ctx.fillRect(x+3,y+3,6,4);
     ctx.strokeStyle='#000'; ctx.lineWidth=2; ctx.strokeRect(x,y,20,16);
   }
-
   function drawGridHouse(x,y,w,h){
-    ctx.fillStyle=COL.white; ctx.fillRect(x,y,w,h);
-    ctx.strokeStyle=COL.houseGrid; ctx.lineWidth=1;
+    ctx.fillStyle='#fff'; ctx.fillRect(x,y,w,h);
+    ctx.strokeStyle:'#000'; ctx.lineWidth=1;
     const s=24;
     for(let i=0;i<=w;i+=s){ctx.beginPath();ctx.moveTo(x+i,y);ctx.lineTo(x+i,y+h);ctx.stroke();}
     for(let j=0;j<=h;j+=s){ctx.beginPath();ctx.moveTo(x,y+j);ctx.lineTo(x+w,y+j);ctx.stroke();}
   }
 
-  setTimeout(()=>{ if(scene===Scene.MAZE) say('보라색 미로를 위로 통과하세요. 문 앞에서 [E] 또는 말풍선 버튼.'); }, 600);
+  // 안내 멘트
+  setTimeout(()=>{ if(scene===Scene.MAZE) say('가로모드 전용 · 위쪽 출구로 이동하세요. 문 앞에서 [E] 또는 말풍선 버튼.'); }, 600);
 })();
 </script>
 </body>
