@@ -168,69 +168,61 @@
     border:4px solid #000;
   }
 
-  /* =============== 나무 / 바위 / 울타리 =============== */
-
-  .tree{
-    position:absolute;
-    width:40px;
-    height:70px;
-  }
-  .tree-trunk{
-    position:absolute;
-    left:50%;
-    bottom:0;
-    width:8px;
-    height:24px;
-    transform:translateX(-50%);
-    background:#555;
-    border-radius:4px;
-    border:2px solid #000;
-  }
-  .tree-top{
-    position:absolute;
-    left:50%;
-    bottom:18px;
-    width:34px;
-    height:26px;
-    transform:translateX(-50%);
-  }
-  .tree-top span{
-    position:absolute;
-    width:24px;
-    height:24px;
-    border-radius:50%;
-    background:#e3e3e3;
-    border:3px solid #000;
-  }
-  .tree-top .t1{ left:-4px; top:-2px; }
-  .tree-top .t2{ left:10px; top:4px; }
-  .tree-top .t3{ left:-2px; top:12px; }
+  /* =============== 바위 / 덤불 / 울타리 =============== */
 
   .rock{
     position:absolute;
-    width:42px;
-    height:28px;
-    background:#dedede;
+    width:46px;
+    height:30px;
+    background:linear-gradient(to bottom,#f2f2f2 0 40%, #b9b9b9 40% 100%);
     border-radius:18px;
     border:3px solid #000;
-    box-shadow:0 4px 0 rgba(0,0,0,0.35);
+    box-shadow:0 5px 0 rgba(0,0,0,0.35);
+  }
+  .rock::after{
+    content:'';
+    position:absolute;
+    left:5px;
+    top:4px;
+    width:18px;
+    height:10px;
+    border-radius:50%;
+    border:2px solid rgba(255,255,255,0.6);
+    opacity:0.5;
   }
 
   .bush{
     position:absolute;
-    width:64px;
-    height:34px;
-    background:#e0e0e0;
-    border-radius:22px;
+    width:70px;
+    height:36px;
+    background:#e6e6e6;
+    border-radius:24px;
     border:3px solid #000;
     box-shadow:0 4px 0 rgba(0,0,0,0.35);
+  }
+  .bush::after{
+    content:'';
+    position:absolute;
+    left:8px;
+    right:8px;
+    top:8px;
+    height:16px;
+    border-radius:18px;
+    border:2px solid rgba(0,0,0,0.3);
   }
 
   .fence{
     position:absolute;
-    height:15px;
-    background:#fefefe;
+    height:18px;
+    background:
+      repeating-linear-gradient(
+        to right,
+        #000 0 4px,
+        #000 4px 6px,
+        transparent 6px 20px
+      );
     border:3px solid #000;
+    background-color:#fefefe;
   }
 
   /* =============== SCENE 2: 붉은 비석 + 선베드 =============== */
@@ -242,28 +234,52 @@
     width:90px;
     height:220px;
     transform:translate(-50%,-50%);
-    background:linear-gradient(to bottom,#5c4f46 0 55%, #c00000 55% 100%);
-    border-radius:46px 46px 30px 30px;
+    background:linear-gradient(to bottom,#6a5a4b 0 45%, #4a3b34 45% 60%, #c00000 60% 100%);
+    border-radius:46px 46px 32px 32px;
     border:4px solid #000;
-    box-shadow:0 10px 0 rgba(0,0,0,0.5);
+    box-shadow:0 12px 0 rgba(0,0,0,0.55);
+  }
+
+  .stone::after{
+    content:'';
+    position:absolute;
+    left:18px;
+    top:18px;
+    width:36px;
+    height:16px;
+    border-radius:18px;
+    border:2px solid rgba(255,255,255,0.6);
+    opacity:0.8;
+  }
+
+  /* 왼쪽 위 건물 블록 */
+  .stone-building{
+    position:absolute;
+    left:24%;
+    top:12%;
+    width:220px;
+    height:80px;
+    background:#fff5f5;
+    border:4px solid #000;
+    box-shadow:0 10px 0 #000;
+    transform:skewX(25deg);
   }
 
   .lounger{
     position:absolute;
-    width:80px;
+    width:82px;
     height:26px;
-    background:#ffffff;
-    border-radius:16px;
+    background:linear-gradient(to bottom,#ffffff 0 60%, #e4e4e4 60% 100%);
+    border-radius:18px;
     border:3px solid #000;
     box-shadow:0 4px 0 rgba(0,0,0,0.35);
   }
   .lounger::after{
     content:'';
     position:absolute;
-    inset:5px 8px;
-    border-radius:12px;
-    border:2px solid #000;
-    opacity:0.4;
+    inset:5px 10px;
+    border-radius:14px;
+    border:2px solid rgba(0,0,0,0.35);
   }
 
   .umbrella{
@@ -271,7 +287,7 @@
     width:60px;
     height:60px;
     border-radius:50%;
-    background:#ffdfdf;
+    background:radial-gradient(circle at 30% 25%, #ffecec 0, #ffdfdf 45%, #f4caca 100%);
     border:3px solid #000;
     box-shadow:0 4px 0 rgba(0,0,0,0.35);
   }
@@ -492,31 +508,9 @@
       `;
       island.appendChild(tower);
 
-      /* 나무들 */
-      const trees = [
-        {x:18,y:62},{x:22,y:52},{x:26,y:42},
-        {x:74,y:62},{x:78,y:52},{x:82,y:42},
-        {x:15,y:30},{x:85,y:30}
-      ];
-      trees.forEach(t=>{
-        const el = document.createElement('div');
-        el.className = 'tree';
-        el.style.left = t.x + '%';
-        el.style.top  = t.y + '%';
-        el.innerHTML = `
-          <div class="tree-top">
-            <span class="t1"></span>
-            <span class="t2"></span>
-            <span class="t3"></span>
-          </div>
-          <div class="tree-trunk"></div>
-        `;
-        island.appendChild(el);
-      });
-
       /* 바위 */
       const rocks = [
-        {x:10,y:70},{x:30,y:75},{x:72,y:75}
+        {x:14,y:72},{x:30,y:76},{x:70,y:76}
       ];
       rocks.forEach(r=>{
         const el = document.createElement('div');
@@ -529,7 +523,7 @@
 
       /* 덤불 */
       const bushes = [
-        {x:12,y:48},{x:88,y:48}
+        {x:16,y:50},{x:84,y:50}
       ];
       bushes.forEach(b=>{
         const el = document.createElement('div');
@@ -566,6 +560,11 @@
 
       logEl.textContent = '마당입니다. 타워의 검은 문에 닿으면 붉은 비석 방으로 이동합니다.';
     } else if(currentSceneKey === 'stone'){
+      /* 왼쪽 위 건물 블록 */
+      const block = document.createElement('div');
+      block.className = 'stone-building';
+      island.appendChild(block);
+
       /* 중앙 붉은 비석 */
       const stone = document.createElement('div');
       stone.className = 'stone';
@@ -577,7 +576,7 @@
         {x:25,y:75},{x:50,y:80},{x:75,y:75},
         {x:15,y:50},{x:85,y:50}
       ];
-      spots.forEach((s,i)=>{
+      spots.forEach((s)=>{
         const lounger = document.createElement('div');
         lounger.className = 'lounger';
         lounger.style.left = s.x + '%';
@@ -732,7 +731,7 @@
     resetJoystick();
   });
 
-  // 키보드용 (테스트용 – 필요 없으면 지워도 됨)
+  // 키보드 테스트용
   window.addEventListener('keydown', e=>{
     if(e.key === 'ArrowUp')    joyVector.y = -1;
     if(e.key === 'ArrowDown')  joyVector.y =  1;
@@ -741,7 +740,7 @@
   });
   window.addEventListener('keyup', e=>{
     if(['ArrowUp','ArrowDown'].includes(e.key)) joyVector.y = 0;
-    if(['ArrowLeft','Right'].includes(e.key))   joyVector.x = 0;
+    if(['ArrowLeft','ArrowRight'].includes(e.key)) joyVector.x = 0;
   });
 
   /* ===== 메인 루프 ===== */
