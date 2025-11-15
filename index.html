@@ -18,7 +18,7 @@
   <style>
     :root{
       --window-on: #ffd800;
-      --window-off: #000000;
+      --window-off: #050509;
       --text: #f5f5f5;
       --sky: #050509;
     }
@@ -82,7 +82,7 @@
       opacity:1;
     }
 
-    /* 안개 레이어 */
+    /* 안개 레이어 (씬 전환 연출용) */
     .fog-layer{
       position:absolute;
       inset:0;
@@ -145,14 +145,13 @@
       image-rendering:pixelated;
     }
 
-    /* 픽셀 초승달 (노란색) */
     .moon{
       position:absolute;
       top:10px;
       left:10px;
       width:16px;
       height:16px;
-      background:var(--window-on);
+      background:#ffd800;
       image-rendering:pixelated;
       box-shadow:
         0 0 4px rgba(255,216,0,0.9),
@@ -205,7 +204,6 @@
       opacity:1;
     }
 
-    /* 인트로 건물: 얄쌍 + 많음 */
     .building{
       position:relative;
       display:flex;
@@ -257,7 +255,7 @@
     .window{
       width:100%;
       height:100%;
-      background:var(--window-on);
+      background:#ffd800;
       box-shadow:0 0 4px rgba(255,216,0,0.6);
       opacity:0.85;
       animation:windowFlicker 4.2s infinite ease-in-out;
@@ -275,16 +273,14 @@
       100%{opacity:0.7; transform:scaleY(1.02);}
     }
 
-    /* 3초 동안 불 꺼짐, 검정 창문 유지 */
     body.lights-off .window{
-      background:var(--window-off);
+      background:#000;
       box-shadow:none;
       opacity:1;
       animation:none;
       filter:brightness(0.5);
     }
 
-    /* Start 버튼 */
     .bottom-center{
       margin-top:12px;
     }
@@ -309,7 +305,6 @@
       cursor:default;
     }
 
-    /* 인트로 텍스트 (팝업 안에서만) */
     .overlay{
       position:absolute;
       inset:10% 8%;
@@ -355,7 +350,7 @@
       opacity:0;
     }
 
-    /* ================== 두 번째 씬: 도로 + 캐릭터 (팝업 안) ================== */
+    /* ================== 씬 2 : 양옆 불꺼진 건물 + 중앙 길 ================== */
     #streetScene{
       position:absolute;
       inset:0;
@@ -380,58 +375,57 @@
       overflow:hidden;
     }
 
-    /* 좌우 빌딩: 얄쌍 + 많고, 불 꺼진 상태 */
-    .side-column{
+    /* 좌우 전체를 덮는 어두운 건물 벽 */
+    .street-wall{
       position:absolute;
       top:0;
       bottom:0;
-      width:20%;
+      width:24%;
+      background:#11131a;
+      overflow:hidden;
       display:flex;
       flex-direction:column;
-      justify-content:space-around;
-      align-items:stretch;
-      padding:6px 2px;
-      transition:opacity 1s linear;
+      justify-content:space-between;
+      padding:8px 4px;
     }
-    .side-left{ left:0; }
-    .side-right{ right:0; }
+    .street-wall.left{ left:0; }
+    .street-wall.right{ right:0; }
 
-    .side-building{
+    .wall-building{
       background:#14151c;
       border:1px solid #000;
-      padding:3px 1px 4px;
+      padding:3px 2px 4px;
       box-shadow:0 0 12px rgba(0,0,0,0.8);
     }
-    .side-windows{
+    .wall-windows{
       display:grid;
-      grid-template-columns:repeat(2,1fr);
+      grid-template-columns:repeat(3,1fr);
       grid-auto-rows:7px;
       gap:2px;
     }
-    .side-window{
-      background:#050509; /* 불 꺼짐 */
-      box-shadow:none;
-      opacity:0.8;
+    .wall-window{
+      background:var(--window-off); /* 전부 불 꺼진 창 */
+      opacity:0.85;
     }
 
-    /* 중앙 도로 */
-    .road{
+    /* 중앙 길 */
+    .street-road{
       position:absolute;
       top:0;
       bottom:0;
-      left:20%;
-      right:20%;
+      left:24%;
+      right:24%;
       background:#050509;
       overflow:hidden;
     }
-    .road-center{
+    .street-road-inner{
       position:absolute;
-      inset:8% 30%;
-      background:#0c0c10;
-      box-shadow:0 0 12px rgba(0,0,0,0.9);
+      inset:8% 26%;
+      background:#0b0c11;
+      box-shadow:0 0 16px rgba(0,0,0,0.9);
       overflow:hidden;
     }
-    .lane{
+    .street-lane{
       position:absolute;
       left:50%;
       top:-100%;
@@ -443,7 +437,7 @@
         transparent 18px 36px
       );
       transform:translateX(-50%);
-      opacity:0.15;
+      opacity:0.14;
       animation:laneMove 5s linear infinite;
     }
     @keyframes laneMove{
@@ -451,7 +445,7 @@
       to{transform:translate(-50%,40px);}
     }
 
-    /* 캐릭터: D패드로 직접 이동 */
+    /* 캐릭터 */
     .character{
       position:absolute;
       width:18px;
@@ -488,72 +482,60 @@
       transition:opacity 0.8s ease-out, transform 0.8s ease-out;
     }
 
-    /* 도로 중간 빌딩 (회색, 처음엔 보이게) */
-    .end-building{
+    /* 길 끝 붉은 건물 (처음에는 안 보임) */
+    .red-building{
       position:absolute;
-      top:-22%;
-      left:32%;
-      right:32%;
-      height:38%;
-      background:#191a22;
+      top:-8%;
+      left:22%;
+      right:22%;
+      height:42%;
+      background:#7b1118;
       border:1px solid #000;
-      box-shadow:0 0 14px rgba(0,0,0,0.9);
-      transition:opacity 1s linear;
+      box-shadow:0 0 18px rgba(0,0,0,0.95);
+      opacity:0;
+      display:none;
+      transition:opacity 1.2s ease-out;
     }
-    .end-windows{
+    .red-building.show{
+      display:block;
+    }
+
+    .red-building-windows{
       position:absolute;
-      inset:10% 18%;
+      inset:12% 18% 42% 18%;
       display:grid;
       grid-template-columns:repeat(4,1fr);
       grid-auto-rows:8px;
       gap:3px;
     }
-    .end-window{
-      background:#050509;
-      box-shadow:none;
-      opacity:0.9;
+    .red-window{
+      background:var(--window-on);
+      box-shadow:0 0 8px rgba(255,216,0,0.7);
     }
 
-    /* 길 끝 빨간 건물 – 처음엔 완전 안 보임 */
-    .final-building{
-      position:absolute;
-      top:-10%;
-      left:30%;
-      right:30%;
-      height:50%;
-      background:#7b1118;
-      border:1px solid #000;
-      box-shadow:0 0 16px rgba(0,0,0,0.9);
-      opacity:0;
-      display:none;
-      transition:opacity 1.2s ease-out;
-    }
-    .final-building.visible{
-      display:block;
-    }
-    .final-door{
+    .red-building-door{
       position:absolute;
       bottom:0;
       left:50%;
       transform:translateX(-50%);
       width:22%;
       height:40%;
-      background:#1a0507;
+      background:#050308;
       border:2px solid #000;
       box-shadow:0 0 10px rgba(0,0,0,0.9);
     }
-    .final-door::before{
+    .red-building-door::before{
       content:"";
       position:absolute;
       right:18%;
-      top:45%;
+      top:46%;
       width:4px;
       height:4px;
       border-radius:50%;
       background:#f5f5f5;
     }
 
-    /* 방향키: 화면 왼쪽 아래 고정 */
+    /* 방향키 */
     .cursor-pad{
       position:fixed;
       left:14px;
@@ -617,11 +599,10 @@
   </div>
 
   <div class="app">
-    <!-- 블랙 페이드, 안개 -->
     <div class="scene-fade" id="sceneFade"></div>
     <div class="fog-layer" id="fogLayer"></div>
 
-    <!-- ============ 인트로 씬 ============ -->
+    <!-- ============ 씬 1 : 인트로 ============ -->
     <div id="introScene">
       <div class="popup-frame">
         <div class="city-window">
@@ -632,7 +613,6 @@
             <div class="layer layer-front" data-count="30"></div>
           </div>
 
-          <!-- 인트로 텍스트 (팝업 안) -->
           <div class="overlay" id="overlay">
             <div class="overlay-inner">
               <div class="overlay-lines" id="overlayLines"></div>
@@ -647,36 +627,32 @@
       </div>
     </div>
 
-    <!-- ============ 두 번째 씬: 도로 + 캐릭터 (팝업 안) ============ -->
+    <!-- ============ 씬 2 : 좌우 건물 + 길 ============ -->
     <div id="streetScene">
       <div class="popup-frame">
         <div class="street-window">
-          <!-- 좌우 건물 (불 꺼진 상태, 얄쌍하고 많음) -->
-          <div class="side-column side-left" id="sideLeft"></div>
-          <div class="side-column side-right" id="sideRight"></div>
+          <div class="street-wall left" id="streetLeft"></div>
+          <div class="street-wall right" id="streetRight"></div>
 
-          <!-- 도로 -->
-          <div class="road">
-            <div class="road-center">
-              <div class="lane"></div>
+          <div class="street-road">
+            <div class="street-road-inner">
+              <div class="street-lane"></div>
+
+              <!-- 길 끝 붉은 건물 -->
+              <div class="red-building" id="redBuilding">
+                <div class="red-building-windows" id="redWindows"></div>
+                <div class="red-building-door" id="redDoor"></div>
+              </div>
+
+              <!-- 플레이어 캐릭터 -->
               <div class="character" id="character"></div>
-
-              <!-- 중간 회색 빌딩 -->
-              <div class="end-building" id="endBuilding">
-                <div class="end-windows" id="endWindows"></div>
-              </div>
-
-              <!-- 길 끝 빨간 건물 -->
-              <div class="final-building" id="finalBuilding">
-                <div class="final-door" id="finalDoor"></div>
-              </div>
             </div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- 방향키 (D패드) -->
+    <!-- 방향키 -->
     <div class="cursor-pad">
       <button class="cursor-btn" data-dir="up">▲</button>
       <div class="cursor-row">
@@ -686,12 +662,11 @@
       </div>
     </div>
 
-    <!-- 오른쪽 아래 버튼 (지금은 기능 없음) -->
     <button class="side-btn" aria-label="extra button">●</button>
   </div>
 
   <script>
-    // ====== 인트로 건물 생성 ======
+    /* ===== 인트로 건물 생성 ===== */
     const palette = [
       "#16171b","#1b1c22","#20232a",
       "#252831","#2b3038","#313640",
@@ -706,7 +681,7 @@
       const h = base + (i * 3) % 20;
       b.style.height = h + "%";
 
-      const flexVal = 0.08 + (i % 4)*0.03; // 0.08 ~ 0.17
+      const flexVal = 0.08 + (i % 4)*0.03;
       b.style.flex = flexVal.toFixed(2);
 
       const color = palette[(i * 2 + (layerName === "front" ? 1 : 0)) % palette.length];
@@ -748,7 +723,7 @@
       }
     });
 
-    // ====== 인트로 텍스트 & 전환 ======
+    /* ===== 인트로 텍스트 & 씬 전환 ===== */
     const startBtn = document.getElementById("startBtn");
     const overlay = document.getElementById("overlay");
     const overlayLines = document.getElementById("overlayLines");
@@ -792,7 +767,6 @@
             overlayThird.textContent = "THE THIRD SLEEP";
             overlayThird.classList.add("show");
 
-            // 1.5초 후 씬 페이드 & 안개 & 도로 씬 전환
             setTimeout(()=>{
               overlayThird.classList.add("fade-out");
               sceneFade.classList.add("on");
@@ -809,138 +783,127 @@
       });
     }
 
-    // Start: 불 3초 페이드 + 텍스트 시퀀스
     startBtn.addEventListener("click", ()=>{
       if(started) return;
       started = true;
 
-      document.body.classList.add("lights-off"); // 3초 동안 전등 꺼짐
+      document.body.classList.add("lights-off");
       startBtn.disabled = true;
       startBtn.textContent = "OFF";
 
       startOverlaySequence();
     });
 
-    // ====== 두 번째 씬 빌딩/창문 생성 ======
-    function createSideBuildings(container, count){
+    /* ===== 씬 2 : 좌우 벽 건물 / 붉은 건물 생성 ===== */
+    const streetLeft  = document.getElementById("streetLeft");
+    const streetRight = document.getElementById("streetRight");
+    const redBuilding = document.getElementById("redBuilding");
+    const redWindows  = document.getElementById("redWindows");
+
+    function fillWall(container, count){
       for(let i=0;i<count;i++){
         const b = document.createElement("div");
-        b.className = "side-building";
+        b.className = "wall-building";
 
-        const floors = 4 + (i % 3);
-        const gw = document.createElement("div");
-        gw.className = "side-windows";
+        const wWrap = document.createElement("div");
+        wWrap.className = "wall-windows";
 
-        const total = floors * 2;
-        for(let j=0;j<total;j++){
+        const floors = 5 + (i % 3);
+        for(let j=0;j<floors*3;j++){
           const w = document.createElement("div");
-          w.className = "side-window";
-          w.style.setProperty("--rand", Math.random().toString());
-          gw.appendChild(w);
+          w.className = "wall-window";
+          wWrap.appendChild(w);
         }
 
-        b.appendChild(gw);
+        b.appendChild(wWrap);
         container.appendChild(b);
       }
     }
 
-    const sideLeft = document.getElementById("sideLeft");
-    const sideRight = document.getElementById("sideRight");
-    createSideBuildings(sideLeft, 14);
-    createSideBuildings(sideRight, 14);
+    fillWall(streetLeft, 7);
+    fillWall(streetRight, 7);
 
-    const endBuilding = document.getElementById("endBuilding");
-    const endWindows = document.getElementById("endWindows");
-    for(let i=0;i<8*4;i++){
+    // 붉은 건물 창문 켜진 상태
+    for(let i=0;i<4*3;i++){
       const w = document.createElement("div");
-      w.className = "end-window";
-      w.style.setProperty("--rand", Math.random().toString());
-      endWindows.appendChild(w);
+      w.className = "red-window";
+      redWindows.appendChild(w);
     }
 
-    const finalBuilding = document.getElementById("finalBuilding");
-
-    // ====== 캐릭터 컨트롤 & 길 끝 연출 ======
+    /* ===== 캐릭터 컨트롤 & 문 진입 로직 ===== */
     const character = document.getElementById("character");
-    let charX = 50;   // road-center 안에서 퍼센트
-    let charY = 20;   // 20 ~ 80 사이 이동
+    let charX = 50;   // 중앙
+    let charY = 20;   // 시작 Y (아래쪽)
 
     function clamp(v,min,max){
       return v < min ? min : (v > max ? max : v);
     }
 
-    // 캐릭터 위치 업데이트 + 주변 환경 변화
+    // 캐릭터 위치 업데이트 + 붉은 건물 등장
     function updateCharacter(){
       if(!character) return;
 
-      charX = clamp(charX, 35, 65);
-      charY = clamp(charY, 20, 80);
+      charX = clamp(charX, 44, 56); // 거의 중앙에서만 약간 흔들릴 수 있게
+      charY = clamp(charY, 20, 80); // 아래~위
 
-      character.style.left = charX + "%";
+      character.style.left   = charX + "%";
       character.style.bottom = charY + "%";
 
-      updateEnvironment();
-      checkDoorEnter();
+      updateRedBuilding();
+      checkEnterDoor();
     }
 
-    // 위로 걸어갈수록: 사이드 + 회색 건물 서서히 사라지고,
-    // 충분히 올라가면 빨간 건물이 "나타남"
-    function updateEnvironment(){
+    // 위로 충분히 걸어가면 길 끝에서 붉은 건물이 "툭" 나타나도록
+    function updateRedBuilding(){
       const progress = clamp((charY - 20) / 60, 0, 1); // 0~1
 
-      const sideOpacity = 1 - progress;    // 1 → 0
-      const midOpacity  = 1 - progress;    // 1 → 0
-
-      sideLeft.style.opacity  = sideOpacity;
-      sideRight.style.opacity = sideOpacity;
-      endBuilding.style.opacity = midOpacity;
-
-      // 빨간 건물: progress가 0.7 이상이 될 때부터 등장 시작
       if(progress > 0.7){
-        const redProg = clamp((progress - 0.7) / 0.3, 0, 1); // 0~1
-        finalBuilding.classList.add("visible");
-        finalBuilding.style.opacity = redProg;
+        const t = (progress - 0.7) / 0.3;  // 0~1
+        redBuilding.classList.add("show");
+        redBuilding.style.opacity = t;
       }else{
-        finalBuilding.style.opacity = 0;
-        finalBuilding.classList.remove("visible"); // ⇒ display:none 유지
+        redBuilding.style.opacity = 0;
+        redBuilding.classList.remove("show");
       }
     }
 
-    // 문 앞 도착 시: 캐릭터 희미 + 화면 페이드 아웃
     let doorEntered = false;
-    function checkDoorEnter(){
+    function checkEnterDoor(){
       if(doorEntered) return;
 
-      const fbOpacity = parseFloat(getComputedStyle(finalBuilding).opacity || "0");
-      if(fbOpacity < 0.95) return; // 빨간 건물이 충분히 보일 때만
+      const visible = redBuilding.classList.contains("show") &&
+                      parseFloat(getComputedStyle(redBuilding).opacity || "0") > 0.95;
+      if(!visible) return;
 
-      const nearDoorX = Math.abs(charX - 50) < 5; // 중앙 근처
-      const nearDoorY = charY > 72;               // 거의 맨 위
+      const nearCenter = Math.abs(charX - 50) < 3;
+      const nearTop    = charY > 75;
 
-      if(nearDoorX && nearDoorY){
+      if(nearCenter && nearTop){
         doorEntered = true;
         character.classList.add("entered");
         setTimeout(()=>{
-          sceneFade.classList.add("on"); // 문 안으로 들어가듯 전체 페이드
-          // 여기서 다음 씬 이동 연결 가능 (location.href 등)
+          sceneFade.classList.add("on");  // 문 안으로 들어가며 페이드 아웃
+          // 여기에서 다음 씬으로 넘기고 싶으면 location.href 등 연결
         }, 400);
       }
     }
 
     updateCharacter(); // 초기 상태 반영
 
-    // D-패드 입력
+    // 방향키로 직접 컨트롤
     document.querySelectorAll(".cursor-btn").forEach(btn=>{
       const dir = btn.dataset.dir;
       if(!dir) return;
+
       btn.addEventListener("click", ()=>{
         if(!streetScene.classList.contains("active")) return;
-        const step = 4;
+        const stepY = 4;
+        const stepX = 2;
 
-        if(dir === "up")   charY += step;
-        if(dir === "down") charY -= step;
-        if(dir === "left") charX -= step;
-        if(dir === "right")charX += step;
+        if(dir === "up")   charY += stepY;
+        if(dir === "down") charY -= stepY;
+        if(dir === "left") charX -= stepX;
+        if(dir === "right")charX += stepX;
 
         updateCharacter();
       });
