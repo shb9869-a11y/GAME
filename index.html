@@ -2,187 +2,169 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>TOEM-style Room UI</title>
+<title>TOEM style isometric room</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{
     background:#000;
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
     height:100vh;
     display:flex;
-    align-items:center;
     justify-content:center;
+    align-items:center;
     color:#fff;
   }
 
-  /* 전체 게임 화면 컨테이너 */
   .game-root{
     position:relative;
     width: 800px;
     height: 450px;
-    overflow:hidden;
     background:#111;
+    overflow:hidden;
   }
 
-  /* 방(플레이 공간) */
-  .room{
+  /* 월드(등각 공간) */
+  .world{
     position:absolute;
-    left:50%; top:50%;
+    left:50%;
+    top:55%;
     transform:translate(-50%,-50%);
     width: 520px;
     height: 320px;
-    background:#f4f4f4;
-    border:4px solid #000;
-    box-shadow:0 8px 0 #000;
-  }
-
-  /* 방 바닥 패턴 */
-  .room::before{
-    content:"";
-    position:absolute;
-    inset:0;
-    background-image:
-      linear-gradient(90deg, rgba(0,0,0,0.05) 1px, transparent 1px),
-      linear-gradient(0deg, rgba(0,0,0,0.05) 1px, transparent 1px);
-    background-size:24px 24px;
     pointer-events:none;
   }
 
-  /* 간단한 가구들 */
-  .furniture{
+  /* 등각 바닥: 다이아몬드 모양 */
+  .floor{
     position:absolute;
-    background:#ddd;
+    left:50%;
+    top:50%;
+    width: 420px;
+    height: 210px;
+    transform:translate(-50%,-50%) skewY(-26deg);
+    background:
+      repeating-linear-gradient(
+        90deg,
+        #dcdcdc 0 1px,
+        #f3f3f3 1px 21px
+      );
     border:3px solid #000;
-    box-shadow:0 4px 0 #000;
-  }
-  .table{ width:90px; height:60px; left:60px; top:120px;}
-  .sofa{ width:110px; height:50px; right:60px; top:90px;}
-  .rug {
-    position:absolute;
-    width:150px; height:90px;
-    left:50%; top:58%;
-    transform:translate(-50%,-50%);
-    background:#e2e2e2;
-    border:3px solid #000;
-  }
-  .rug::before{
-    content:"";
-    position:absolute;
-    inset:10px;
-    border:2px dashed #666;
+    box-shadow:0 18px 0 #000;
   }
 
-  .plant{
-    width:36px; height:36px;
-    border-radius:50%;
-    background:#eee;
+  /* 바닥 위 가구(조금 3D 느낌) */
+  .block{
+    position:absolute;
+    width:60px;
+    height:40px;
+    background:#f5f5f5;
     border:3px solid #000;
-    box-shadow:0 3px 0 #000;
+    box-shadow:0 12px 0 #000;
+    transform:skewY(-26deg);
   }
-  .plant.one{ right:40px; bottom:40px;}
-  .plant.two{ left:40px; top:40px;}
+  .block.table{ left:35%; top:25%;}
+  .block.shelf{ right:20%; top:15%; width:40px;}
 
-  /* 플레이어 캐릭터 – 간단한 흑백 사람 아이콘 */
+  /* 등각 좌표 -> 화면 좌표용 컨테이너 */
+  .entity-layer{
+    position:absolute;
+    inset:0;
+    pointer-events:none;
+  }
+
+  /* 플레이어 아이소메트릭 캐릭터 */
   .player{
     position:absolute;
-    width:26px; height:40px;
-    left:50%; bottom:40px;
-    transform:translateX(-50%);
+    width:32px;
+    height:40px;
+    transform-origin:center bottom;
   }
-  .player .head{
-    width:18px; height:18px;
-    margin:0 auto;
-    border-radius:50%;
-    border:3px solid #000;
-    background:#fff;
+  .player .shadow{
+    position:absolute;
+    left:50%;
+    bottom:0;
+    width:28px;
+    height:10px;
+    transform:translateX(-50%);
+    background:radial-gradient(ellipse at center, rgba(0,0,0,0.45) 0, transparent 70%);
   }
   .player .body{
-    width:22px; height:18px;
-    margin:2px auto 0;
+    position:absolute;
+    left:50%;
+    bottom:10px;
+    transform:translateX(-50%);
+    width:22px;
+    height:20px;
     border-radius:4px;
-    border:3px solid #000;
     background:#fff;
+    border:3px solid #000;
+  }
+  .player .head{
+    position:absolute;
+    left:50%;
+    bottom:28px;
+    transform:translateX(-50%);
+    width:18px;
+    height:18px;
+    border-radius:50%;
+    background:#fff;
+    border:3px solid #000;
   }
 
-  /* 대화 박스 영역 */
+  /* 질문 UI */
   .dialogue-wrapper{
     position:absolute;
-    left:50%; top:8%;
+    left:50%;
+    top:6%;
     transform:translateX(-50%);
-    z-index:10;
+    z-index:5;
   }
-
   .dialogue-box{
     background:#000;
-    color:#fff;
-    padding:10px 18px;
+    padding:10px 20px;
     border-radius:8px;
     border:3px solid #fff;
-    text-transform:uppercase;
-    font-size:18px;
-    letter-spacing:0.08em;
     box-shadow:0 4px 0 #000;
-    text-align:center;
+    text-transform:uppercase;
+    letter-spacing:0.08em;
+    font-size:18px;
   }
-
   .choices{
-    margin-top:10px;
+    margin-top:8px;
     display:flex;
-    gap:16px;
     justify-content:center;
+    gap:14px;
   }
-
   .choice{
     position:relative;
-    padding:8px 18px;
+    padding:6px 16px;
     background:#f8f8f8;
     color:#000;
     border-radius:8px;
     border:3px solid #000;
-    font-size:16px;
     text-transform:uppercase;
     letter-spacing:0.06em;
-    cursor:pointer;
-    min-width:120px;
+    font-size:15px;
+    min-width:110px;
     text-align:center;
+    cursor:pointer;
   }
-
-  .choice::before{
-    /* 말풍선 같은 작은 돌출 모양 */
-    content:"";
-    position:absolute;
-    top:50%;
-    transform:translateY(-50%);
-    width:10px; height:10px;
-    border:3px solid #000;
-    background:#f8f8f8;
-  }
-  .choice.left::before{
-    right:-8px;
-    border-radius:0 6px 6px 0;
-    border-left:none;
-  }
-  .choice.right::before{
-    left:-8px;
-    border-radius:6px 0 0 6px;
-    border-right:none;
-  }
-
   .choice.selected{
     background:#000;
     color:#fff;
     box-shadow:0 0 0 3px #fff;
   }
 
-  /* 우측 화살표(다음 씬 등) */
+  /* 오른쪽 화살표 */
   .next-arrow{
     position:absolute;
-    right:20px;
+    right:24px;
     top:50%;
     transform:translateY(-50%);
-    width:28px; height:28px;
+    width:32px;
+    height:32px;
     border-radius:50%;
     border:4px solid #fff;
     display:flex;
@@ -192,14 +174,50 @@
   .next-arrow::before{
     content:"";
     border-style:solid;
-    border-width:6px 0 6px 10px;
+    border-width:6px 0 6px 11px;
     border-color:transparent transparent transparent #fff;
-    margin-left:2px;
+    margin-left:1px;
+  }
+
+  /* 좌측 하단 방향키(D-pad) */
+  .dpad{
+    position:absolute;
+    left:20px;
+    bottom:20px;
+    width:120px;
+    height:120px;
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    grid-template-rows:repeat(3,1fr);
+    gap:4px;
+    z-index:10;
+  }
+  .dpad button{
+    border:none;
+    background:#222;
+    color:#fff;
+    border-radius:10px;
+    border:3px solid #fff;
+    box-shadow:0 3px 0 #000;
+    font-size:16px;
+    cursor:pointer;
+    touch-action:manipulation;
+  }
+  .dpad button:active{
+    transform:translateY(2px);
+    box-shadow:0 1px 0 #000;
+  }
+  .dpad .empty{
+    background:transparent;
+    border:none;
+    box-shadow:none;
+    pointer-events:none;
   }
 
   .log{
     position:absolute;
-    left:10px; bottom:10px;
+    left:10px;
+    top:10px;
     font-size:12px;
     color:#ccc;
   }
@@ -208,68 +226,104 @@
 <body>
 
 <div class="game-root">
-  <div class="room">
-    <div class="furniture table"></div>
-    <div class="furniture sofa"></div>
-    <div class="rug"></div>
-    <div class="plant one"></div>
-    <div class="plant two"></div>
+  <div class="world">
+    <div class="floor"></div>
+    <div class="block table"></div>
+    <div class="block shelf"></div>
 
-    <div class="player">
-      <div class="head"></div>
-      <div class="body"></div>
+    <!-- 캐릭터와 같은 엔티티 레이어 -->
+    <div class="entity-layer">
+      <div class="player" id="player">
+        <div class="shadow"></div>
+        <div class="body"></div>
+        <div class="head"></div>
+      </div>
     </div>
   </div>
 
-  <!-- 대화 UI -->
+  <!-- 질문/선택 UI -->
   <div class="dialogue-wrapper">
     <div class="dialogue-box">HOW ARE YOU FEELING?</div>
     <div class="choices">
-      <div class="choice left selected" data-value="EXCITED!">EXCITED!</div>
-      <div class="choice right" data-value="NERVOUS">NERVOUS</div>
+      <div class="choice selected">EXCITED!</div>
+      <div class="choice">NERVOUS</div>
     </div>
   </div>
 
   <div class="next-arrow"></div>
 
-  <div class="log" id="log">←/→ 로 선택, Enter 로 확정</div>
+  <!-- 방향키 -->
+  <div class="dpad">
+    <div class="empty"></div>
+    <button data-dir="up">▲</button>
+    <div class="empty"></div>
+
+    <button data-dir="left">◀</button>
+    <div class="empty"></div>
+    <button data-dir="right">▶</button>
+
+    <div class="empty"></div>
+    <button data-dir="down">▼</button>
+    <div class="empty"></div>
+  </div>
+
+  <div class="log" id="log">←↑→↓ 또는 D-pad 로 캐릭터를 움직여보세요.</div>
 </div>
 
 <script>
-  const choices = Array.from(document.querySelectorAll('.choice'));
-  let index = 0;
+  // 아이소메트릭 좌표 (x,y) -> 화면 픽셀
+  // 간단한 2D -> iso 투영
+  const originX = 260;  // 월드 중앙 기준
+  const originY = 150;
+  const tileW = 32;
+  const tileH = 16;
 
-  function updateSelection(){
-    choices.forEach((c, i)=>{
-      c.classList.toggle('selected', i === index);
-    });
+  let px = 0;  // logical x
+  let py = 0;  // logical y
+
+  const playerEl = document.getElementById('player');
+  const logEl = document.getElementById('log');
+
+  function placePlayer(){
+    const screenX = originX + (px - py) * tileW/2;
+    const screenY = originY + (px + py) * tileH/2;
+    playerEl.style.left = screenX + 'px';
+    playerEl.style.top  = screenY + 'px';
   }
 
-  // 키보드 입력
+  placePlayer();
+
+  function move(dx, dy){
+    px += dx;
+    py += dy;
+    // 간단한 영역 제한
+    const limit = 6;
+    px = Math.max(-limit, Math.min(limit, px));
+    py = Math.max(-limit, Math.min(limit, py));
+    placePlayer();
+  }
+
+  // 키보드 컨트롤
   window.addEventListener('keydown', e=>{
-    if(e.key === 'ArrowLeft'){
-      index = (index - 1 + choices.length) % choices.length;
-      updateSelection();
-    }else if(e.key === 'ArrowRight'){
-      index = (index + 1) % choices.length;
-      updateSelection();
-    }else if(e.key === 'Enter'){
-      const val = choices[index].dataset.value;
-      document.getElementById('log').textContent = `선택한 감정: ${val}`;
-      // 이 지점에서 다음 씬 로딩, 변수 저장 등 게임 로직을 연결하면 됨.
-    }
+    if(e.key === 'ArrowUp')      move(0,-1);
+    else if(e.key === 'ArrowDown')  move(0,1);
+    else if(e.key === 'ArrowLeft')  move(-1,0);
+    else if(e.key === 'ArrowRight') move(1,0);
   });
 
-  // 마우스로도 선택 가능
-  choices.forEach((c, i)=>{
-    c.addEventListener('click', ()=>{
-      index = i;
-      updateSelection();
-      const val = c.dataset.value;
-      document.getElementById('log').textContent = `선택한 감정: ${val}`;
-    });
+  // D-pad 컨트롤 (터치/마우스)
+  document.querySelectorAll('.dpad button[data-dir]').forEach(btn=>{
+    const dir = btn.dataset.dir;
+    const handler = ()=>{
+      if(dir === 'up') move(0,-1);
+      if(dir === 'down') move(0,1);
+      if(dir === 'left') move(-1,0);
+      if(dir === 'right') move(1,0);
+      logEl.textContent = `플레이어 위치: x=${px}, y=${py}`;
+    };
+    btn.addEventListener('click', handler);
   });
+
 </script>
-
 </body>
 </html>
