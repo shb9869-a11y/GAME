@@ -1,520 +1,115 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport"
-        content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
-  <title>SLEEEEEEEEEEP – Start Screen</title>
-
-  <!-- 픽셀 게임 폰트 -->
-  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap"
-        rel="stylesheet">
-
-  <style>
-    :root{
-      --bg-purple:#2a1247;
-
-      --b-a:#e9c7e1;
-      --b-b:#c593d2;
-      --b-c:#8a63b6;
-      --b-d:#5d535c;
-
-      --w-a:#f5e7ff;
-      --w-b:#d6aee9;
-      --w-c:#7b6f80;
-
-      --water:#6e628f;
-
-      --skin:#e7b58b;
-    }
-
-    *{margin:0;padding:0;box-sizing:border-box;}
-
-    body{
-      min-height:100vh;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      background:#000;
-      font-family:'Press Start 2P', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-      color:#fff;
-    }
-
-    /* ------- LANDSCAPE ONLY 메시지 ------- */
-    .rotate-overlay{
-      position:fixed;
-      inset:0;
-      background:#000;
-      color:#fff;
-      display:none;
-      align-items:center;
-      justify-content:center;
-      text-align:center;
-      padding:16px;
-      z-index:999;
-      font-size:14px;
-      line-height:1.7;
-    }
-
-    .rotate-overlay span{
-      display:block;
-      margin-bottom:8px;
-    }
-
-    @media (orientation:portrait){
-      .rotate-overlay{display:flex;}
-    }
-
-    /* ------- 기본 게임 래퍼 (가로 비율) ------- */
-    .game-wrap{
-      position:relative;
-      width:100vw;
-      max-width:960px;
-      aspect-ratio:16/9;
-      background:var(--bg-purple);
-      overflow:hidden;
-      image-rendering:pixelated;
-    }
-
-    .screen{
-      position:absolute;
-      inset:0;
-      display:none;
-    }
-    .screen.active{
-      display:block;
-    }
-
-    /* ------- 타이틀 텍스트 ------- */
-    .title-block{
-      position:absolute;
-      top:10%;
-      left:50%;
-      transform:translateX(-50%);
-      text-align:center;
-      color:#fdf6ff;
-      text-shadow:
-        3px 0 #000,
-        -3px 0 #000,
-        0 3px #000,
-        0 -3px #000;
-      letter-spacing:0.22em;
-      font-size:clamp(16px,3vw,26px);
-      line-height:1.8;
-      white-space:nowrap;
-    }
-
-    .title-line{display:block;}
-
-    /* ------- 도심 공통 레이아웃 ------- */
-    .city-stage{
-      position:absolute;
-      left:50%;
-      bottom:16%;
-      transform:translateX(-50%);
-      width:130%;
-    }
-
-    .city-layer{
-      position:relative;
-      height:150px;
-      display:flex;
-      align-items:flex-end;
-      justify-content:center;
-      gap:4px;
-    }
-
-    /* 건물 한 칸 단위 */
-    .building{
-      position:relative;
-      width:30px;
-      background:var(--b-a);
-      border-radius:3px 3px 0 0;
-      box-shadow:0 0 0 2px #000;
-      overflow:hidden;
-    }
-
-    .h-s{height:70px;}
-    .h-m{height:90px;}
-    .h-l{height:115px;}
-    .h-xl{height:135px;}
-
-    .c-a{background:var(--b-a);}
-    .c-b{background:var(--b-b);}
-    .c-c{background:var(--b-c);}
-    .c-d{background:var(--b-d);}
-
-    /* 창문 패턴 */
-    .building::before{
-      content:"";
-      position:absolute;
-      inset:6px 6px;
-      background-image:
-        repeating-linear-gradient(
-          to right,
-          transparent 0 5px,
-          var(--w-a) 5px 9px
-        ),
-        repeating-linear-gradient(
-          to bottom,
-          transparent 0 7px,
-          var(--w-b) 7px 11px
-        );
-      background-blend-mode:screen;
-      opacity:0.85;
-    }
-
-    .c-c::before{
-      background-image:
-        repeating-linear-gradient(
-          to right,
-          transparent 0 5px,
-          var(--w-b) 5px 9px
-        ),
-        repeating-linear-gradient(
-          to bottom,
-          transparent 0 7px,
-          var(--w-c) 7px 11px
-        );
-      opacity:0.75;
-    }
-
-    .c-d::before{opacity:0.55;}
-
-    /* 뾰족한 건물 */
-    .b-spike{
-      width:26px;
-      height:130px;
-      background:var(--b-a);
-      clip-path:polygon(0 38%,50% 0,100% 38%,100% 100%,0 100%);
-      box-shadow:0 0 0 2px #000;
-      position:relative;
-    }
-    .b-spike::before{
-      content:"";
-      position:absolute;
-      left:4px;right:4px;top:42px;bottom:6px;
-      background-image:
-        repeating-linear-gradient(
-          to right,
-          transparent 0 5px,
-          var(--w-a) 5px 9px
-        ),
-        repeating-linear-gradient(
-          to bottom,
-          transparent 0 7px,
-          var(--w-b) 7px 11px
-        );
-      opacity:0.9;
-    }
-
-    /* 앞/뒤 레이어 겹치기 */
-    .layer-back{
-      transform:translateY(10px);
-      filter:brightness(0.8);
-    }
-    .layer-front{
-      margin-top:-30px;
-    }
-
-    /* ------- 지면 + 지글지글 경계 + 반사 ------- */
-    .ground-wrap{
-      position:relative;
-      height:14px;
-      margin-top:-4px;
-      z-index:3;
-    }
-
-    /* 톱니 모양 (지글지글) */
-    .ground-zigzag{
-      width:100%;
-      height:14px;
-      background:
-        repeating-linear-gradient(
-          -45deg,
-          #000 0 8px,
-          #000 8px 16px,
-          transparent 16px 16px
-        );
-      background-size:16px 14px;
-    }
-
-    .water{
-      position:relative;
-      height:110px;
-      background:var(--water);
-      overflow:hidden;
-    }
-
-    .city-reflection{
-      position:absolute;
-      inset:-4px 0 0 0;
-      display:flex;
-      align-items:flex-start;
-      justify-content:center;
-      gap:4px;
-      transform-origin:top;
-      transform:scaleY(-1);
-      opacity:0.28;
-      filter:blur(1px);
-    }
-
-    .water::after{
-      content:"";
-      position:absolute;
-      inset:0;
-      background:linear-gradient(
-        to bottom,
-        rgba(42,18,71,0.15),
-        rgba(42,18,71,0.9)
-      );
-      pointer-events:none;
-    }
-
-    /* ------- START 버튼 ------- */
-    .start-area{
-      position:absolute;
-      left:50%;
-      bottom:6%;
-      transform:translateX(-50%);
-    }
-
-    .btn{
-      font-family:'Press Start 2P', system-ui, sans-serif;
-      font-size:clamp(13px,2.1vw,18px);
-      letter-spacing:0.2em;
-      padding:16px 40px;
-      border:none;
-      background:#2b1045;
-      color:#fdf6ff;
-      box-shadow:
-        0 0 0 3px #000,
-        0 6px 0 #000;
-      text-shadow:
-        2px 0 #000,
-        -2px 0 #000,
-        0 2px #000,
-        0 -2px #000;
-      cursor:pointer;
-    }
-    .btn:active{
-      transform:translateY(3px);
-      box-shadow:
-        0 0 0 3px #000,
-        0 3px 0 #000;
-    }
-
-    /* ------- 2번째 화면 : 도심 안, 인물 ------- */
-    .inner-city{
-      position:absolute;
-      inset:0;
-    }
-
-    .inner-road{
-      position:absolute;
-      left:0;
-      right:0;
-      bottom:0;
-      height:38%;
-      background:linear-gradient(
-        to bottom,
-        #3b3257 0%,
-        #252133 45%,
-        #15111f 100%
-      );
-      border-top:4px solid #000;
-    }
-
-    .inner-city .city-stage{
-      bottom:35%;
-      width:145%;
-    }
-
-    /* 맨 앞 도로선 */
-    .road-line{
-      position:absolute;
-      left:0;
-      right:0;
-      top:16%;
-      height:6px;
-      background:
-        repeating-linear-gradient(
-          to right,
-          #f3e9ff 0 40px,
-          transparent 40px 60px
-        );
-      box-shadow:0 2px 0 #000;
-    }
-
-    /* 홀딱 벗은 픽셀 사람 */
-    .hero{
-      --u:6px;
-      position:absolute;
-      left:50%;
-      bottom:18%;
-      width:var(--u);
-      height:var(--u);
-      background:var(--skin);
-      box-shadow:
-        /* 머리 */
-        0 calc(-1*var(--u)) 0 var(--skin),
-        var(--u) calc(-1*var(--u)) 0 var(--skin),
-        -var(--u) calc(-1*var(--u)) 0 var(--skin),
-        0 calc(-2*var(--u)) 0 var(--skin),
-        var(--u) calc(-2*var(--u)) 0 var(--skin),
-        -var(--u) calc(-2*var(--u)) 0 var(--skin),
-        0 calc(-3*var(--u)) 0 var(--skin),
-        var(--u) calc(-3*var(--u)) 0 var(--skin),
-        -var(--u) calc(-3*var(--u)) 0 var(--skin),
-        /* 몸통 */
-        0 var(--u) 0 var(--skin),
-        var(--u) var(--u) 0 var(--skin),
-        -var(--u) var(--u) 0 var(--skin),
-        0 calc(2*var(--u)) 0 var(--skin),
-        var(--u) calc(2*var(--u)) 0 var(--skin),
-        -var(--u) calc(2*var(--u)) 0 var(--skin),
-        0 calc(3*var(--u)) 0 var(--skin),
-        /* 팔 */
-        calc(2*var(--u)) 0 0 var(--skin),
-        calc(-2*var(--u)) 0 0 var(--skin),
-        calc(2*var(--u)) var(--u) 0 var(--skin),
-        calc(-2*var(--u)) var(--u) 0 var(--skin),
-        /* 다리 */
-        0 calc(4*var(--u)) 0 var(--skin),
-        var(--u) calc(4*var(--u)) 0 var(--skin),
-        -var(--u) calc(4*var(--u)) 0 var(--skin);
-      transform:translateX(-50%);
-      image-rendering:pixelated;
-    }
-
-    .hero-shadow{
-      position:absolute;
-      left:50%;
-      bottom:15%;
-      width:60px;
-      height:10px;
-      background:rgba(0,0,0,0.6);
-      filter:blur(4px);
-      transform:translateX(-50%);
-    }
-  </style>
+<meta charset="UTF-8">
+<title>Pixel Engine</title>
+<style>
+  body{
+    background:#000;
+    color:#fff;
+    font-family:monospace;
+    padding:20px;
+  }
+  canvas{display:none;}
+  .pixel-container{
+    position:relative;
+    image-rendering:pixelated;
+  }
+  .pixel{
+    position:absolute;
+    width:1px;
+    height:1px;
+  }
+  .screen-title, .screen-city{
+    display:none;
+  }
+</style>
 </head>
 <body>
-  <!-- 세로 모드일 때 보이는 안내 -->
-  <div class="rotate-overlay">
-    <div>
-      <span>THIS GAME SUPPORTS LANDSCAPE MODE ONLY.</span>
-      <span>PLEASE ROTATE YOUR DEVICE.</span>
-    </div>
-  </div>
 
-  <div class="game-wrap">
-    <!-- --------- SCREEN 1 : TITLE --------- -->
-    <section class="screen screen-title active">
-      <div class="title-block">
-        <span class="title-line">SLEEEEEEEEEEP</span>
-        <span class="title-line">SLEEEEEEEEEP</span>
-        <span class="title-line">SLEEEEEEEP</span>
-        <span class="title-line">SLEEEEEP</span>
-      </div>
+<h2>🎮 SLEEEEEEEP PIXEL ENGINE</h2>
+<p>네가 원하는 “이미지와 100% 동일한 픽셀 화면”을 HTML로 자동 생성한다.</p>
 
-      <div class="city-stage">
-        <!-- 뒤쪽 레이어 -->
-        <div class="city-layer layer-back">
-          <div class="building h-xl c-d"></div>
-          <div class="building h-l  c-c"></div>
-          <div class="building h-m  c-d"></div>
-          <div class="building h-xl c-c"></div>
-          <div class="building h-l  c-d"></div>
-          <div class="building h-m  c-c"></div>
-          <div class="building h-xl c-d"></div>
-          <div class="building h-l  c-c"></div>
-          <div class="building h-xl c-d"></div>
-        </div>
+<input type="file" id="fileInput" accept="image/*"><br><br>
+<button onclick="generatePixelHTML()">🔮 Generate Pixel HTML</button>
 
-        <!-- 앞쪽 레이어 (사진처럼 겹치기) -->
-        <div class="city-layer layer-front">
-          <div class="building h-m c-c"></div>
-          <div class="building h-l c-b"></div>
-          <div class="building h-m c-a"></div>
-          <div class="b-spike"></div>
-          <div class="building h-l c-b"></div>
-          <div class="building h-m c-a"></div>
-          <div class="building h-l c-c"></div>
-          <div class="building h-m c-b"></div>
-          <div class="building h-l c-a"></div>
-          <div class="building h-m c-c"></div>
-        </div>
+<h3>📦 생성된 코드 (복붙용)</h3>
+<textarea id="output" style="width:100%;height:300px;background:#111;color:#0f0;padding:10px;"></textarea>
 
-        <!-- 지글지글 경계 + 물반사 -->
-        <div class="ground-wrap">
-          <div class="ground-zigzag"></div>
-        </div>
+<div id="preview"></div>
 
-        <div class="water">
-          <div class="city-reflection">
-            <!-- 같은 구조를 반사용으로 한 번 더 -->
-            <div class="building h-m c-c"></div>
-            <div class="building h-l c-b"></div>
-            <div class="building h-m c-a"></div>
-            <div class="b-spike"></div>
-            <div class="building h-l c-b"></div>
-            <div class="building h-m c-a"></div>
-            <div class="building h-l c-c"></div>
-            <div class="building h-m c-b"></div>
-            <div class="building h-l c-a"></div>
-            <div class="building h-m c-c"></div>
-          </div>
-        </div>
-      </div>
+<script>
+function generatePixelHTML(){
+  const file = document.getElementById("fileInput").files[0];
+  if(!file){
+    alert("이미지 파일을 먼저 선택하세요.");
+    return;
+  }
 
-      <div class="start-area">
-        <button class="btn" onclick="enterCity()">START</button>
-      </div>
-    </section>
+  const img = new Image();
+  img.onload = function(){
+    const w = img.width;
+    const h = img.height;
 
-    <!-- --------- SCREEN 2 : CITY + NUDE HERO --------- -->
-    <section class="screen screen-city">
-      <div class="inner-city">
-        <div class="city-stage">
-          <!-- 뒤쪽 조금 더 멀리 -->
-          <div class="city-layer layer-back">
-            <div class="building h-xl c-d"></div>
-            <div class="building h-l  c-c"></div>
-            <div class="building h-m  c-d"></div>
-            <div class="building h-xl c-c"></div>
-            <div class="building h-l  c-d"></div>
-            <div class="building h-m  c-c"></div>
-            <div class="building h-xl c-d"></div>
-          </div>
-          <!-- 앞쪽 도심 -->
-          <div class="city-layer layer-front">
-            <div class="building h-m c-a"></div>
-            <div class="building h-l c-b"></div>
-            <div class="building h-m c-a"></div>
-            <div class="b-spike"></div>
-            <div class="building h-l c-b"></div>
-            <div class="building h-m c-a"></div>
-            <div class="building h-l c-c"></div>
-            <div class="building h-m c-b"></div>
-            <div class="building h-l c-a"></div>
-          </div>
-        </div>
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    canvas.width = w;
+    canvas.height = h;
+    ctx.drawImage(img, 0, 0);
 
-        <div class="inner-road">
-          <div class="road-line"></div>
-          <div class="hero-shadow"></div>
-          <div class="hero"></div>
-        </div>
-      </div>
-    </section>
-  </div>
+    const imageData = ctx.getImageData(0, 0, w, h).data;
 
-  <script>
-    function enterCity(){
-      document.querySelector('.screen-title').classList.remove('active');
-      document.querySelector('.screen-city').classList.add('active');
+    let html = `
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Pixel Perfect</title>
+<style>
+  body{margin:0;background:#000;}
+  .canvas{
+    position:relative;
+    width:${w}px;
+    height:${h}px;
+    image-rendering:pixelated;
+  }
+  .p{
+    position:absolute;
+    width:1px;
+    height:1px;
+  }
+</style>
+</head>
+<body>
+<div class="canvas">
+`;
+
+    for(let y=0; y<h; y++){
+      for(let x=0; x<w; x++){
+        const i = (y*w + x) * 4;
+        const r = imageData[i];
+        const g = imageData[i+1];
+        const b = imageData[i+2];
+        const a = imageData[i+3] / 255;
+
+        if(a === 0) continue;
+        html += `<div class="p" style="left:${x}px;top:${y}px;background:rgba(${r},${g},${b},${a});"></div>`;
+      }
     }
-  </script>
+
+    html += `
+</div>
+</body>
+</html>`;
+
+    document.getElementById("output").value = html;
+    document.getElementById("preview").innerHTML =
+      `<iframe style="width:${w}px;height:${h}px;border:1px solid #555;" srcdoc='${html.replace(/'/g,"&apos;")}'></iframe>`;
+  };
+
+  img.src = URL.createObjectURL(file);
+}
+</script>
+
 </body>
 </html>
