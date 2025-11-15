@@ -31,7 +31,7 @@
     -webkit-tap-highlight-color:transparent;
   }
 
-  /* 세로 모드일 때는 안내문만 */
+  /* 세로 모드 경고 */
   .rotate-warning{
     position:fixed;
     inset:0;
@@ -45,14 +45,12 @@
     z-index:1000;
     font-size:18px;
   }
-
   @media (orientation:portrait){
     .rotate-warning{display:flex;}
     .game-shell{display:none;}
   }
 
   /* ===== 팝업 게임 창 ===== */
-
   .game-shell{
     width:100vw;
     height:100vh;
@@ -60,35 +58,33 @@
     align-items:center;
     justify-content:center;
   }
-
   .game-popup{
     position:relative;
     width:92vw;
     max-width:980px;
     aspect-ratio:16/9;
-    background:#22252b;
+    background:#1e2026;
     border-radius:16px;
-    box-shadow:0 0 40px rgba(0,0,0,0.85);
+    box-shadow:0 0 40px rgba(0,0,0,0.9);
     overflow:hidden;
-    border:4px solid #08090b;
+    border:4px solid #050609;
   }
-
   .game-root{
     position:absolute;
     inset:0;
-    background:#b5c1cf;
+    background:#c4cad4;
     overflow:hidden;
+    image-rendering:pixelated;
   }
 
   /* ===== 하늘 ===== */
   .sky{
     position:absolute;
     inset:0;
-    background:linear-gradient(to bottom,#d6dde8 0 55%,#b5c1cf 55% 100%);
+    background:linear-gradient(to bottom,#e1e4ec 0 55%,#c4cad4 55% 100%);
   }
 
-  /* ===== 시티 3 레이어 (참고 이미지 3개 섞은 느낌) ===== */
-
+  /* ===== 시티 3 레이어 ===== */
   .city{
     position:absolute;
     left:0;
@@ -97,78 +93,74 @@
     top:0;
     overflow:hidden;
   }
-
   .city-layer{
     position:absolute;
     left:0;
     right:0;
     bottom:0;
-    top:8%;
+    top:10%;
     opacity:0.95;
     image-rendering:pixelated;
   }
-
-  /* 가장 뒤 회색/카키 톤 */
+  /* 뒤 회색/카키 */
   .city-far{
     background:
       repeating-linear-gradient(
         to right,
-        #858b93 0 26px,
-        #858b93 26px 52px,
-        transparent 52px 60px
+        #8c939b 0 24px,
+        #8c939b 24px 48px,
+        transparent 48px 56px
       ),
       repeating-linear-gradient(
         to right,
-        #9fa59c 0 30px,
-        #9fa59c 30px 60px,
-        transparent 60px 70px
+        #a4aa9f 0 28px,
+        #a4aa9f 28px 56px,
+        transparent 56px 66px
       );
-    background-size: 220px 100%, 260px 100%;
+    background-size: 210px 100%, 260px 100%;
     animation: cityScrollFar 55s linear infinite;
   }
-
-  /* 중간 보라/핑크 톤 */
+  /* 중간 보라/파스텔 */
   .city-mid{
     background:
       repeating-linear-gradient(
         to right,
-        #7b6fa8 0 26px,
-        #7b6fa8 26px 52px,
-        transparent 52px 60px
+        #8682a6 0 24px,
+        #8682a6 24px 48px,
+        transparent 48px 56px
       ),
       repeating-linear-gradient(
         to right,
-        #c89bc2 0 30px,
-        #c89bc2 30px 60px,
-        transparent 60px 70px
+        #b7a2c4 0 28px,
+        #b7a2c4 28px 56px,
+        transparent 56px 66px
       );
-    background-size: 200px 100%, 240px 100%;
+    background-size: 190px 100%, 230px 100%;
     animation: cityScrollMid 40s linear infinite;
     mix-blend-mode:multiply;
   }
-
-  /* 앞쪽 컬러풀 빌딩 */
+  /* 앞쪽 컬러풀 빌딩 (저채도) */
   .city-near{
     background:
       repeating-linear-gradient(
         to right,
-        #4aa36a 0 26px,
-        #4aa36a 26px 48px,
-        transparent 48px 60px
+        #5c8f72 0 24px,
+        #5c8f72 24px 46px,
+        transparent 46px 56px
       ),
       repeating-linear-gradient(
         to right,
-        #ee5f7b 0 26px,
-        #ee5f7b 26px 48px,
-        transparent 48px 60px
+        #c96f85 0 24px,
+        #c96f85 24px 46px,
+        transparent 46px 56px
       ),
       repeating-linear-gradient(
         to right,
-        #3a7ec0 0 30px,
-        #3a7ec0 30px 56px,
-        transparent 56px 68px
+        #647ea3 0 26px,
+        #647ea3 26px 50px,
+        transparent 50px 60px
       );
-    background-size: 210px 100%, 250px 100%, 230px 100%;
+    background-size: 200px 100%, 240px 100%, 220px 100%;
     animation: cityScrollNear 28s linear infinite;
   }
 
@@ -185,8 +177,7 @@
     100%{background-position:-220px 0,-280px 0,-250px 0;}
   }
 
-  /* ===== 수풀 라인 ===== */
-
+  /* ===== 수풀 ===== */
   .bush-band{
     position:absolute;
     left:0;
@@ -196,10 +187,10 @@
     background:
       repeating-linear-gradient(
         to right,
-        #063616 0 8px,
-        #063616 8px 12px,
-        #09521f 12px 18px,
-        #0f6b28 18px 24px
+        #1e3821 0 8px,
+        #1e3821 8px 12px,
+        #25532b 12px 18px,
+        #2b6935 18px 24px
       );
     box-shadow:0 -4px 0 rgba(0,0,0,0.5);
   }
@@ -207,16 +198,15 @@
   /* ===== 도로 ===== */
   .road{
     position:absolute;
-    left:4%;
-    right:4%;
-    bottom:4%;
+    left:5%;
+    right:5%;
+    bottom:5%;
     top:60%;
-    background:#595b60;
+    background:#5b5d62;
     border-radius:10px;
-    box-shadow:0 0 0 4px #22252b;
+    box-shadow:0 0 0 4px #272a31;
     overflow:hidden;
   }
-
   .road-edge-top,
   .road-edge-bottom{
     position:absolute;
@@ -226,15 +216,14 @@
     background:
       repeating-linear-gradient(
         to right,
-        #ededed 0 6px,
-        #ededed 6px 12px,
-        #444 12px 18px
+        #e9e9e9 0 6px,
+        #e9e9e9 6px 12px,
+        #464646 12px 18px
       );
   }
   .road-edge-top{top:0;}
   .road-edge-bottom{bottom:0;}
 
-  /* 차선 */
   .lane{
     position:absolute;
     left:0;
@@ -244,14 +233,13 @@
       repeating-linear-gradient(
         to right,
         transparent 0 26px,
-        #f6f6f6 26px 42px
+        #f3f3f3 26px 42px
       );
   }
   .lane.mid{ top:46%; }
   .lane.low{ top:72%; opacity:0.7; }
 
   /* ===== 가로등 ===== */
-
   .lamps{
     position:absolute;
     left:0;
@@ -260,13 +248,12 @@
     height:32%;
     pointer-events:none;
   }
-
   .lamp{
     position:absolute;
     bottom:10%;
     width:6px;
     height:60%;
-    background:#41444a;
+    background:#43454b;
     box-shadow:0 0 0 2px #2b2e32;
   }
   .lamp::before{
@@ -277,31 +264,30 @@
     width:6px;
     height:18px;
     transform:translateX(-50%);
-    background:#41444a;
+    background:#43454b;
   }
   .lamp::after{
     content:'';
     position:absolute;
     left:50%;
-    top:-28px;
-    width:20px;
-    height:20px;
+    top:-26px;
+    width:18px;
+    height:18px;
     transform:translateX(-50%);
     border-radius:50%;
-    background:radial-gradient(circle at 30% 25%,#ffffcc 0,#ffe66b 40%,#ffc800 70%,#fbc600 100%);
-    box-shadow:0 0 16px rgba(255,232,120,0.8);
+    background:radial-gradient(circle at 30% 25%,#ffffcc 0,#f6ea9a 40%,#f4d96b 70%,#ebc850 100%);
+    box-shadow:0 0 14px rgba(247,232,150,0.75);
   }
 
   /* ===== 자동차 ===== */
-
   .car{
     position:absolute;
     bottom:24%;
-    width:42px;
-    height:24px;
-    background:#ffc83b;
+    width:40px;
+    height:22px;
+    background:#e9c35c;
     border-radius:8px 8px 4px 4px;
-    border:3px solid #333;
+    border:3px solid #323232;
     box-shadow:0 3px 0 rgba(0,0,0,0.6);
     animation: carMove 6.5s linear infinite;
   }
@@ -317,21 +303,18 @@
   }
   .car::before{ left:4px; }
   .car::after{ right:4px; }
-
   .car.front{
     bottom:38%;
-    transform:scale(0.85);
-    animation-duration:5.2s;
-    animation-delay:-2s;
+    transform:scale(0.9);
+    animation-duration:5.1s;
+    animation-delay:-2.1s;
   }
-
   @keyframes carMove{
     0%{ transform:translateX(-60px) scale(var(--scale,1)); }
-    100%{ transform:translateX(110% ) scale(var(--scale,1)); }
+    100%{ transform:translateX(110%) scale(var(--scale,1)); }
   }
 
-  /* ===== 타이틀 오버레이 ===== */
-
+  /* ===== 타이틀 ===== */
   .title-screen{
     position:absolute;
     inset:0;
@@ -345,7 +328,6 @@
     padding:20px;
     z-index:10;
   }
-
   .title-lines{
     font-family:monospace;
     font-size:clamp(18px,3.4vmin,28px);
@@ -357,13 +339,12 @@
   .title-lines span{
     display:block;
   }
-
   .btn{
     display:inline-block;
     padding:10px 30px;
     border-radius:999px;
     border:3px solid #111;
-    background:#ffd666;
+    background:#f3c86c;
     color:#111;
     font-weight:600;
     font-size:16px;
@@ -375,8 +356,7 @@
     box-shadow:0 2px 0 #111;
   }
 
-  /* ===== 대화 상자 ===== */
-
+  /* ===== 대화 상자 (타자 효과) ===== */
   .dialog-layer{
     position:absolute;
     left:50%;
@@ -385,7 +365,7 @@
     width:90%;
     max-width:640px;
     padding:12px 16px;
-    background:rgba(13,14,18,0.95);
+    background:rgba(15,16,20,0.97);
     border:3px solid #ffffff;
     box-shadow:0 4px 0 rgba(0,0,0,0.8);
     border-radius:10px;
@@ -395,19 +375,20 @@
     gap:12px;
     color:#f5f5f5;
     font-size:15px;
+    font-family:monospace;
   }
-
   .dialog-text{
     flex:1;
     text-align:left;
+    min-height:1.4em;
+    white-space:pre-wrap;
   }
-
   .dialog-btn{
     flex-shrink:0;
     padding:6px 12px;
     border-radius:8px;
     border:2px solid #fff;
-    background:#ffb84d;
+    background:#f0ad4b;
     color:#111;
     font-size:13px;
     font-weight:600;
@@ -449,22 +430,19 @@
         <div class="lane low"></div>
 
         <div class="lamps">
-          <!-- 가로등 여러 개 -->
-          <div class="lamp" style="left:6%;"></div>
-          <div class="lamp" style="left:18%;"></div>
-          <div class="lamp" style="left:30%;"></div>
-          <div class="lamp" style="left:42%;"></div>
-          <div class="lamp" style="left:54%;"></div>
-          <div class="lamp" style="left:66%;"></div>
-          <div class="lamp" style="left:78%;"></div>
-          <div class="lamp" style="left:90%;"></div>
+          <div class="lamp" style="left:7%;"></div>
+          <div class="lamp" style="left:22%;"></div>
+          <div class="lamp" style="left:37%;"></div>
+          <div class="lamp" style="left:52%;"></div>
+          <div class="lamp" style="left:67%;"></div>
+          <div class="lamp" style="left:82%;"></div>
         </div>
 
         <div class="car" style="--scale:1;"></div>
         <div class="car front" style="--scale:0.9;"></div>
       </div>
 
-      <!-- 타이틀 오버레이 -->
+      <!-- 타이틀 -->
       <div class="title-screen" id="title">
         <div class="title-lines">
           <span>SLEEEEEEEEEEP</span>
@@ -480,6 +458,9 @@
         <div class="dialog-text" id="dialogText"></div>
         <button class="dialog-btn" id="dialogNext">NEXT</button>
       </div>
+
+      <!-- 도시 앰비언스 BGM (src를 실제 파일로 교체) -->
+      <audio id="bgm" src="city-ambience.mp3" loop></audio>
     </div>
   </div>
 </div>
@@ -492,6 +473,8 @@
   const dialogText  = document.getElementById('dialogText');
   const dialogNext  = document.getElementById('dialogNext');
 
+  const bgm = document.getElementById('bgm');
+
   const lines = [
     '안녕?',
     '여행은 어때?',
@@ -499,27 +482,60 @@
     '우선 어디 편한 곳에 자리를 잡고 앉아봐.'
   ];
   let idx = 0;
+  let typing = false;
+
+  function typeLine(text){
+    dialogText.textContent = '';
+    typing = true;
+    dialogNext.disabled = true;
+    dialogNext.style.opacity = 0.5;
+
+    let i = 0;
+    const speed = 55; // ms per char
+
+    const timer = setInterval(()=>{
+      dialogText.textContent += text[i];
+      i++;
+      if(i >= text.length){
+        clearInterval(timer);
+        typing = false;
+        dialogNext.disabled = false;
+        dialogNext.style.opacity = 1;
+
+        // 마지막 문장이면 버튼 문구 바꾸기
+        if(idx === lines.length - 1){
+          dialogNext.textContent = 'OK';
+        }else{
+          dialogNext.textContent = 'NEXT';
+        }
+      }
+    }, speed);
+  }
 
   function showLine(i){
-    dialogText.textContent = lines[i];
     dialogLayer.style.display = 'flex';
+    typeLine(lines[i]);
   }
 
   startBtn.addEventListener('click', () => {
     titleEl.style.display = 'none';
     idx = 0;
     showLine(idx);
+
+    // 첫 상호작용에서 BGM 재생 (브라우저 자동재생 정책 대응)
+    if(bgm && bgm.paused){
+      bgm.volume = 0.7;
+      bgm.play().catch(()=>{ /* 무시 */ });
+    }
   });
 
   dialogNext.addEventListener('click', () => {
+    if(typing) return; // 타이핑 중에는 스킵 방지
     idx++;
     if(idx < lines.length){
       showLine(idx);
-      if(idx === lines.length - 1){
-        dialogNext.textContent = 'OK';
-      }
     }else{
-      // 마지막 이후엔 버튼만 죽여두기
+      // 마지막 이후에는 버튼만 비활성화
       dialogNext.disabled = true;
       dialogNext.style.opacity = 0.5;
     }
