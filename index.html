@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>Cube Room – EXIT Demo</title>
+<title>Minimal Cube Room</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <link rel="manifest" href="manifest.json">
@@ -26,6 +26,7 @@
     color:#fff;
   }
 
+  /* 가로 모드 안내 */
   .rotate-warning{
     position:fixed;
     inset:0;
@@ -58,6 +59,7 @@
     .game-root{display:block;}
   }
 
+  /* 카메라 팬 */
   .world{
     position:absolute;
     left:50%;
@@ -76,47 +78,47 @@
     pointer-events:none;
   }
 
-  /* ====== 정육면체 내부 (위·앞면 제거) ====== */
+  /* ========= 정육면체에서 윗면·뒷면을 뺀 4면: 바닥 + 정면 + 좌·우 ========= */
 
   .room{
     position:absolute;
     left:50%;
-    top:55%;
-    width:400px;
+    top:52%;
+    width:420px;
     height:280px;
-    transform:translate(-50%,-50%) scale(0.7); /* 멀리서 보는 느낌 */
+    transform:translate(-50%,-50%) scale(0.8); /* 멀리서 보는 뷰 */
     transform-origin:center center;
   }
 
-  /* 바닥 */
+  /* 바닥 (앞쪽이 넓은 사다리꼴) */
   .floor{
     position:absolute;
     left:50%;
-    bottom:0;
+    bottom:25px;
     width:280px;
-    height:140px;
+    height:120px;
     transform:translateX(-50%) skewX(-20deg);
     background:#ffffff;
     border:4px solid #000;
-    box-shadow:0 14px 0 #000;
+    box-shadow:0 10px 0 #000;
   }
   .scene-roomB .floor{
     background:#ffeaea;
   }
 
-  /* 뒷벽 */
-  .wall-back{
+  /* 정면 벽 (카메라 쪽을 향하는 벽) */
+  .wall-front{
     position:absolute;
     left:50%;
-    bottom:140px;
-    width:280px;
-    height:150px;
-    transform:translateX(-50%) skewX(-20deg);
+    bottom:145px;
+    width:260px;
+    height:140px;
+    transform:translateX(-50%);
     background:#f7f7f7;
     border:4px solid #000;
-    box-shadow:0 10px 0 #000;
+    box-shadow:0 8px 0 #000;
   }
-  .scene-roomB .wall-back{
+  .scene-roomB .wall-front{
     background:#f9e2e2;
   }
 
@@ -124,9 +126,9 @@
   .wall-left{
     position:absolute;
     right:50%;
-    bottom:70px;
+    bottom:55px;
     width:80px;
-    height:190px;
+    height:210px;
     transform-origin:right bottom;
     transform:skewY(-18deg);
     background:#f3f3f3;
@@ -141,9 +143,9 @@
   .wall-right{
     position:absolute;
     left:50%;
-    bottom:70px;
+    bottom:55px;
     width:80px;
-    height:190px;
+    height:210px;
     transform-origin:left bottom;
     transform:skewY(18deg);
     background:#f3f3f3;
@@ -154,14 +156,14 @@
     background:#f5dddd;
   }
 
-  /* 문 (뒷벽 중앙) */
+  /* 문 – 정면 벽 중앙 */
   .door{
     position:absolute;
     left:50%;
-    bottom:140px;
+    top:50%;
     width:70px;
     height:80px;
-    transform:translateX(-50%) skewX(-20deg);
+    transform:translate(-50%,-50%);
     background:#000;
     border:4px solid #000;
     display:flex;
@@ -169,7 +171,6 @@
     justify-content:center;
   }
   .door span{
-    transform:skewX(20deg);
     color:#fff;
     font-size:12px;
     letter-spacing:0.25em;
@@ -177,7 +178,7 @@
     font-weight:700;
   }
 
-  /* 플레이어 */
+  /* 플레이어 (바닥 위) */
   .player{
     position:absolute;
     width:24px;
@@ -229,6 +230,7 @@
     letter-spacing:0.08em;
   }
 
+  /* 조이스틱 – 왼쪽 아래 */
   .joystick{
     position:absolute;
     left:40px;
@@ -315,7 +317,7 @@
   </div>
 
   <div class="log" id="log">
-    정육면체의 안쪽 4면(바닥·뒷벽·좌·우) 안입니다. 조이스틱으로 움직여서 뒷벽 중앙 EXIT 문까지 걸어가 보세요.
+    바닥·정면·좌·우 네 면으로 된 큐브 안입니다. 조이스틱으로 움직여서 정면 중앙 EXIT 문까지 걸어가 보세요.
   </div>
 
   <div class="fade-overlay" id="fade"></div>
@@ -328,9 +330,10 @@
   const logEl     = document.getElementById('log');
   const fadeEl    = document.getElementById('fade');
 
+  /* 두 개의 방 – 구조는 같고 색감만 다름 */
   const scenes = {
-    roomA:{ key:'roomA', door:{x:0, y:-0.6}, limitX:1.0, limitY:1.0 },
-    roomB:{ key:'roomB', door:{x:0, y:-0.6}, limitX:1.0, limitY:1.0 }
+    roomA:{ key:'roomA', door:{x:0, y:-0.4}, limitX:1.0, limitY:1.0 },
+    roomB:{ key:'roomB', door:{x:0, y:-0.4}, limitX:1.0, limitY:1.0 }
   };
 
   let currentSceneKey = 'roomA';
@@ -344,19 +347,20 @@
     room.className = 'room';
     room.innerHTML = `
       <div class="floor"></div>
-      <div class="wall-back"></div>
+      <div class="wall-front">
+        <div class="door"><span>EXIT</span></div>
+      </div>
       <div class="wall-left"></div>
       <div class="wall-right"></div>
-      <div class="door"><span>EXIT</span></div>
     `;
     sceneEl.appendChild(room);
   }
 
   /* 바닥 평면 좌표계: x,y ∈ [-1,1] */
   let playerX = 0;
-  let playerY = 0.4;
-  let velX = 0, velY = 0;
+  let playerY = 0.5; // 카메라와 문 사이 어딘가
   const speed = 1.5;
+  let joyVector = {x:0,y:0};
 
   function clampToRoom(){
     const lx = currentScene.limitX;
@@ -366,8 +370,8 @@
   }
 
   function worldToScreen(x, y){
-    const baseX = 400;
-    const baseY = 330;
+    const baseX = 400;  // 바닥 중앙
+    const baseY = 310;
     const sx = baseX + x * 120;
     const sy = baseY + y * 80;
     return { x:sx, y:sy };
@@ -388,6 +392,7 @@
     document.documentElement.style.setProperty('--camY', camY + 'px');
   }
 
+  /* 문 진입 */
   let doorHintEl = null;
   let isTransitioning = false;
 
@@ -434,15 +439,16 @@
       currentSceneKey = key;
       currentScene    = scenes[currentSceneKey];
       buildScene();
+
       playerX = 0;
-      playerY = 0.4;
+      playerY = 0.5;
       clampToRoom();
       updatePlayerVisual();
 
       logEl.textContent =
         key === 'roomA'
-        ? '첫 번째 큐브 방입니다. EXIT 쪽으로 걸어가면 두 번째 방으로 넘어갑니다.'
-        : '두 번째 큐브 방입니다. EXIT 문으로 다시 걸어가면 첫 방으로 돌아옵니다.';
+        ? '첫 번째 큐브 방입니다. EXIT 쪽으로 걸어가면 두 번째 방으로 이동합니다.'
+        : '두 번째 큐브 방입니다. EXIT 문으로 걸어가면 첫 방으로 돌아옵니다.';
 
       fadeEl.classList.remove('active');
       isTransitioning = false;
@@ -454,7 +460,6 @@
   const joystickKnob = document.getElementById('joystickKnob');
   let joyActive = false;
   let joyCenter = {x:0,y:0};
-  let joyVector = {x:0,y:0};
   const joyMaxRadius = 45;
 
   function setJoyVector(cx, cy){
@@ -518,7 +523,6 @@
     if(e.key === 'ArrowLeft')  joyVector.x = -1;
     if(e.key === 'ArrowRight') joyVector.x =  1;
   });
-
   window.addEventListener('keyup', e=>{
     if(['ArrowUp','ArrowDown'].includes(e.key)) joyVector.y = 0;
     if(['ArrowLeft','ArrowRight'].includes(e.key)) joyVector.x = 0;
