@@ -2,14 +2,19 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>Flat Floor + Door</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-
-<link rel="manifest" href="manifest.json">
+<title>Flat Floor + Red Door + Stone</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="SLEEP-ROOM">
 <meta name="theme-color" content="#000000">
 
 <style>
-  *{box-sizing:border-box;margin:0;padding:0;}
+  *{
+    box-sizing:border-box;
+    margin:0;
+    padding:0;
+  }
 
   :root{
     --camX: 0px;
@@ -24,9 +29,14 @@
     justify-content:center;
     align-items:center;
     color:#fff;
+
+    /* 선택/복사/파란 하이라이트 방지 */
+    -webkit-user-select:none;
+    user-select:none;
+    -webkit-touch-callout:none;
+    -webkit-tap-highlight-color:transparent;
   }
 
-  /* 가로 모드 안내 */
   .rotate-warning{
     position:fixed;
     inset:0;
@@ -49,6 +59,11 @@
     overflow:hidden;
     border-radius:16px;
     box-shadow:0 0 40px rgba(0,0,0,0.8);
+
+    -webkit-user-select:none;
+    user-select:none;
+    -webkit-touch-callout:none;
+    -webkit-tap-highlight-color:transparent;
   }
 
   @media (orientation:portrait){
@@ -77,7 +92,7 @@
     pointer-events:none;
   }
 
-  /* ============ 평면 직사각형 바닥만 남긴 공간 ============ */
+  /* ================== SCENE 1 & 2 공통: 넓은 직사각형 바닥 ================== */
 
   .room{
     position:absolute;
@@ -89,7 +104,6 @@
     transform-origin:center center;
   }
 
-  /* 넓은 바닥: 완전 직각 사각형 */
   .floor{
     position:absolute;
     left:50%;
@@ -102,25 +116,101 @@
     box-shadow:0 10px 0 #000;
   }
 
-  /* 검정 사각형 문 (바닥 위 아무 데나) */
-  .door-block{
-    position:absolute;
-    /* 바닥 안에서의 위치를 퍼센트로 잡음 */
-    left:70%;
-    top:40%;
-    width:80px;
-    height:140px;
-    transform:translate(-50%,-50%);
-    background:#000;
-    box-shadow:0 4px 0 rgba(0,0,0,0.6);
+  .scene-room2 .floor{
+    background:#fff5f5; /* 두번째 방은 살짝 붉은 바닥 */
   }
 
-  /* SLEEEEEP 느낌 캐릭터: 주황 몸통 */
+  /* ============ SCENE 1: 빨간 문 ============ */
+
+  .door-block{
+    position:absolute;
+    /* 바닥 오른쪽 위 끝 쪽 */
+    left:86%;
+    top:18%;
+    width:70px;
+    height:120px;
+    transform:translate(-50%,-50%);
+    background:#d60000;
+    box-shadow:4px 4px 0 rgba(0,0,0,0.6);
+    border-radius:4px;
+  }
+  .door-block::after{
+    content:'';
+    position:absolute;
+    right:-6px;
+    top:10px;
+    width:6px;
+    height:90px;
+    background:#7a0000; /* 문 두께 */
+  }
+
+  /* ============ SCENE 2: 붉은 비석 + 선베드/파라솔 ============ */
+
+  .stone{
+    position:absolute;
+    left:50%;
+    top:45%;
+    width:90px;
+    height:220px;
+    transform:translate(-50%,-50%);
+    background:linear-gradient(to bottom,#5c4f46 0 55%, #c00000 55% 100%);
+    border-radius:46px 46px 30px 30px;
+    border:4px solid #000;
+    box-shadow:0 10px 0 rgba(0,0,0,0.5);
+  }
+
+  /* 선베드 + 파라솔 세트 */
+  .lounger{
+    position:absolute;
+    width:80px;
+    height:26px;
+    background:#ffffff;
+    border-radius:16px;
+    border:3px solid #000;
+    box-shadow:0 4px 0 rgba(0,0,0,0.35);
+  }
+  .lounger::after{
+    /* 쿠션 라인 */
+    content:'';
+    position:absolute;
+    inset:5px 8px;
+    border-radius:12px;
+    border:2px solid #000;
+    opacity:0.4;
+  }
+
+  .umbrella{
+    position:absolute;
+    width:60px;
+    height:60px;
+    border-radius:50%;
+    background:#ffdfdf;
+    border:3px solid #000;
+    box-shadow:0 4px 0 rgba(0,0,0,0.35);
+  }
+  .umbrella::after{
+    /* 기둥 */
+    content:'';
+    position:absolute;
+    left:50%;
+    top:55%;
+    width:4px;
+    height:40px;
+    transform:translateX(-50%);
+    background:#000;
+  }
+
+  /* SLEEEEEP 느낌 캐릭터 */
   .player{
     position:absolute;
     width:26px;
     height:46px;
     transform-origin:center bottom;
+
+    -webkit-user-select:none;
+    user-select:none;
+    -webkit-touch-callout:none;
+    -webkit-tap-highlight-color:transparent;
   }
   .player .head{
     position:absolute;
@@ -129,9 +219,9 @@
     width:18px;
     height:18px;
     transform:translateX(-50%);
-    border-radius:4px;            /* 살짝 네모난 머리 */
+    border-radius:4px;
     border:3px solid #000;
-    background:#ffd5a6;           /* 살구색 머리 */
+    background:#ffd5a6;
   }
   .player .body{
     position:absolute;
@@ -142,7 +232,7 @@
     transform:translateX(-50%);
     border-radius:4px;
     border:3px solid #000;
-    background:#ff8a3c;           /* 주황색 몸통 */
+    background:#ff8a3c;
   }
   .player .shadow{
     position:absolute;
@@ -163,6 +253,11 @@
     width:140px;
     height:140px;
     z-index:30;
+
+    -webkit-user-select:none;
+    user-select:none;
+    -webkit-touch-callout:none;
+    -webkit-tap-highlight-color:transparent;
   }
   .joystick-base{
     position:absolute;
@@ -200,6 +295,25 @@
     border-radius:6px;
     border:2px solid #000;
     z-index:40;
+
+    -webkit-user-select:none;
+    user-select:none;
+    -webkit-touch-callout:none;
+    -webkit-tap-highlight-color:transparent;
+  }
+
+  .fade-overlay{
+    position:absolute;
+    inset:0;
+    background:#000;
+    opacity:0;
+    pointer-events:none;
+    transition:opacity .4s ease;
+    z-index:50;
+  }
+  .fade-overlay.active{
+    opacity:1;
+    pointer-events:auto;
   }
 </style>
 </head>
@@ -228,35 +342,89 @@
   </div>
 
   <div class="log" id="log">
-    넓은 직사각형 바닥과 검정 문 하나가 있는 공간입니다. 조이스틱으로 돌아다녀 보세요.
+    흰 바닥 오른쪽 위의 <strong>빨간 문</strong>까지 걸어가면 붉은 비석이 있는 방으로 이동합니다.
   </div>
+
+  <div class="fade-overlay" id="fade"></div>
 </div>
 
 <script>
   const worldEl   = document.getElementById('world');
   const sceneEl   = document.getElementById('sceneLayer');
   const playerEl  = document.getElementById('player');
+  const logEl     = document.getElementById('log');
+  const fadeEl    = document.getElementById('fade');
+
+  /* 씬 정보 */
+  const scenes = {
+    room1:{
+      key:'room1',
+      hasDoor:true,
+      doorPos:{ x: 1.6, y: -1.6 }, // 오른쪽 위 근처
+    },
+    room2:{
+      key:'room2',
+      hasDoor:false
+    }
+  };
+
+  let currentSceneKey = 'room1';
+  let currentScene    = scenes[currentSceneKey];
 
   function buildScene(){
     sceneEl.innerHTML = '';
-    worldEl.className = 'world';
+    worldEl.className = 'world scene-' + currentSceneKey;
 
     const room = document.createElement('div');
     room.className = 'room';
-    room.innerHTML = `
-      <div class="floor"></div>
-      <div class="door-block"></div>
-    `;
+
+    const floor = document.createElement('div');
+    floor.className = 'floor';
+    room.appendChild(floor);
+
+    if(currentSceneKey === 'room1'){
+      const door = document.createElement('div');
+      door.className = 'door-block';
+      room.appendChild(door);
+    }else if(currentSceneKey === 'room2'){
+      const stone = document.createElement('div');
+      stone.className = 'stone';
+      room.appendChild(stone);
+
+      // 선베드 + 파라솔 8세트 배치
+      const spots = [
+        {x:25,y:20},{x:50,y:16},{x:75,y:20},
+        {x:25,y:80},{x:50,y:84},{x:75,y:80},
+        {x:12,y:50},{x:88,y:50}
+      ];
+      spots.forEach((s,i)=>{
+        const lounger = document.createElement('div');
+        lounger.className = 'lounger';
+        lounger.style.left = s.x + '%';
+        lounger.style.top  = s.y + '%';
+        lounger.style.transform = 'translate(-50%,-50%)';
+
+        const umb = document.createElement('div');
+        umb.className = 'umbrella';
+        umb.style.left = (s.x + (i<3?0: i<6?0 : (s.x<50?8:-8))) + '%';
+        umb.style.top  = (s.y - 18) + '%';
+        umb.style.transform = 'translate(-50%,-50%)';
+
+        room.appendChild(lounger);
+        room.appendChild(umb);
+      });
+
+      logEl.textContent = '붉은 비석과 선베드가 있는 방입니다. 천천히 걸어 다니며 공간을 둘러보세요.';
+    }
     sceneEl.appendChild(room);
   }
 
-  // 좌표계: x,y ∈ [-2,2] (넓은 평면)
+  /* 좌표계: x,y ∈ [-2,2] */
   let playerX = 0;
-  let playerY = 0;
+  let playerY = 0.4; // 살짝 아래쪽
   const limitX = 2.0;
   const limitY = 2.0;
   const speed  = 1.6;
-
   let joyVector = {x:0,y:0};
 
   function clampToFloor(){
@@ -268,7 +436,7 @@
     const baseX = 400; // 바닥 중앙
     const baseY = 260;
     const sx = baseX + x * 160; // 좌우
-    const sy = baseY + y * 80;  // 앞뒤
+    const sy = baseY + y * 80;  // 위/아래
     return { x:sx, y:sy };
   }
 
@@ -286,6 +454,39 @@
     const camY = diffY * 0.18;
     document.documentElement.style.setProperty('--camX', camX + 'px');
     document.documentElement.style.setProperty('--camY', camY + 'px');
+  }
+
+  /* 문 근처 접근 → 씬 전환 */
+  function checkDoor(){
+    if(!currentScene.hasDoor) return;
+    const dx = playerX - currentScene.doorPos.x;
+    const dy = playerY - currentScene.doorPos.y;
+    const dist = Math.hypot(dx, dy);
+    if(dist < 0.35){
+      goToScene('room2');
+    }
+  }
+
+  function goToScene(key){
+    fadeEl.classList.add('active');
+    setTimeout(()=>{
+      currentSceneKey = key;
+      currentScene    = scenes[currentSceneKey];
+      buildScene();
+
+      // 두번째 방에서는 중앙 근처에서 시작
+      if(key === 'room2'){
+        playerX = 0;
+        playerY = 1.0;
+      }else{
+        playerX = 0;
+        playerY = 0.4;
+      }
+      clampToFloor();
+      updatePlayerVisual();
+
+      fadeEl.classList.remove('active');
+    }, 350);
   }
 
   /* 조이스틱 */
@@ -349,7 +550,7 @@
     resetJoystick();
   });
 
-  // 키보드 테스트 (원하면 지워도 됨)
+  // 키보드 테스트용(원하면 삭제)
   window.addEventListener('keydown', e=>{
     if(e.key === 'ArrowUp')    joyVector.y = -1;
     if(e.key === 'ArrowDown')  joyVector.y =  1;
@@ -372,20 +573,16 @@
 
     clampToFloor();
     updatePlayerVisual();
+    checkDoor();
 
     requestAnimationFrame(loop);
   }
 
+  /* 초기화 */
   buildScene();
   clampToFloor();
   updatePlayerVisual();
   requestAnimationFrame(loop);
-
-  if('serviceWorker' in navigator){
-    window.addEventListener('load', ()=>{
-      navigator.serviceWorker.register('sw.js').catch(console.error);
-    });
-  }
 </script>
 
 </body>
