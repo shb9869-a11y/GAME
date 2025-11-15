@@ -1,115 +1,283 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="UTF-8">
-<title>Pixel Engine</title>
-<style>
-  body{
-    background:#000;
-    color:#fff;
-    font-family:monospace;
-    padding:20px;
-  }
-  canvas{display:none;}
-  .pixel-container{
-    position:relative;
-    image-rendering:pixelated;
-  }
-  .pixel{
-    position:absolute;
-    width:1px;
-    height:1px;
-  }
-  .screen-title, .screen-city{
-    display:none;
-  }
-</style>
-</head>
-<body>
+  <meta charset="utf-8" />
+  <meta name="viewport"
+        content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no" />
+  <title>SLEEEEEEEEEP</title>
 
-<h2>🎮 SLEEEEEEEP PIXEL ENGINE</h2>
-<p>네가 원하는 “이미지와 100% 동일한 픽셀 화면”을 HTML로 자동 생성한다.</p>
+  <!-- 픽셀 게임 느낌 폰트 -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 
-<input type="file" id="fileInput" accept="image/*"><br><br>
-<button onclick="generatePixelHTML()">🔮 Generate Pixel HTML</button>
-
-<h3>📦 생성된 코드 (복붙용)</h3>
-<textarea id="output" style="width:100%;height:300px;background:#111;color:#0f0;padding:10px;"></textarea>
-
-<div id="preview"></div>
-
-<script>
-function generatePixelHTML(){
-  const file = document.getElementById("fileInput").files[0];
-  if(!file){
-    alert("이미지 파일을 먼저 선택하세요.");
-    return;
-  }
-
-  const img = new Image();
-  img.onload = function(){
-    const w = img.width;
-    const h = img.height;
-
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
-    canvas.width = w;
-    canvas.height = h;
-    ctx.drawImage(img, 0, 0);
-
-    const imageData = ctx.getImageData(0, 0, w, h).data;
-
-    let html = `
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<title>Pixel Perfect</title>
-<style>
-  body{margin:0;background:#000;}
-  .canvas{
-    position:relative;
-    width:${w}px;
-    height:${h}px;
-    image-rendering:pixelated;
-  }
-  .p{
-    position:absolute;
-    width:1px;
-    height:1px;
-  }
-</style>
-</head>
-<body>
-<div class="canvas">
-`;
-
-    for(let y=0; y<h; y++){
-      for(let x=0; x<w; x++){
-        const i = (y*w + x) * 4;
-        const r = imageData[i];
-        const g = imageData[i+1];
-        const b = imageData[i+2];
-        const a = imageData[i+3] / 255;
-
-        if(a === 0) continue;
-        html += `<div class="p" style="left:${x}px;top:${y}px;background:rgba(${r},${g},${b},${a});"></div>`;
-      }
+  <style>
+    * , *::before , *::after{
+      box-sizing:border-box;
+      margin:0;
+      padding:0;
     }
 
-    html += `
+    html, body{
+      height:100%;
+      background:#14002a;
+      color:#f9f3ff;
+      font-family:"Press Start 2P", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    body{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+
+    #app{
+      width:100vw;
+      height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+
+    /* 실제 게임 프레임 */
+    .game-frame{
+      position:relative;
+      width:100vw;
+      height:100vh;
+      overflow:hidden;
+      background:linear-gradient(#2b1050 0 50%, #1d0634 50% 68%, #160024 68% 100%);
+    }
+
+    /* 세로모드 안내 */
+    .rotate-notice{
+      display:none;
+      width:100vw;
+      height:100vh;
+      background:#14002a;
+      color:#f9f3ff;
+      padding:24px;
+      text-align:center;
+      align-items:center;
+      justify-content:center;
+      line-height:1.6;
+      font-size:14px;
+    }
+
+    @media (orientation:portrait){
+      .game-frame{ display:none; }
+      .rotate-notice{ display:flex; flex-direction:column; gap:16px; }
+    }
+
+    @media (orientation:landscape){
+      .game-frame{ display:block; }
+      .rotate-notice{ display:none; }
+    }
+
+    /* 타이틀 텍스트 */
+    .title-stack{
+      position:absolute;
+      top:6vh;
+      left:50%;
+      transform:translateX(-50%);
+      text-align:center;
+      text-shadow:0 4px 0 rgba(0,0,0,0.65);
+      letter-spacing:0.12em;
+      font-size:clamp(18px,3.3vmin,28px);
+      line-height:1.4;
+    }
+
+    /* 도시 레이어 */
+    .city-wrap{
+      position:absolute;
+      left:50%;
+      bottom:24vh;
+      transform:translateX(-50%);
+      width:120vw; /* 양쪽으로 좀 더 넓게 */
+    }
+
+    .cityline,
+    .reflection{
+      display:flex;
+      align-items:flex-end;
+      justify-content:center;
+      gap:6px;
+    }
+
+    .building{
+      width:26px;
+      border-radius:2px 2px 0 0;
+      position:relative;
+      box-shadow:0 0 0 2px rgba(0,0,0,0.35);
+    }
+
+    .building::before{
+      content:"";
+      position:absolute;
+      inset:4px 6px 4px 6px;
+      background-image:
+        linear-gradient(#0000 0 30%, rgba(0,0,0,0.14) 30% 32%);
+      background-size:100% 10px;
+      image-rendering:pixelated;
+    }
+
+    /* 건물 높이 & 색 랜덤 느낌 */
+    .building:nth-child(4n+1){ height:120px; background:#e0b7ff; }
+    .building:nth-child(4n+2){ height:150px; background:#b38bff; }
+    .building:nth-child(4n+3){ height:100px; background:#d29cff; }
+    .building:nth-child(4n+4){ height:180px; background:#8c6adb; }
+
+    .building.tall{ height:210px; }
+    .building.short{ height:80px; }
+
+    /* 물과 경계 */
+    .water-edge{
+      width:100%;
+      height:10px;
+      margin-top:6px;
+      background:
+        repeating-linear-gradient(-45deg,
+          #000 0 4px,
+          #000 4px 8px,
+          #000000 8px 8px);
+      image-rendering:pixelated;
+    }
+
+    .water-surface{
+      position:absolute;
+      left:0;
+      right:0;
+      bottom:-19vh;
+      height:26vh;
+      background:linear-gradient(to bottom, #3a1b60 0%, #4d2c7a 40%, #5b3c88 100%);
+      opacity:0.85;
+    }
+
+    .reflection{
+      position:absolute;
+      left:50%;
+      bottom:2vh;
+      transform:translateX(-50%) scaleY(-1);
+      opacity:0.28;
+      filter:blur(1px);
+    }
+
+    /* START 버튼 */
+    .start-wrap{
+      position:absolute;
+      left:50%;
+      bottom:10vh;
+      transform:translateX(-50%);
+    }
+
+    .start-btn{
+      padding:1.1em 2.8em;
+      border:4px solid #f9f3ff;
+      background:#2b1050;
+      color:#f9f3ff;
+      font-size:clamp(16px,2.5vmin,22px);
+      letter-spacing:0.16em;
+      text-transform:uppercase;
+      box-shadow:0 6px 0 #00000090;
+      cursor:pointer;
+      image-rendering:pixelated;
+      transition:transform 0.08s ease-out, box-shadow 0.08s ease-out;
+    }
+
+    .start-btn:hover{
+      transform:translateY(2px);
+      box-shadow:0 4px 0 #00000090;
+    }
+
+    .start-btn:active{
+      transform:translateY(6px);
+      box-shadow:0 0 0 #00000090;
+    }
+  </style>
+</head>
+<body>
+<div id="app">
+  <!-- 가로 모드에서 보이는 게임 프리셋 화면 -->
+  <div class="game-frame">
+    <div class="title-stack">
+      <div>SLEEEEEEEEEEEP</div>
+      <div>SLEEEEEEEEEEP</div>
+      <div>SLEEEEEEEEP</div>
+      <div>SLEEEEEP</div>
+    </div>
+
+    <div class="city-wrap">
+      <div class="cityline">
+        <!-- 건물 가로로 많이 깔기 -->
+        <div class="building short"></div>
+        <div class="building"></div>
+        <div class="building tall"></div>
+        <div class="building"></div>
+        <div class="building short"></div>
+        <div class="building tall"></div>
+        <div class="building"></div>
+        <div class="building tall"></div>
+        <div class="building"></div>
+        <div class="building short"></div>
+        <div class="building"></div>
+        <div class="building tall"></div>
+        <div class="building"></div>
+        <div class="building short"></div>
+        <div class="building"></div>
+        <div class="building tall"></div>
+        <div class="building"></div>
+        <div class="building short"></div>
+        <div class="building tall"></div>
+        <div class="building"></div>
+      </div>
+
+      <div class="water-edge"></div>
+    </div>
+
+    <!-- 물과 반사 -->
+    <div class="water-surface"></div>
+    <div class="reflection">
+      <div class="building short"></div>
+      <div class="building"></div>
+      <div class="building tall"></div>
+      <div class="building"></div>
+      <div class="building short"></div>
+      <div class="building tall"></div>
+      <div class="building"></div>
+      <div class="building tall"></div>
+      <div class="building"></div>
+      <div class="building short"></div>
+      <div class="building"></div>
+      <div class="building tall"></div>
+      <div class="building"></div>
+      <div class="building short"></div>
+      <div class="building"></div>
+      <div class="building tall"></div>
+      <div class="building"></div>
+      <div class="building short"></div>
+      <div class="building tall"></div>
+      <div class="building"></div>
+    </div>
+
+    <div class="start-wrap">
+      <button id="startButton" class="start-btn">START</button>
+    </div>
+  </div>
+
+  <!-- 세로 모드에서만 보이는 안내 -->
+  <div class="rotate-notice">
+    <p>THIS GAME ONLY SUPPORTS LANDSCAPE MODE.</p>
+    <p>PLEASE ROTATE YOUR DEVICE.</p>
+  </div>
 </div>
-</body>
-</html>`;
 
-    document.getElementById("output").value = html;
-    document.getElementById("preview").innerHTML =
-      `<iframe style="width:${w}px;height:${h}px;border:1px solid #555;" srcdoc='${html.replace(/'/g,"&apos;")}'></iframe>`;
-  };
-
-  img.src = URL.createObjectURL(file);
-}
+<script>
+  // Start 버튼 클릭 시 실행될 부분
+  const startBtn = document.getElementById("startButton");
+  startBtn.addEventListener("click", () => {
+    // 여기에서 실제 게임 화면으로 넘어가는 코드를 붙이면 돼요.
+    // 예시: location.href = "game.html";
+    console.log("START!");
+  });
 </script>
-
 </body>
 </html>
