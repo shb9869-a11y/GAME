@@ -2,10 +2,10 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>SLEEEEP – White Room & Red Rock</title>
+<title>TOEM-style Island Demo</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<!-- PWA 기본: 홈 화면 추가용 (완전 풀스크린 아님) -->
+<!-- 홈 화면 추가용 (PWA 최소 설정) -->
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#000000">
 
@@ -28,7 +28,7 @@
     overscroll-behavior:none;
   }
 
-  /* 가로 모드 안내 (그래도 가로 위주로) */
+  /* 가로 모드 안내 */
   .rotate-warning{
     position:fixed;
     inset:0;
@@ -45,9 +45,9 @@
 
   .game-root{
     position:relative;
-    width: 800px;
-    height: 450px;
-    background:#111;
+    width: 900px;
+    height: 520px;
+    background:#cfd2d6; /* TOEM 느낌의 회색 하늘/물 */
     overflow:hidden;
     border-radius:16px;
     box-shadow:0 0 40px rgba(0,0,0,0.8);
@@ -61,13 +61,13 @@
     .game-root{display:block;}
   }
 
-  /* 월드: 카메라 무빙 */
+  /* 전체 월드 (카메라 pan) */
   .world{
     position:absolute;
     left:50%;
     top:55%;
-    width:520px;
-    height:320px;
+    width:800px;
+    height:480px;
     transform:translate(calc(-50% + var(--camX)),
                         calc(-50% + var(--camY)));
     transition:transform .18s ease-out;
@@ -80,121 +80,175 @@
     pointer-events:none;
   }
 
-  /* ===== 정육면체 방 구조 ===== */
+  /* ===== 섬 / 플랫폼 (TOEM식 공간) ===== */
 
-  /* 바닥: 정사각형을 약간 원근감 있게 눕힌 형태 */
-  .room-floor{
+  /* 큰 섬 바닥 */
+  .island{
     position:absolute;
     left:50%;
-    top:62%;
-    width:280px;
+    top:58%;
+    width:520px;
+    height:260px;
+    transform:translate(-50%,-50%) skewY(-26deg);
+    background:#f4f4f4;
+    border:4px solid #000;
+    box-shadow:0 22px 0 #000;
+  }
+  .island::after{
+    /* 주변에 잔잔한 물결 느낌 */
+    content:"";
+    position:absolute;
+    inset:-20px;
+    border:1px dashed rgba(0,0,0,0.15);
+    pointer-events:none;
+  }
+
+  /* 위쪽 높은 플랫폼 (집 있는 곳) */
+  .plateau{
+    position:absolute;
+    left:50%;
+    top:35%;
+    width:300px;
     height:160px;
     transform:translate(-50%,-50%) skewY(-26deg);
-    background:#ffffff;
+    background:#f7f7f7;
     border:4px solid #000;
     box-shadow:0 18px 0 #000;
   }
 
-  .scene-rock .room-floor{
-    background:#fdf6f6;
-  }
-
-  /* 뒤 벽: 정사각형 면 */
-  .room-wall-back{
+  /* 계단 램프(간단한 사다리꼴) */
+  .stairs{
     position:absolute;
     left:50%;
-    top:20%;
-    width:260px;
-    height:110px;
+    top:46%;
+    width:90px;
+    height:70px;
     transform:translate(-50%,-50%) skewY(-26deg);
-    background:#f7f7f7;
+    background:#e0e0e0;
+    border:3px solid #000;
+    box-shadow:0 8px 0 #000;
+  }
+
+  /* 집 */
+  .house{
+    position:absolute;
+    left:50%;
+    top:27%;
+    width:160px;
+    height:90px;
+    transform:translate(-50%,-50%) skewY(-26deg);
+    background:#fdfdfd;
     border:4px solid #000;
     box-shadow:0 12px 0 #000;
   }
-
-  /* 왼쪽 벽 */
-  .room-wall-left{
-    position:absolute;
-    left:16%;
-    top:40%;
-    width:120px;
-    height:110px;
-    transform:skewY(-26deg);
-    background:#f3f3f3;
-    border:4px solid #000;
-    box-shadow:0 8px 0 #000;
-  }
-
-  /* 오른쪽 벽 */
-  .room-wall-right{
-    position:absolute;
-    right:16%;
-    top:40%;
-    width:120px;
-    height:110px;
-    transform:skewY(-26deg);
-    background:#f3f3f3;
-    border:4px solid #000;
-    box-shadow:0 8px 0 #000;
-  }
-
-  /* 정육면체 느낌을 주기 위한 모서리 라인 (선택) */
-  .room-edge{
-    position:absolute;
-    background:#000;
-  }
-  .room-edge.e1{ /* 왼벽–바닥 모서리 */
-    left:19%;
-    top:58%;
-    width:2px;
-    height:90px;
-  }
-  .room-edge.e2{ /* 오른벽–바닥 모서리 */
-    right:19%;
-    top:58%;
-    width:2px;
-    height:90px;
-  }
-
-  /* EXIT 박스 (빨간 박스 + 흰 글자) – 뒷벽 중앙 */
-  .exit-box{
+  .house-roof{
     position:absolute;
     left:50%;
     top:16%;
-    width:110px;
-    height:48px;
-    transform:translateX(-50%) skewY(-26deg);
-    background:#c80000;
+    width:190px;
+    height:60px;
+    transform:translate(-50%,-50%) skewY(-26deg);
+    background:#333;
     border:4px solid #000;
-    box-shadow:0 8px 0 #000;
+  }
+
+  /* 집 문 (문으로 들어가는 포인트) */
+  .house-door{
+    position:absolute;
+    left:50%;
+    top:35%;
+    width:40px;
+    height:40px;
+    transform:translateX(-50%) skewY(-26deg);
+    background:#000;
+    border:3px solid #000;
     display:flex;
     align-items:center;
     justify-content:center;
   }
-  .exit-box span{
+  .house-door span{
     transform:skewY(26deg);
     color:#fff;
-    font-size:15px;
-    letter-spacing:0.25em;
-    text-indent:0.25em;
-    font-weight:700;
+    font-size:10px;
+    letter-spacing:0.1em;
   }
 
-  /* 붉은 바위 – 중앙에 큰 덩어리 */
-  .red-rock{
+  /* 나무들(간단히) */
+  .tree{
+    position:absolute;
+    width:50px;
+    height:130px;
+    transform-origin:center bottom;
+  }
+  .tree-trunk{
     position:absolute;
     left:50%;
-    top:58%;
-    width:160px;
-    height:100px;
-    transform:translate(-50%,-50%) skewY(-26deg);
-    background:#a30000;
-    border:5px solid #000;
-    border-radius:12px;
-    box-shadow:0 24px 0 #000;
+    bottom:0;
+    width:10px;
+    height:50px;
+    transform:translateX(-50%);
+    background:#555;
+    border:3px solid #000;
+  }
+  .tree-crown{
+    position:absolute;
+    left:50%;
+    bottom:40px;
+    width:60px;
+    height:50px;
+    transform:translateX(-50%);
+    background:#e0e0e0;
+    border:3px solid #000;
+    border-radius:30px;
   }
 
-  /* 플레이어 (사람 형상) */
+  /* 두 번째 씬: 물가 섬의 간이 플랫폼 */
+  .dock-platform{
+    position:absolute;
+    left:50%;
+    top:60%;
+    width:460px;
+    height:230px;
+    transform:translate(-50%,-50%) skewY(-26deg);
+    background:#f6f6f6;
+    border:4px solid #000;
+    box-shadow:0 18px 0 #000;
+  }
+
+  .dock-ramp{
+    position:absolute;
+    left:28%;
+    top:72%;
+    width:120px;
+    height:90px;
+    transform:translate(-50%,-50%) skewY(-26deg);
+    background:#e3e3e3;
+    border:3px solid #000;
+    box-shadow:0 10px 0 #000;
+  }
+
+  /* 두 번째 씬 문 (섬 한쪽에 세운 기둥문) */
+  .dock-door{
+    position:absolute;
+    right:16%;
+    top:46%;
+    width:60px;
+    height:80px;
+    transform:skewY(-26deg);
+    background:#000;
+    border:4px solid #000;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .dock-door span{
+    transform:skewY(26deg);
+    color:#fff;
+    font-size:10px;
+    letter-spacing:0.1em;
+  }
+
+  /* 플레이어 */
   .player{
     position:absolute;
     width:32px;
@@ -234,21 +288,34 @@
     border:3px solid #000;
   }
 
+  /* 문 근처에서 보여줄 작은 말풍선 */
+  .door-hint{
+    position:absolute;
+    transform:translate(-50%,-100%);
+    padding:4px 8px;
+    border-radius:8px;
+    border:2px solid #000;
+    background:#000;
+    color:#fff;
+    font-size:10px;
+    letter-spacing:0.08em;
+  }
+
   /* 동그라미 조이스틱 – 왼쪽 아래 */
   .joystick{
     position:absolute;
     left:40px;
     bottom:40px;
-    width:120px;
-    height:120px;
+    width:140px;
+    height:140px;
     z-index:30;
   }
   .joystick-base{
     position:absolute;
     left:50%;
     top:50%;
-    width:100px;
-    height:100px;
+    width:110px;
+    height:110px;
     transform:translate(-50%,-50%);
     border-radius:50%;
     border:3px solid #fff;
@@ -259,8 +326,8 @@
     position:absolute;
     left:50%;
     top:50%;
-    width:46px;
-    height:46px;
+    width:50px;
+    height:50px;
     transform:translate(-50%,-50%);
     border-radius:50%;
     background:#ffffff;
@@ -273,29 +340,12 @@
     left:10px;
     top:10px;
     font-size:12px;
-    color:#ccc;
+    color:#333;
+    background:rgba(255,255,255,0.8);
+    padding:4px 8px;
+    border-radius:6px;
+    border:2px solid #000;
     z-index:40;
-  }
-
-  .info-panel{
-    position:absolute;
-    right:20px;
-    top:20px;
-    width:260px;
-    padding:10px 14px;
-    background:rgba(255,255,255,0.95);
-    color:#000;
-    border-radius:8px;
-    border:3px solid #000;
-    font-size:12px;
-    line-height:1.4;
-    z-index:35;
-  }
-  .info-panel h1{
-    font-size:14px;
-    margin-bottom:6px;
-    text-transform:uppercase;
-    letter-spacing:0.1em;
   }
 
   .fade-overlay{
@@ -304,7 +354,7 @@
     background:#000;
     opacity:0;
     pointer-events:none;
-    transition:opacity .6s ease;
+    transition:opacity .5s ease;
     z-index:50;
   }
   .fade-overlay.active{
@@ -316,14 +366,14 @@
 <body>
 
 <div class="rotate-warning">
-  이 체험은<br><strong>가로 모드</strong>에서 사용해 주세요.<br><br>
+  이 게임은 <strong>가로 모드</strong>에서 즐겨 주세요.<br><br>
   기기를 가로로 돌려 주세요.
 </div>
 
 <div class="game-root">
   <div class="world" id="world">
     <div class="scene-layer" id="sceneLayer">
-      <!-- 방/EXIT/바위는 JS에서 채움 -->
+      <!-- 씬은 JS에서 그림 -->
     </div>
     <div class="scene-layer">
       <div class="player" id="player">
@@ -341,197 +391,233 @@
   </div>
 
   <div class="log" id="log">
-    하얀 방을 거닐다가, 뒷벽 중앙의 빨간 EXIT 박스로 다가가 보세요.
-  </div>
-
-  <div class="info-panel" id="infoPanel">
-    <!-- 내용은 JS에서 채움 -->
+    숲 섬을 자유롭게 걸어 다니다가, 오두막 문(검은 직사각형) 쪽으로 다가가 보세요.
   </div>
 
   <div class="fade-overlay" id="fade"></div>
 </div>
 
 <script>
-  /***********************
-   * 씬/좌표 설정
-   ***********************/
+  /*********** 씬(섬) 정의 ***********/
   const worldEl   = document.getElementById('world');
   const sceneEl   = document.getElementById('sceneLayer');
   const playerEl  = document.getElementById('player');
   const logEl     = document.getElementById('log');
-  const infoPanel = document.getElementById('infoPanel');
   const fadeEl    = document.getElementById('fade');
 
   const tileW = 64;
   const tileH = 32;
-  const originX = 260;
-  const originY = 60;
+  const originX = 360;
+  const originY = 80;
 
-  // 방 안 월드 좌표: 정육면체의 바닥 중앙을 (0,0)으로 두고 ±roomLimit
-  const roomLimitX = 3.6;
-  const roomLimitY = 3.6;
-
+  // 방바닥 좌표계 (x,y) – 섬 안을 직사각형으로 제한
   const scenes = {
-    waiting: {
-      key:'waiting',
-      hasExit:true,
-      hasRedRock:false,
-      infoTitle:'WHITE ROOM',
-      infoBody:[
-        '이곳은 잠들기 직전, 아무것도 정해지지 않은 하얀 방입니다.',
-        '방 안을 천천히 거닐다가, 뒷벽 중앙의 빨간 EXIT 박스로 다가가 보세요.',
-        '왼쪽 아래 동그라미 조이스틱을 움직이면 인물이 따라 움직입니다.'
+    yard: {
+      key:'yard',
+      limitX: 4.0,
+      limitY: 4.5,
+      door: {            // 집 문 위치 (월드 좌표)
+        x: 0,
+        y: -3.3,
+        target:'dock'
+      },
+      trees: [
+        {x:-3.3,y: 1.5},
+        {x:-2.0,y: 2.2},
+        {x: 2.8,y: 1.7},
+        {x: 3.2,y:-0.5},
+        {x:-2.8,y:-0.8}
       ]
     },
-    rock: {
-      key:'rock',
-      hasExit:false,
-      hasRedRock:true,
-      infoTitle:'RED ROCK ROOM',
-      infoBody:[
-        '당신은 붉은 바위가 놓인 하얀 방으로 들어왔습니다.',
-        '정육면체 방 안에서, 바위를 중심으로 천천히 걸어보세요.',
-        '이 방은 더 이상 어디로 이어지지 않습니다.'
+    dock: {
+      key:'dock',
+      limitX: 4.2,
+      limitY: 3.2,
+      door: {            // 부두 섬에서 야드로 넘어가는 문
+        x: 3.1,
+        y:-0.4,
+        target:'yard'
+      },
+      trees: [
+        {x:-2.5,y: 1.2},
+        {x:-3.0,y:-0.4},
+        {x:-1.0,y: 1.8}
       ]
     }
   };
 
-  let currentSceneKey = 'waiting';
+  let currentSceneKey = 'yard';
+  let currentScene = scenes[currentSceneKey];
 
   function buildScene(){
     sceneEl.innerHTML = '';
 
-    worldEl.className = 'world ' + (currentSceneKey === 'rock' ? 'scene-rock' : '');
+    if(currentSceneKey === 'yard'){
+      // 큰 섬 + 높은 플랫폼 + 집
+      const island = document.createElement('div');
+      island.className = 'island';
+      sceneEl.appendChild(island);
 
-    // 정육면체 방 구성
-    const floor = document.createElement('div');
-    floor.className = 'room-floor';
-    sceneEl.appendChild(floor);
+      const plateau = document.createElement('div');
+      plateau.className = 'plateau';
+      sceneEl.appendChild(plateau);
 
-    const back = document.createElement('div');
-    back.className = 'room-wall-back';
-    sceneEl.appendChild(back);
+      const stairs = document.createElement('div');
+      stairs.className = 'stairs';
+      sceneEl.appendChild(stairs);
 
-    const leftWall = document.createElement('div');
-    leftWall.className = 'room-wall-left';
-    sceneEl.appendChild(leftWall);
+      const house = document.createElement('div');
+      house.className = 'house';
+      sceneEl.appendChild(house);
 
-    const rightWall = document.createElement('div');
-    rightWall.className = 'room-wall-right';
-    sceneEl.appendChild(rightWall);
+      const roof = document.createElement('div');
+      roof.className = 'house-roof';
+      sceneEl.appendChild(roof);
 
-    const edge1 = document.createElement('div');
-    edge1.className = 'room-edge e1';
-    sceneEl.appendChild(edge1);
-    const edge2 = document.createElement('div');
-    edge2.className = 'room-edge e2';
-    sceneEl.appendChild(edge2);
+      const door = document.createElement('div');
+      door.className = 'house-door';
+      door.innerHTML = '<span>EXIT</span>';
+      sceneEl.appendChild(door);
+    }else{
+      // 부두 섬
+      const dock = document.createElement('div');
+      dock.className = 'dock-platform';
+      sceneEl.appendChild(dock);
 
-    const scene = scenes[currentSceneKey];
+      const ramp = document.createElement('div');
+      ramp.className = 'dock-ramp';
+      sceneEl.appendChild(ramp);
 
-    if(scene.hasExit){
-      const exitBox = document.createElement('div');
-      exitBox.className = 'exit-box';
-      const span = document.createElement('span');
-      span.textContent = 'EXIT';
-      exitBox.appendChild(span);
-      sceneEl.appendChild(exitBox);
+      const ddoor = document.createElement('div');
+      ddoor.className = 'dock-door';
+      ddoor.innerHTML = '<span>EXIT</span>';
+      sceneEl.appendChild(ddoor);
     }
 
-    if(scene.hasRedRock){
-      const rock = document.createElement('div');
-      rock.className = 'red-rock';
-      sceneEl.appendChild(rock);
-    }
-
-    // 정보 패널
-    infoPanel.innerHTML =
-      `<h1>${scene.infoTitle}</h1>` +
-      scene.infoBody.map(p=>`<p>${p}</p>`).join('');
+    // 나무들
+    currentScene.trees.forEach(t=>{
+      const tree = document.createElement('div');
+      tree.className = 'tree';
+      const trunk = document.createElement('div');
+      trunk.className = 'tree-trunk';
+      const crown = document.createElement('div');
+      crown.className = 'tree-crown';
+      tree.appendChild(trunk);
+      tree.appendChild(crown);
+      const pos = worldToScreen(t.x, t.y);
+      tree.style.left = pos.x + 'px';
+      tree.style.top  = pos.y + 'px';
+      tree.style.zIndex = 50 + Math.round(t.x + t.y);
+      sceneEl.appendChild(tree);
+    });
   }
 
-  /***********************
-   * 플레이어 / 카메라
-   ***********************/
-  let playerX = 0;   // 방 바닥 좌표 (x,y)
+  /*********** 좌표/카메라 ***********/
+  let playerX = 0;
   let playerY = 0;
   let velX = 0;
   let velY = 0;
-  const speed = 1.8; // 조이스틱 최대 속도
+  const speed = 1.8;
 
   function worldToScreen(x, y){
     const isoX = (x - y) * (tileW/2);
     const isoY = (x + y) * (tileH/2);
     return {
       x: originX + isoX,
-      y: originY + isoY + 60 // 바닥 중심을 화면에서 약간 아래로
+      y: originY + isoY + 80
     };
+  }
+
+  function clampToScene(){
+    const lx = currentScene.limitX;
+    const ly = currentScene.limitY;
+    playerX = Math.max(-lx, Math.min(lx, playerX));
+    playerY = Math.max(-ly, Math.min(ly, playerY));
   }
 
   function updatePlayerVisual(){
     const pos = worldToScreen(playerX, playerY);
     playerEl.style.left = pos.x + 'px';
     playerEl.style.top  = pos.y + 'px';
+    playerEl.style.zIndex = 100 + Math.round(playerX + playerY);
 
-    // 카메라: 플레이어 위치에 따른 약한 파라럭스
-    const desiredX = 260;
-    const desiredY = 150;
+    // 카메라: 플레이어 중심으로 살짝 이동
+    const desiredX = 430;
+    const desiredY = 260;
     const diffX = desiredX - pos.x;
     const diffY = desiredY - pos.y;
-    const camX = diffX * 0.22;
-    const camY = diffY * 0.22;
+    const camX = diffX * 0.15;
+    const camY = diffY * 0.15;
     document.documentElement.style.setProperty('--camX', camX + 'px');
     document.documentElement.style.setProperty('--camY', camY + 'px');
   }
 
-  function clampRoom(){
-    playerX = Math.max(-roomLimitX, Math.min(roomLimitX, playerX));
-    playerY = Math.max(-roomLimitY, Math.min(roomLimitY, playerY));
+  /*********** 문(door) 처리 ***********/
+  let doorHintEl = null;
+
+  function showDoorHint(screenPos){
+    if(!doorHintEl){
+      doorHintEl = document.createElement('div');
+      doorHintEl.className = 'door-hint';
+      doorHintEl.textContent = '문을 지나갑니다…';
+      sceneEl.appendChild(doorHintEl);
+    }
+    doorHintEl.style.left = screenPos.x + 'px';
+    doorHintEl.style.top  = (screenPos.y - 20) + 'px';
   }
 
-  function checkExitTrigger(){
-    if(currentSceneKey !== 'waiting') return;
-    // EXIT 박스 근처의 바닥 좌표 대략 위치 (뒷벽 중앙 앞쪽)
-    const exitX = 0;
-    const exitY = -roomLimitY + 0.6;
-    const dx = playerX - exitX;
-    const dy = playerY - exitY;
+  function hideDoorHint(){
+    if(doorHintEl){
+      doorHintEl.remove();
+      doorHintEl = null;
+    }
+  }
+
+  function checkDoor(){
+    const door = currentScene.door;
+    const dx = playerX - door.x;
+    const dy = playerY - door.y;
     const dist = Math.hypot(dx, dy);
-    if(dist < 1.2){
-      goToScene('rock');
+
+    if(dist < 0.9){
+      const pos = worldToScreen(door.x, door.y);
+      showDoorHint(pos);
+      goToScene(door.target);
+    }else if(dist > 1.5){
+      hideDoorHint();
     }
   }
 
   function goToScene(key){
     fadeEl.classList.add('active');
+    hideDoorHint();
     setTimeout(()=>{
       currentSceneKey = key;
+      currentScene = scenes[currentSceneKey];
       buildScene();
-      if(key === 'rock'){
-        playerX = 0;
-        playerY = roomLimitY - 1.0;
-        logEl.textContent = '붉은 바위 방에 도착했습니다. 바위를 중심으로 천천히 걸어보세요.';
+      // 씬 바뀔 때 플레이어 시작 위치 설정
+      if(key === 'dock'){
+        playerX = -2.0;
+        playerY = 1.5;
+        logEl.textContent = '물가 섬에 도착했습니다. 섬을 걷다가 오른쪽 EXIT 기둥으로 가면 다시 돌아갈 수 있습니다.';
       }else{
         playerX = 0;
-        playerY = 0;
-        logEl.textContent = '하얀 방입니다. 빨간 EXIT 박스로 다가가 보세요.';
+        playerY = 1.5;
+        logEl.textContent = '숲 섬으로 돌아왔습니다. 오두막 문 근처로 가면 다시 다른 섬으로 갈 수 있습니다.';
       }
-      clampRoom();
+      clampToScene();
       updatePlayerVisual();
       fadeEl.classList.remove('active');
-    }, 600);
+    }, 500);
   }
 
-  /***********************
-   * 조이스틱 입력
-   ***********************/
+  /*********** 조이스틱 ***********/
   const joystick     = document.getElementById('joystick');
   const joystickKnob = document.getElementById('joystickKnob');
-
   let joyActive = false;
   let joyCenter = {x:0,y:0};
   let joyVector = {x:0,y:0};
-  const joyMaxRadius = 40;
+  const joyMaxRadius = 45;
 
   function setJoyVector(clientX, clientY){
     const dx = clientX - joyCenter.x;
@@ -554,8 +640,7 @@
     joystickKnob.style.top  = '50%';
   }
 
-  // 여기서는 joystick 영역에서만 pointer 취급 → 다른 곳(텍스트, 버튼)은
-  // 꾹 눌렀을 때 복사/선택 메뉴가 뜰 수 있음 (전역 preventDefault 안함)
+  // 조이스틱 영역에서만 기본 동작 막기 → 다른 곳은 꾹 눌러도 복사/선택 가능
   joystick.addEventListener('pointerdown', e=>{
     e.preventDefault();
     joyActive = true;
@@ -582,11 +667,8 @@
     resetJoystick();
   });
 
-  /***********************
-   * 키보드(테스트용)
-   ***********************/
+  // 키보드 테스트용 (선택)
   window.addEventListener('keydown', e=>{
-    const step = 0.4;
     if(e.key === 'ArrowUp')    joyVector.y = -1;
     if(e.key === 'ArrowDown')  joyVector.y =  1;
     if(e.key === 'ArrowLeft')  joyVector.x = -1;
@@ -597,9 +679,7 @@
     if(['ArrowLeft','ArrowRight'].includes(e.key)) joyVector.x = 0;
   });
 
-  /***********************
-   * 메인 루프
-   ***********************/
+  /*********** 메인 루프 ***********/
   let lastTime = performance.now();
 
   function loop(now){
@@ -612,22 +692,20 @@
     playerX += velX * dt;
     playerY += velY * dt;
 
-    clampRoom();
+    clampToScene();
     updatePlayerVisual();
-    checkExitTrigger();
+    checkDoor();
 
     requestAnimationFrame(loop);
   }
 
-  /***********************
-   * 초기화
-   ***********************/
+  /*********** 초기화 ***********/
   buildScene();
-  clampRoom();
+  clampToScene();
   updatePlayerVisual();
   requestAnimationFrame(loop);
 
-  // 서비스워커 등록 (있으면 홈화면 추가시 캐시용)
+  // 서비스워커(선택) – sw.js를 같은 폴더에 두면 홈화면 앱처럼 캐시 가능
   if('serviceWorker' in navigator){
     window.addEventListener('load', ()=>{
       navigator.serviceWorker.register('sw.js').catch(console.error);
