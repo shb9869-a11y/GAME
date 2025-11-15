@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>TOEM style isometric room</title>
+<title>TOEM style Isometric Maze</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
@@ -25,7 +25,7 @@
     overflow:hidden;
   }
 
-  /* 월드(등각 공간) */
+  /* 월드 전체 */
   .world{
     position:absolute;
     left:50%;
@@ -36,67 +36,69 @@
     pointer-events:none;
   }
 
-  /* 등각 바닥: 다이아몬드 모양 */
-  .floor{
-    position:absolute;
-    left:50%;
-    top:50%;
-    width: 420px;
-    height: 210px;
-    transform:translate(-50%,-50%) skewY(-26deg);
-    background:
-      repeating-linear-gradient(
-        90deg,
-        #dcdcdc 0 1px,
-        #f3f3f3 1px 21px
-      );
-    border:3px solid #000;
-    box-shadow:0 18px 0 #000;
-  }
-
-  /* 바닥 위 가구(조금 3D 느낌) */
-  .block{
-    position:absolute;
-    width:60px;
-    height:40px;
-    background:#f5f5f5;
-    border:3px solid #000;
-    box-shadow:0 12px 0 #000;
-    transform:skewY(-26deg);
-  }
-  .block.table{ left:35%; top:25%;}
-  .block.shelf{ right:20%; top:15%; width:40px;}
-
-  /* 등각 좌표 -> 화면 좌표용 컨테이너 */
+  /* 타일 레이어 */
+  .tile-layer,
   .entity-layer{
     position:absolute;
     inset:0;
     pointer-events:none;
   }
 
-  /* 플레이어 아이소메트릭 캐릭터 */
+  /* 바닥 타일 */
+  .tile{
+    position:absolute;
+    width:64px;
+    height:32px;
+    transform-origin:center center;
+    transform:translate(-50%,-50%);
+  }
+  .tile-base{
+    position:absolute;
+    left:50%;
+    top:50%;
+    width:100%;
+    height:100%;
+    transform:skewY(-26deg);
+    background:#f4f4f4;
+    border:2px solid #000;
+  }
+
+  /* 벽(장애물) – 바닥 위에 3D 블록 느낌 */
+  .tile.wall .wall-block{
+    position:absolute;
+    left:50%;
+    top:30%;
+    width:40px;
+    height:40px;
+    transform:translateX(-50%) skewY(-26deg);
+    background:#e0e0e0;
+    border:3px solid #000;
+    box-shadow:0 12px 0 #000;
+  }
+
+  /* 플레이어 캐릭터 */
   .player{
     position:absolute;
     width:32px;
-    height:40px;
+    height:48px;
     transform-origin:center bottom;
   }
   .player .shadow{
     position:absolute;
     left:50%;
     bottom:0;
-    width:28px;
-    height:10px;
+    width:32px;
+    height:12px;
     transform:translateX(-50%);
     background:radial-gradient(ellipse at center, rgba(0,0,0,0.45) 0, transparent 70%);
   }
   .player .body{
     position:absolute;
     left:50%;
-    bottom:10px;
+    bottom:14px;
     transform:translateX(-50%);
-    width:22px;
-    height:20px;
+    width:24px;
+    height:22px;
     border-radius:4px;
     background:#fff;
     border:3px solid #000;
@@ -104,7 +106,7 @@
   .player .head{
     position:absolute;
     left:50%;
-    bottom:28px;
+    bottom:34px;
     transform:translateX(-50%);
     width:18px;
     height:18px;
@@ -119,7 +121,7 @@
     left:50%;
     top:6%;
     transform:translateX(-50%);
-    z-index:5;
+    z-index:20;
   }
   .dialogue-box{
     background:#000;
@@ -157,7 +159,7 @@
     box-shadow:0 0 0 3px #fff;
   }
 
-  /* 오른쪽 화살표 */
+  /* 오른쪽 화살표 (다음 씬 아이콘) */
   .next-arrow{
     position:absolute;
     right:24px;
@@ -190,7 +192,7 @@
     grid-template-columns:repeat(3,1fr);
     grid-template-rows:repeat(3,1fr);
     gap:4px;
-    z-index:10;
+    z-index:30;
   }
   .dpad button{
     border:none;
@@ -220,6 +222,7 @@
     top:10px;
     font-size:12px;
     color:#ccc;
+    z-index:40;
   }
 </style>
 </head>
@@ -227,11 +230,7 @@
 
 <div class="game-root">
   <div class="world">
-    <div class="floor"></div>
-    <div class="block table"></div>
-    <div class="block shelf"></div>
-
-    <!-- 캐릭터와 같은 엔티티 레이어 -->
+    <div class="tile-layer" id="tileLayer"></div>
     <div class="entity-layer">
       <div class="player" id="player">
         <div class="shadow"></div>
@@ -241,7 +240,7 @@
     </div>
   </div>
 
-  <!-- 질문/선택 UI -->
+  <!-- 질문/선택 UI (그냥 샘플) -->
   <div class="dialogue-wrapper">
     <div class="dialogue-box">HOW ARE YOU FEELING?</div>
     <div class="choices">
@@ -252,7 +251,7 @@
 
   <div class="next-arrow"></div>
 
-  <!-- 방향키 -->
+  <!-- 좌측 하단 방향키 -->
   <div class="dpad">
     <div class="empty"></div>
     <button data-dir="up">▲</button>
@@ -271,59 +270,117 @@
 </div>
 
 <script>
-  // 아이소메트릭 좌표 (x,y) -> 화면 픽셀
-  // 간단한 2D -> iso 투영
-  const originX = 260;  // 월드 중앙 기준
-  const originY = 150;
-  const tileW = 32;
-  const tileH = 16;
+  /**
+   * 0 = 빈칸(이동 가능)
+   * 1 = 벽(이동 불가)
+   * 간단한 미로 예시
+   */
+  const maze = [
+    [1,1,1,1,1,1,1,1,1],
+    [1,0,0,0,1,0,0,0,1],
+    [1,0,1,0,1,0,1,0,1],
+    [1,0,1,0,0,0,1,0,1],
+    [1,0,1,1,1,0,1,0,1],
+    [1,0,0,0,0,0,1,0,1],
+    [1,1,1,1,1,0,1,0,1],
+    [1,0,0,0,0,0,0,0,1],
+    [1,1,1,1,1,1,1,1,1]
+  ];
+  const rows = maze.length;
+  const cols = maze[0].length;
 
-  let px = 0;  // logical x
-  let py = 0;  // logical y
+  const tileLayer = document.getElementById('tileLayer');
 
+  // 아이소메트릭 투영에 필요한 값
+  const tileW = 64;
+  const tileH = 32;
+  const originX = 260; // 화면 중앙 부근
+  const originY = 70;
+
+  // 타일 DOM 생성
+  for(let y=0; y<rows; y++){
+    for(let x=0; x<cols; x++){
+      const tile = document.createElement('div');
+      tile.className = 'tile' + (maze[y][x] === 1 ? ' wall' : '');
+      const base = document.createElement('div');
+      base.className = 'tile-base';
+      tile.appendChild(base);
+
+      if(maze[y][x] === 1){
+        const wall = document.createElement('div');
+        wall.className = 'wall-block';
+        tile.appendChild(wall);
+      }
+
+      // 아이소메트릭 좌표 -> 화면 좌표
+      const isoX = (x - y) * (tileW/2);
+      const isoY = (x + y) * (tileH/2);
+      tile.style.left = (originX + isoX) + 'px';
+      tile.style.top  = (originY + isoY) + 'px';
+      tile.style.zIndex = 10 + x + y; // 아래쪽에 있는 타일이 위에 보이게
+
+      tileLayer.appendChild(tile);
+    }
+  }
+
+  // 플레이어 위치 (미로 좌표)
+  let px = 1; // 시작 x
+  let py = 1; // 시작 y
   const playerEl = document.getElementById('player');
   const logEl = document.getElementById('log');
 
-  function placePlayer(){
-    const screenX = originX + (px - py) * tileW/2;
-    const screenY = originY + (px + py) * tileH/2;
-    playerEl.style.left = screenX + 'px';
-    playerEl.style.top  = screenY + 'px';
+  function updatePlayerPosition(){
+    const isoX = (px - py) * (tileW/2);
+    const isoY = (px + py) * (tileH/2);
+    playerEl.style.left = (originX + isoX) + 'px';
+    playerEl.style.top  = (originY + isoY) + 'px';
+    playerEl.style.zIndex = 100 + px + py; // 항상 위에
   }
 
-  placePlayer();
+  updatePlayerPosition();
+
+  function canMove(nx, ny){
+    if(nx < 0 || nx >= cols || ny < 0 || ny >= rows) return false;
+    return maze[ny][nx] === 0;
+  }
 
   function move(dx, dy){
-    px += dx;
-    py += dy;
-    // 간단한 영역 제한
-    const limit = 6;
-    px = Math.max(-limit, Math.min(limit, px));
-    py = Math.max(-limit, Math.min(limit, py));
-    placePlayer();
+    const nx = px + dx;
+    const ny = py + dy;
+    if(canMove(nx, ny)){
+      px = nx;
+      py = ny;
+      updatePlayerPosition();
+      logEl.textContent = `플레이어 미로 좌표: x=${px}, y=${py}`;
+    }else{
+      // 벽에 부딪힌 경우
+      logEl.textContent = '벽이 있어요! 다른 길을 찾아보세요.';
+    }
   }
 
-  // 키보드 컨트롤
+  // 키보드 이동
   window.addEventListener('keydown', e=>{
-    if(e.key === 'ArrowUp')      move(0,-1);
-    else if(e.key === 'ArrowDown')  move(0,1);
-    else if(e.key === 'ArrowLeft')  move(-1,0);
-    else if(e.key === 'ArrowRight') move(1,0);
+    if(e.key === 'ArrowUp'){        // 등각 기준으로 위쪽: y-1
+      move(0,-1);
+    }else if(e.key === 'ArrowDown'){
+      move(0,1);
+    }else if(e.key === 'ArrowLeft'){
+      move(-1,0);
+    }else if(e.key === 'ArrowRight'){
+      move(1,0);
+    }
   });
 
-  // D-pad 컨트롤 (터치/마우스)
+  // D-pad 이동 (클릭/터치)
   document.querySelectorAll('.dpad button[data-dir]').forEach(btn=>{
     const dir = btn.dataset.dir;
-    const handler = ()=>{
+    btn.addEventListener('click', ()=>{
       if(dir === 'up') move(0,-1);
       if(dir === 'down') move(0,1);
       if(dir === 'left') move(-1,0);
       if(dir === 'right') move(1,0);
-      logEl.textContent = `플레이어 위치: x=${px}, y=${py}`;
-    };
-    btn.addEventListener('click', handler);
+    });
   });
-
 </script>
 </body>
 </html>
