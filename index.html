@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>Wide Floor Space</title>
+<title>Flat Floor + Door</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <link rel="manifest" href="manifest.json">
@@ -77,7 +77,7 @@
     pointer-events:none;
   }
 
-  /* ================== 넓은 바닥만 남긴 공간 ================== */
+  /* ============ 평면 직사각형 바닥만 남긴 공간 ============ */
 
   .room{
     position:absolute;
@@ -85,28 +85,41 @@
     top:52%;
     width:800px;
     height:380px;
-    transform:translate(-50%,-50%) scale(0.9); /* 살짝 멀리 */
+    transform:translate(-50%,-50%) scale(0.9);
     transform-origin:center center;
   }
 
-  /* 이전보다 가로·세로 약 2배 → 면적 4배 */
+  /* 넓은 바닥: 완전 직각 사각형 */
   .floor{
     position:absolute;
     left:50%;
-    bottom:40px;
-    width:560px;   /* 기존 280의 2배 정도 */
-    height:240px;  /* 기존 120의 2배 정도 */
-    transform:translateX(-50%) skewX(-20deg);
+    top:50%;
+    width:700px;
+    height:320px;
+    transform:translate(-50%,-50%);
     background:#ffffff;
     border:4px solid #000;
-    box-shadow:0 14px 0 #000;
+    box-shadow:0 10px 0 #000;
   }
 
-  /* 플레이어 */
+  /* 검정 사각형 문 (바닥 위 아무 데나) */
+  .door-block{
+    position:absolute;
+    /* 바닥 안에서의 위치를 퍼센트로 잡음 */
+    left:70%;
+    top:40%;
+    width:80px;
+    height:140px;
+    transform:translate(-50%,-50%);
+    background:#000;
+    box-shadow:0 4px 0 rgba(0,0,0,0.6);
+  }
+
+  /* SLEEEEEP 느낌 캐릭터: 주황 몸통 */
   .player{
     position:absolute;
-    width:24px;
-    height:48px;
+    width:26px;
+    height:46px;
     transform-origin:center bottom;
   }
   .player .head{
@@ -116,26 +129,26 @@
     width:18px;
     height:18px;
     transform:translateX(-50%);
-    border-radius:50%;
+    border-radius:4px;            /* 살짝 네모난 머리 */
     border:3px solid #000;
-    background:#fff;
+    background:#ffd5a6;           /* 살구색 머리 */
   }
   .player .body{
     position:absolute;
     left:50%;
-    bottom:10px;
-    width:18px;
-    height:20px;
+    bottom:8px;
+    width:20px;
+    height:22px;
     transform:translateX(-50%);
     border-radius:4px;
     border:3px solid #000;
-    background:#fff;
+    background:#ff8a3c;           /* 주황색 몸통 */
   }
   .player .shadow{
     position:absolute;
     left:50%;
     bottom:0;
-    width:34px;
+    width:36px;
     height:10px;
     transform:translateX(-50%);
     background:radial-gradient(ellipse at center,
@@ -215,7 +228,7 @@
   </div>
 
   <div class="log" id="log">
-    넓은 바닥만 남은 공간입니다. 조이스틱으로 자유롭게 돌아다녀 보세요.
+    넓은 직사각형 바닥과 검정 문 하나가 있는 공간입니다. 조이스틱으로 돌아다녀 보세요.
   </div>
 </div>
 
@@ -224,18 +237,20 @@
   const sceneEl   = document.getElementById('sceneLayer');
   const playerEl  = document.getElementById('player');
 
-  /* 단일 씬 – 넓은 바닥 하나 */
   function buildScene(){
     sceneEl.innerHTML = '';
     worldEl.className = 'world';
 
     const room = document.createElement('div');
     room.className = 'room';
-    room.innerHTML = `<div class="floor"></div>`;
+    room.innerHTML = `
+      <div class="floor"></div>
+      <div class="door-block"></div>
+    `;
     sceneEl.appendChild(room);
   }
 
-  // 바닥 평면 좌표계: x,y ∈ [-2,2] (기존의 4배 범위 느낌)
+  // 좌표계: x,y ∈ [-2,2] (넓은 평면)
   let playerX = 0;
   let playerY = 0;
   const limitX = 2.0;
@@ -251,19 +266,18 @@
 
   function worldToScreen(x, y){
     const baseX = 400; // 바닥 중앙
-    const baseY = 330;
-    // 바닥 폭/높이에 맞춰 스케일 조정
-    const sx = baseX + x * 140; // 좌우로 더 멀리
-    const sy = baseY + y * 70;  // 앞뒤로 더 멀리
+    const baseY = 260;
+    const sx = baseX + x * 160; // 좌우
+    const sy = baseY + y * 80;  // 앞뒤
     return { x:sx, y:sy };
   }
 
   function updatePlayerVisual(){
     const pos = worldToScreen(playerX, playerY);
     playerEl.style.left = pos.x + 'px';
-    playerEl.style.top  = (pos.y - 8) + 'px';
+    playerEl.style.top  = (pos.y - 6) + 'px';
 
-    // 카메라 살짝 따라오게
+    // 카메라 살짝 따라오기
     const desiredX = 450;
     const desiredY = 260;
     const diffX = desiredX - pos.x;
@@ -335,7 +349,7 @@
     resetJoystick();
   });
 
-  // 키보드 테스트 (선택)
+  // 키보드 테스트 (원하면 지워도 됨)
   window.addEventListener('keydown', e=>{
     if(e.key === 'ArrowUp')    joyVector.y = -1;
     if(e.key === 'ArrowDown')  joyVector.y =  1;
