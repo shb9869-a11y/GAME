@@ -82,7 +82,7 @@
       opacity:1;
     }
 
-    /* 안개 레이어 (씬 전환 연출용) */
+    /* 안개 레이어 */
     .fog-layer{
       position:absolute;
       inset:0;
@@ -122,7 +122,7 @@
       overflow:hidden;
     }
 
-    /* ================== 인트로 씬 ================== */
+    /* ================== 씬 1 : 인트로 ================== */
     #introScene{
       position:absolute;
       inset:0;
@@ -350,7 +350,7 @@
       opacity:0;
     }
 
-    /* ================== 씬 2 : 양옆 불꺼진 건물 + 중앙 길 ================== */
+    /* ================== 씬 2 : 좌우 건물 + 중앙 길 ================== */
     #streetScene{
       position:absolute;
       inset:0;
@@ -375,7 +375,7 @@
       overflow:hidden;
     }
 
-    /* 좌우 전체를 덮는 어두운 건물 벽 */
+    /* 좌우 어두운 건물 벽 */
     .street-wall{
       position:absolute;
       top:0;
@@ -404,11 +404,11 @@
       gap:2px;
     }
     .wall-window{
-      background:var(--window-off); /* 전부 불 꺼진 창 */
+      background:var(--window-off);
       opacity:0.85;
     }
 
-    /* 중앙 길 */
+    /* 중앙 길 – 건물 사이를 꽉 채움 */
     .street-road{
       position:absolute;
       top:0;
@@ -420,7 +420,7 @@
     }
     .street-road-inner{
       position:absolute;
-      inset:8% 26%;
+      inset:8% 0; /* 좌우 여백 0 → 건물 사이를 길이 꽉 채움 */
       background:#0b0c11;
       box-shadow:0 0 16px rgba(0,0,0,0.9);
       overflow:hidden;
@@ -482,7 +482,7 @@
       transition:opacity 0.8s ease-out, transform 0.8s ease-out;
     }
 
-    /* 길 끝 붉은 건물 (처음에는 안 보임) */
+    /* 길 끝 붉은 건물 (처음엔 안 보임) */
     .red-building{
       position:absolute;
       top:-8%;
@@ -569,7 +569,6 @@
       background:#111;
     }
 
-    /* 오른쪽 아래 버튼 (지금은 기능 없음) */
     .side-btn{
       position:fixed;
       right:16px;
@@ -602,7 +601,7 @@
     <div class="scene-fade" id="sceneFade"></div>
     <div class="fog-layer" id="fogLayer"></div>
 
-    <!-- ============ 씬 1 : 인트로 ============ -->
+    <!-- 씬 1 -->
     <div id="introScene">
       <div class="popup-frame">
         <div class="city-window">
@@ -627,7 +626,7 @@
       </div>
     </div>
 
-    <!-- ============ 씬 2 : 좌우 건물 + 길 ============ -->
+    <!-- 씬 2 -->
     <div id="streetScene">
       <div class="popup-frame">
         <div class="street-window">
@@ -638,13 +637,11 @@
             <div class="street-road-inner">
               <div class="street-lane"></div>
 
-              <!-- 길 끝 붉은 건물 -->
               <div class="red-building" id="redBuilding">
                 <div class="red-building-windows" id="redWindows"></div>
                 <div class="red-building-door" id="redDoor"></div>
               </div>
 
-              <!-- 플레이어 캐릭터 -->
               <div class="character" id="character"></div>
             </div>
           </div>
@@ -666,7 +663,7 @@
   </div>
 
   <script>
-    /* ===== 인트로 건물 생성 ===== */
+    /* 인트로 건물 생성 */
     const palette = [
       "#16171b","#1b1c22","#20232a",
       "#252831","#2b3038","#313640",
@@ -723,15 +720,15 @@
       }
     });
 
-    /* ===== 인트로 텍스트 & 씬 전환 ===== */
-    const startBtn = document.getElementById("startBtn");
-    const overlay = document.getElementById("overlay");
+    /* 인트로 시퀀스 & 전환 */
+    const startBtn   = document.getElementById("startBtn");
+    const overlay    = document.getElementById("overlay");
     const overlayLines = document.getElementById("overlayLines");
     const overlayThird = document.getElementById("overlayThird");
-    const sceneFade = document.getElementById("sceneFade");
-    const fogLayer = document.getElementById("fogLayer");
+    const sceneFade  = document.getElementById("sceneFade");
+    const fogLayer   = document.getElementById("fogLayer");
     const introScene = document.getElementById("introScene");
-    const streetScene = document.getElementById("streetScene");
+    const streetScene= document.getElementById("streetScene");
     let started = false;
 
     function typeLine(text, pauseAfter, cb){
@@ -794,7 +791,7 @@
       startOverlaySequence();
     });
 
-    /* ===== 씬 2 : 좌우 벽 건물 / 붉은 건물 생성 ===== */
+    /* 씬 2 건물/붉은 건물 생성 */
     const streetLeft  = document.getElementById("streetLeft");
     const streetRight = document.getElementById("streetRight");
     const redBuilding = document.getElementById("redBuilding");
@@ -823,28 +820,26 @@
     fillWall(streetLeft, 7);
     fillWall(streetRight, 7);
 
-    // 붉은 건물 창문 켜진 상태
     for(let i=0;i<4*3;i++){
       const w = document.createElement("div");
       w.className = "red-window";
       redWindows.appendChild(w);
     }
 
-    /* ===== 캐릭터 컨트롤 & 문 진입 로직 ===== */
+    /* 캐릭터 컨트롤 & 문 진입 */
     const character = document.getElementById("character");
-    let charX = 50;   // 중앙
-    let charY = 20;   // 시작 Y (아래쪽)
+    let charX = 50;
+    let charY = 20;
 
     function clamp(v,min,max){
       return v < min ? min : (v > max ? max : v);
     }
 
-    // 캐릭터 위치 업데이트 + 붉은 건물 등장
     function updateCharacter(){
       if(!character) return;
 
-      charX = clamp(charX, 44, 56); // 거의 중앙에서만 약간 흔들릴 수 있게
-      charY = clamp(charY, 20, 80); // 아래~위
+      charX = clamp(charX, 44, 56);
+      charY = clamp(charY, 20, 80);
 
       character.style.left   = charX + "%";
       character.style.bottom = charY + "%";
@@ -853,12 +848,11 @@
       checkEnterDoor();
     }
 
-    // 위로 충분히 걸어가면 길 끝에서 붉은 건물이 "툭" 나타나도록
     function updateRedBuilding(){
-      const progress = clamp((charY - 20) / 60, 0, 1); // 0~1
+      const progress = clamp((charY - 20) / 60, 0, 1);
 
       if(progress > 0.7){
-        const t = (progress - 0.7) / 0.3;  // 0~1
+        const t = (progress - 0.7) / 0.3;
         redBuilding.classList.add("show");
         redBuilding.style.opacity = t;
       }else{
@@ -872,7 +866,7 @@
       if(doorEntered) return;
 
       const visible = redBuilding.classList.contains("show") &&
-                      parseFloat(getComputedStyle(redBuilding).opacity || "0") > 0.95;
+        parseFloat(getComputedStyle(redBuilding).opacity || "0") > 0.95;
       if(!visible) return;
 
       const nearCenter = Math.abs(charX - 50) < 3;
@@ -882,21 +876,19 @@
         doorEntered = true;
         character.classList.add("entered");
         setTimeout(()=>{
-          sceneFade.classList.add("on");  // 문 안으로 들어가며 페이드 아웃
-          // 여기에서 다음 씬으로 넘기고 싶으면 location.href 등 연결
+          sceneFade.classList.add("on"); // 문 안으로 들어가며 페이드
         }, 400);
       }
     }
 
-    updateCharacter(); // 초기 상태 반영
+    updateCharacter();
 
-    // 방향키로 직접 컨트롤
+    // 방향키: streetScene.active 검사 제거 → 씬 2에서 바로 컨트롤 가능
     document.querySelectorAll(".cursor-btn").forEach(btn=>{
       const dir = btn.dataset.dir;
       if(!dir) return;
 
       btn.addEventListener("click", ()=>{
-        if(!streetScene.classList.contains("active")) return;
         const stepY = 4;
         const stepX = 2;
 
