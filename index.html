@@ -2,10 +2,10 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>Minimal Cube Rooms</title>
+<title>Cube Room – EXIT Demo</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<!-- PWA용 manifest (홈 화면 추가용) – 이전에 쓰던 manifest.json 그대로 써도 됨 -->
+<!-- 홈 화면 추가용 manifest (있으면 사용, 없으면 무시됨) -->
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#000000">
 
@@ -46,7 +46,7 @@
     position:relative;
     width: 900px;
     height: 520px;
-    background:#d0d2d6; /* TOEM 느낌 회색 배경 */
+    background:#d0d2d6;
     overflow:hidden;
     border-radius:16px;
     box-shadow:0 0 40px rgba(0,0,0,0.8);
@@ -60,16 +60,16 @@
     .game-root{display:block;}
   }
 
-  /* 전체 월드 (카메라 무빙) */
+  /* 카메라 팬 */
   .world{
     position:absolute;
     left:50%;
-    top:55%;
+    top:50%;
     width:800px;
     height:480px;
     transform:translate(calc(-50% + var(--camX)),
                         calc(-50% + var(--camY)));
-    transition:transform .18s ease-out;
+    transition:transform .16s ease-out;
     pointer-events:none;
   }
 
@@ -79,139 +79,150 @@
     pointer-events:none;
   }
 
-  /* ====== 깔끔한 정육면체 방 구조 ====== */
+  /* ====== 진짜 '방 내부' 정육면체 구조 ====== */
 
-  /* 바닥 – 직사각형 면을 살짝 누운 형태 */
-  .cube-floor{
+  /* 방 기준점 */
+  .room{
     position:absolute;
     left:50%;
-    top:62%;
+    top:55%;
+    width:400px;
+    height:280px;
+    transform:translate(-50%,-50%);
+  }
+
+  /* 바닥 (우리가 실제로 걷는 곳) */
+  .floor{
+    position:absolute;
+    left:50%;
+    bottom:0;
     width:320px;
-    height:190px;
-    transform:translate(-50%,-50%) skewY(-26deg);
+    height:160px;
+    transform:translateX(-50%);
     background:#ffffff;
     border:4px solid #000;
-    box-shadow:0 18px 0 #000;
+    box-shadow:0 16px 0 #000;
   }
-  .scene-roomB .cube-floor{
-    background:#fdf5f5; /* 두 번째 방은 아주 살짝 붉은 느낌 */
+  .scene-roomB .floor{
+    background:#ffeaea; /* 두 번째 방은 살짝 붉은 바닥 */
   }
 
-  /* 뒤 벽 */
-  .cube-wall-back{
+  /* 뒷벽 */
+  .wall-back{
     position:absolute;
     left:50%;
-    top:24%;
-    width:300px;
-    height:130px;
-    transform:translate(-50%,-50%) skewY(-26deg);
+    bottom:160px;
+    width:320px;
+    height:150px;
+    transform:translateX(-50%);
     background:#f7f7f7;
     border:4px solid #000;
-    box-shadow:0 12px 0 #000;
+    box-shadow:0 10px 0 #000;
   }
-  .scene-roomB .cube-wall-back{
-    background:#f9eded;
+  .scene-roomB .wall-back{
+    background:#f9e2e2;
   }
 
   /* 왼쪽 벽 */
-  .cube-wall-left{
+  .wall-left{
     position:absolute;
-    left:18%;
-    top:42%;
-    width:140px;
-    height:130px;
-    transform:skewY(-26deg);
+    right:50%;
+    bottom:0;
+    width:80px;
+    height:250px;
+    transform-origin:right bottom;
+    transform:skewY(-15deg);
     background:#f3f3f3;
     border:4px solid #000;
-    box-shadow:0 8px 0 #000;
+    box-shadow:-8px 0 0 #000;
   }
-  .scene-roomB .cube-wall-left{
-    background:#f5eaea;
+  .scene-roomB .wall-left{
+    background:#f5dddd;
   }
 
   /* 오른쪽 벽 */
-  .cube-wall-right{
-    position:absolute;
-    right:18%;
-    top:42%;
-    width:140px;
-    height:130px;
-    transform:skewY(-26deg);
-    background:#f3f3f3;
-    border:4px solid #000;
-    box-shadow:0 8px 0 #000;
-  }
-  .scene-roomB .cube-wall-right{
-    background:#f5eaea;
-  }
-
-  /* 나가는 문 – 뒷벽 중앙의 검은 사각형 + EXIT 글자 */
-  .cube-door{
+  .wall-right{
     position:absolute;
     left:50%;
-    top:32%;
-    width:60px;
-    height:60px;
-    transform:translateX(-50%) skewY(-26deg);
+    bottom:0;
+    width:80px;
+    height:250px;
+    transform-origin:left bottom;
+    transform:skewY(15deg);
+    background:#f3f3f3;
+    border:4px solid #000;
+    box-shadow:8px 0 0 #000;
+  }
+  .scene-roomB .wall-right{
+    background:#f5dddd;
+  }
+
+  /* 뒷벽 중앙 문(검은 직사각형 + EXIT) */
+  .door{
+    position:absolute;
+    left:50%;
+    bottom:160px;
+    width:70px;
+    height:80px;
+    transform:translateX(-50%);
     background:#000;
     border:4px solid #000;
     display:flex;
     align-items:center;
     justify-content:center;
   }
-  .cube-door span{
-    transform:skewY(26deg);
+  .door span{
     color:#fff;
-    font-size:11px;
+    font-size:12px;
     letter-spacing:0.25em;
     text-indent:0.25em;
     font-weight:700;
   }
 
-  /* 플레이어 */
+  /* 플레이어 (단순 사람 아이콘) */
   .player{
     position:absolute;
-    width:32px;
+    width:24px;
     height:48px;
     transform-origin:center bottom;
+  }
+  .player .head{
+    position:absolute;
+    left:50%;
+    bottom:30px;
+    width:18px;
+    height:18px;
+    transform:translateX(-50%);
+    border-radius:50%;
+    border:3px solid #000;
+    background:#fff;
+  }
+  .player .body{
+    position:absolute;
+    left:50%;
+    bottom:10px;
+    width:18px;
+    height:20px;
+    transform:translateX(-50%);
+    border-radius:4px;
+    border:3px solid #000;
+    background:#fff;
   }
   .player .shadow{
     position:absolute;
     left:50%;
     bottom:0;
-    width:32px;
-    height:12px;
+    width:34px;
+    height:10px;
     transform:translateX(-50%);
     background:radial-gradient(ellipse at center,
-             rgba(0,0,0,0.45) 0, transparent 70%);
-  }
-  .player .body{
-    position:absolute;
-    left:50%;
-    bottom:14px;
-    transform:translateX(-50%);
-    width:24px;
-    height:22px;
-    border-radius:4px;
-    background:#fff;
-    border:3px solid #000;
-  }
-  .player .head{
-    position:absolute;
-    left:50%;
-    bottom:34px;
-    transform:translateX(-50%);
-    width:18px;
-    height:18px;
-    border-radius:50%;
-    background:#fff;
-    border:3px solid #000;
+            rgba(0,0,0,0.45) 0, transparent 70%);
   }
 
-  /* 문 가까이 갔을 때 안내 말풍선 */
+  /* 문 근처에서 보일 힌트 */
   .door-hint{
     position:absolute;
-    transform:translate(-50%,-110%);
+    transform:translate(-50%,-120%);
     padding:4px 8px;
     border-radius:8px;
     border:2px solid #000;
@@ -221,7 +232,7 @@
     letter-spacing:0.08em;
   }
 
-  /* 동그라미 조이스틱 – 왼쪽 아래, 이 영역에서만 터치 캡처 */
+  /* 동그라미 조이스틱 – 왼쪽 아래만 캡처 */
   .joystick{
     position:absolute;
     left:40px;
@@ -261,7 +272,7 @@
     top:10px;
     font-size:12px;
     color:#333;
-    background:rgba(255,255,255,0.8);
+    background:rgba(255,255,255,0.9);
     padding:4px 8px;
     border-radius:6px;
     border:2px solid #000;
@@ -274,7 +285,7 @@
     background:#000;
     opacity:0;
     pointer-events:none;
-    transition:opacity .5s ease;
+    transition:opacity .45s ease;
     z-index:50;
   }
   .fade-overlay.active{
@@ -293,13 +304,13 @@
 <div class="game-root">
   <div class="world" id="world">
     <div class="scene-layer" id="sceneLayer">
-      <!-- 방 구조는 JS에서 그림 -->
+      <!-- 방 구조는 JS에서 만듦 -->
     </div>
     <div class="scene-layer">
       <div class="player" id="player">
-        <div class="shadow"></div>
-        <div class="body"></div>
         <div class="head"></div>
+        <div class="body"></div>
+        <div class="shadow"></div>
       </div>
     </div>
   </div>
@@ -311,124 +322,107 @@
   </div>
 
   <div class="log" id="log">
-    깔끔한 정육면체 방입니다. 동그라미 조이스틱으로 움직여서, 뒷벽 중앙의 검은 문(EXIT) 쪽으로 걸어가 보세요.
+    정육면체 방 안입니다. 조이스틱으로 움직여서, 뒷벽 중앙의 검은 문(EXIT)까지 걸어가 보세요.
   </div>
 
   <div class="fade-overlay" id="fade"></div>
 </div>
 
 <script>
-  /*********** 씬(방) 정의 ***********/
+  /********* 씬 정의 (두 개의 방) *********/
   const worldEl   = document.getElementById('world');
   const sceneEl   = document.getElementById('sceneLayer');
   const playerEl  = document.getElementById('player');
   const logEl     = document.getElementById('log');
   const fadeEl    = document.getElementById('fade');
 
-  const tileW = 64;
-  const tileH = 32;
-  const originX = 360;
-  const originY = 80;
+  const floorCenterX = 400; // world 내 바닥 중심 (px)
+  const floorCenterY = 320;
+  const floorWidth   = 320;
+  const floorHeight  = 160;
 
-  // 방 내부 좌표 범위
   const scenes = {
-    roomA: {
+    roomA:{
       key:'roomA',
-      limitX: 3.6,
-      limitY: 3.6,
-      door: { x:0, y:-3.1, target:'roomB' }
+      door:{ x:0, y:-1 },   // 월드 좌표 (0, -1) 쯤
+      limitX:1.0,
+      limitY:1.0
     },
-    roomB: {
+    roomB:{
       key:'roomB',
-      limitX: 3.6,
-      limitY: 3.6,
-      door: { x:0, y:-3.1, target:'roomA' }
+      door:{ x:0, y:-1 },
+      limitX:1.0,
+      limitY:1.0
     }
   };
 
   let currentSceneKey = 'roomA';
-  let currentScene = scenes[currentSceneKey];
+  let currentScene    = scenes[currentSceneKey];
 
   function buildScene(){
     sceneEl.innerHTML = '';
-
     worldEl.className = 'world scene-' + currentSceneKey;
 
-    // 정육면체 방 요소들
-    const floor = document.createElement('div');
-    floor.className = 'cube-floor';
-    sceneEl.appendChild(floor);
-
-    const back = document.createElement('div');
-    back.className = 'cube-wall-back';
-    sceneEl.appendChild(back);
-
-    const left = document.createElement('div');
-    left.className = 'cube-wall-left';
-    sceneEl.appendChild(left);
-
-    const right = document.createElement('div');
-    right.className = 'cube-wall-right';
-    sceneEl.appendChild(right);
-
-    const door = document.createElement('div');
-    door.className = 'cube-door';
-    door.innerHTML = '<span>EXIT</span>';
-    sceneEl.appendChild(door);
+    const room = document.createElement('div');
+    room.className = 'room';
+    room.innerHTML = `
+      <div class="floor"></div>
+      <div class="wall-back"></div>
+      <div class="wall-left"></div>
+      <div class="wall-right"></div>
+      <div class="door"><span>EXIT</span></div>
+    `;
+    sceneEl.appendChild(room);
   }
 
-  /*********** 좌표/카메라 ***********/
-  let playerX = 0;
-  let playerY = 0;
-  let velX = 0;
-  let velY = 0;
-  const speed = 1.8;
+  /********* 좌표 변환 / 카메라 *********/
+  let playerX = 0; // -1 ~ 1 범위 (바닥 좌표계)
+  let playerY = 0.5;
+  let velX = 0, velY = 0;
+  const speed = 1.5;
 
-  function worldToScreen(x, y){
-    const isoX = (x - y) * (tileW/2);
-    const isoY = (x + y) * (tileH/2);
-    return {
-      x: originX + isoX,
-      y: originY + isoY + 80
-    };
-  }
-
-  function clampToScene(){
+  function clampToRoom(){
     const lx = currentScene.limitX;
     const ly = currentScene.limitY;
     playerX = Math.max(-lx, Math.min(lx, playerX));
     playerY = Math.max(-ly, Math.min(ly, playerY));
   }
 
+  function worldToScreen(x, y){
+    const sx = floorCenterX + x * (floorWidth * 0.45);
+    const sy = floorCenterY + y * (floorHeight * 0.45);
+    return { x:sx, y:sy };
+  }
+
   function updatePlayerVisual(){
     const pos = worldToScreen(playerX, playerY);
     playerEl.style.left = pos.x + 'px';
-    playerEl.style.top  = pos.y + 'px';
-    playerEl.style.zIndex = 100 + Math.round(playerX + playerY);
+    playerEl.style.top  = (pos.y - 10) + 'px'; // 살짝 위로
 
-    // 카메라 – 플레이어를 살짝 따라오는 전지적 작가 시점
-    const desiredX = 430;
+    // 카메라 살짝 따라오기
+    const desiredX = 450;
     const desiredY = 260;
     const diffX = desiredX - pos.x;
     const diffY = desiredY - pos.y;
-    const camX = diffX * 0.18;
-    const camY = diffY * 0.18;
+    const camX = diffX * 0.2;
+    const camY = diffY * 0.2;
     document.documentElement.style.setProperty('--camX', camX + 'px');
     document.documentElement.style.setProperty('--camY', camY + 'px');
   }
 
-  /*********** 문(door) 처리 ***********/
+  /********* 문 진입 처리 *********/
   let doorHintEl = null;
+  let isTransitioning = false;
 
   function showDoorHint(screenPos){
     if(!doorHintEl){
       doorHintEl = document.createElement('div');
       doorHintEl.className = 'door-hint';
-      doorHintEl.textContent = '문을 지나갑니다…';
+      doorHintEl.textContent = 'EXIT';
       sceneEl.appendChild(doorHintEl);
     }
     doorHintEl.style.left = screenPos.x + 'px';
-    doorHintEl.style.top  = (screenPos.y - 24) + 'px';
+    doorHintEl.style.top  = (screenPos.y - 30) + 'px';
   }
 
   function hideDoorHint(){
@@ -439,43 +433,47 @@
   }
 
   function checkDoor(){
-    const door = currentScene.door;
-    const dx = playerX - door.x;
-    const dy = playerY - door.y;
+    const dx = playerX - currentScene.door.x;
+    const dy = playerY - currentScene.door.y;
     const dist = Math.hypot(dx, dy);
 
-    if(dist < 0.9){
-      const pos = worldToScreen(door.x, door.y);
-      showDoorHint(pos);
-      goToScene(door.target);
-    }else if(dist > 1.5){
+    const doorScreen = worldToScreen(currentScene.door.x, currentScene.door.y);
+
+    if(dist < 0.25){
+      showDoorHint(doorScreen);
+      if(!isTransitioning){
+        const next = (currentSceneKey === 'roomA') ? 'roomB' : 'roomA';
+        goToScene(next);
+      }
+    }else if(dist > 0.35){
       hideDoorHint();
     }
   }
 
   function goToScene(key){
+    isTransitioning = true;
     fadeEl.classList.add('active');
-    hideDoorHint();
     setTimeout(()=>{
       currentSceneKey = key;
-      currentScene = scenes[currentSceneKey];
+      currentScene    = scenes[currentSceneKey];
       buildScene();
-      if(key === 'roomB'){
-        playerX = 0;
-        playerY = 2.5;
-        logEl.textContent = '두 번째 정육면체 방입니다. 다시 문 쪽으로 걸어가면 첫 방으로 돌아갑니다.';
-      }else{
-        playerX = 0;
-        playerY = 2.5;
-        logEl.textContent = '첫 번째 정육면체 방입니다. 문을 통해 두 번째 방으로 이동할 수 있습니다.';
-      }
-      clampToScene();
+
+      // 새 방에서 시작 위치: 문 바로 앞
+      playerX = 0;
+      playerY = 0.5;
+      clampToRoom();
       updatePlayerVisual();
+
+      logEl.textContent = (key === 'roomA')
+        ? '첫 번째 정육면체 방입니다. EXIT 방향으로 걸어가면 두 번째 방으로 넘어갑니다.'
+        : '두 번째 정육면체 방입니다. EXIT 문으로 다시 걸어가면 첫 방으로 돌아옵니다.';
+
       fadeEl.classList.remove('active');
+      isTransitioning = false;
     }, 450);
   }
 
-  /*********** 조이스틱 ***********/
+  /********* 조이스틱 *********/
   const joystick     = document.getElementById('joystick');
   const joystickKnob = document.getElementById('joystickKnob');
   let joyActive = false;
@@ -483,9 +481,15 @@
   let joyVector = {x:0,y:0};
   const joyMaxRadius = 45;
 
-  function setJoyVector(clientX, clientY){
-    const dx = clientX - joyCenter.x;
-    const dy = clientY - joyCenter.y;
+  function setJoyVector(cx, cy){
+    const dx = cx - joyCenter.x;
+    const dy = cy - joyCenter.y;
+    if(dx === 0 && dy === 0){
+      joyVector.x = 0; joyVector.y = 0;
+      joystickKnob.style.left = '50%';
+      joystickKnob.style.top  = '50%';
+      return;
+    }
     const angle = Math.atan2(dy, dx);
     const dist  = Math.min(joyMaxRadius, Math.hypot(dx,dy));
     const nx = Math.cos(angle) * (dist/joyMaxRadius);
@@ -504,7 +508,7 @@
     joystickKnob.style.top  = '50%';
   }
 
-  // 조이스틱 영역에서만 기본 제스처 막기 (다른 곳은 꾹 눌러도 복사 가능)
+  // 조이스틱 영역에서만 기본 제스처 막기
   joystick.addEventListener('pointerdown', e=>{
     e.preventDefault();
     joyActive = true;
@@ -531,7 +535,7 @@
     resetJoystick();
   });
 
-  // 키보드(테스트용)
+  // 키보드 테스트용
   window.addEventListener('keydown', e=>{
     if(e.key === 'ArrowUp')    joyVector.y = -1;
     if(e.key === 'ArrowDown')  joyVector.y =  1;
@@ -540,10 +544,10 @@
   });
   window.addEventListener('keyup', e=>{
     if(['ArrowUp','ArrowDown'].includes(e.key)) joyVector.y = 0;
-    if(['ArrowLeft','Right'].includes(e.key)) joyVector.x = 0;
+    if(['ArrowLeft','ArrowRight'].includes(e.key)) joyVector.x = 0;
   });
 
-  /*********** 메인 루프 ***********/
+  /********* 메인 루프 *********/
   let lastTime = performance.now();
 
   function loop(now){
@@ -556,22 +560,20 @@
     playerX += velX * dt;
     playerY += velY * dt;
 
-    clampToScene();
+    clampToRoom();
     updatePlayerVisual();
     checkDoor();
 
     requestAnimationFrame(loop);
   }
 
-  /*********** 초기화 ***********/
+  /********* 초기화 *********/
   buildScene();
-  playerX = 0;
-  playerY = 2.5;
-  clampToScene();
+  clampToRoom();
   updatePlayerVisual();
   requestAnimationFrame(loop);
 
-  // 원하면 sw.js 두고 서비스워커 등록 – 홈화면 앱 캐시용
+  // 서비스워커 등록 (있으면)
   if('serviceWorker' in navigator){
     window.addEventListener('load', ()=>{
       navigator.serviceWorker.register('sw.js').catch(console.error);
