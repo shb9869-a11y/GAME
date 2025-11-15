@@ -2,8 +2,16 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>TOEM-style Isometric Maze & Room</title>
+<title>SLEEEEP TOEM-style World</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!-- PWA 기본 설정 -->
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="SLEEEEP WORLD">
+<meta name="theme-color" content="#000000">
+<link rel="manifest" href="manifest.json">
 
 <style>
   *{box-sizing:border-box;margin:0;padding:0;}
@@ -23,7 +31,7 @@
     color:#fff;
   }
 
-  /* 가로 모드 전용 안내 */
+  /* 가로 모드 안내 */
   .rotate-warning{
     position:fixed;
     inset:0;
@@ -54,7 +62,7 @@
     .game-root{display:block;}
   }
 
-  /* 월드 (카메라가 따라다니는 공간) */
+  /* 월드 (카메라) */
   .world{
     position:absolute;
     left:50%;
@@ -74,7 +82,6 @@
     pointer-events:none;
   }
 
-  /* 기본 바닥 타일 */
   .tile{
     position:absolute;
     width:64px;
@@ -94,7 +101,12 @@
     border:2px solid #000;
   }
 
-  /* 벽(장애물) */
+  /* 씬별 바닥 느낌 */
+  .scene-info  .tile-base{ background:#ffffff; }
+  .scene-stones .tile-base{ background:#e7e7e7; }
+  .scene-rock .tile-base{ background:#2b0202; }
+
+  /* 벽 */
   .tile.wall .wall-block{
     position:absolute;
     left:50%;
@@ -107,20 +119,27 @@
     box-shadow:0 12px 0 #000;
   }
 
-  /* 출구 타일 표시 */
+  /* 출구 타일 - 항상 표시 */
   .tile.exit .tile-base{
-    background:repeating-linear-gradient(
-      45deg, #dcdcdc 0 6px, #ffffff 6px 12px
-    );
+    background:
+      repeating-linear-gradient(
+        45deg, #dcdcdc 0 6px, #ffffff 6px 12px
+      );
+    border-color:#000;
+  }
+  .tile.exit::after{
+    content:"EXIT";
+    position:absolute;
+    left:50%;
+    top:40%;
+    transform:translate(-50%,-50%);
+    font-size:10px;
+    letter-spacing:0.1em;
+    color:#000;
+    font-weight:700;
   }
 
-  /* ROOM 씬에서 벽은 낮은 벽 느낌으로 */
-  .scene-room .tile.wall .wall-block{
-    height:25px;
-    box-shadow:0 8px 0 #000;
-  }
-
-  /* 플레이어 캐릭터 */
+  /* 플레이어 */
   .player{
     position:absolute;
     width:32px;
@@ -161,12 +180,12 @@
     border:3px solid #000;
   }
 
-  /* ROOM 씬의 가구(침대, 탁자 등) */
-  .room-prop{
+  /* 방/비석/바위 소품 */
+  .prop{
     position:absolute;
     transform-origin:center center;
   }
-  .room-prop .block{
+  .prop .block{
     position:absolute;
     left:50%;
     top:50%;
@@ -177,21 +196,36 @@
     border:3px solid #000;
     box-shadow:0 10px 0 #000;
   }
-  .room-prop.bed .block{
+  .prop.bed .block{
     width:80px;
     height:46px;
   }
-  .room-prop.rug .block{
+  .prop.rug .block{
     width:100px;
     height:34px;
     background:#e6e6e6;
     box-shadow:0 0 0 #000;
   }
-  .room-prop.rug .block::after{
+  .prop.rug .block::after{
     content:"";
     position:absolute;
     inset:6px;
     border:2px dashed #777;
+  }
+
+  .prop.stone .block{
+    width:40px;
+    height:50px;
+    background:#f2f2f2;
+    box-shadow:0 14px 0 #000;
+  }
+
+  .prop.redrock .block{
+    width:120px;
+    height:80px;
+    background:#a30000;
+    border-radius:6px;
+    box-shadow:0 20px 0 #000;
   }
 
   /* 좌측 하단 방향키 */
@@ -238,7 +272,29 @@
     z-index:40;
   }
 
-  /* 씬 전환용 페이드 */
+  /* 정보 룸 안내판 */
+  .info-panel{
+    position:absolute;
+    right:20px;
+    top:20px;
+    width:260px;
+    padding:10px 14px;
+    background:rgba(255,255,255,0.95);
+    color:#000;
+    border-radius:8px;
+    border:3px solid #000;
+    font-size:12px;
+    line-height:1.4;
+    z-index:35;
+  }
+  .info-panel h1{
+    font-size:14px;
+    margin-bottom:6px;
+    text-transform:uppercase;
+    letter-spacing:0.1em;
+  }
+
+  /* 씬 페이드 */
   .fade-overlay{
     position:absolute;
     inset:0;
@@ -271,8 +327,7 @@
         <div class="head"></div>
       </div>
     </div>
-    <!-- ROOM 씬에서만 쓰는 소품 -->
-    <div class="entity-layer" id="roomProps"></div>
+    <div class="entity-layer" id="propsLayer"></div>
   </div>
 
   <!-- 좌측 하단 방향키 -->
@@ -291,33 +346,56 @@
   </div>
 
   <div class="log" id="log">
-    미로에서 출구까지 걸어가 보세요. (←↑→↓ 또는 D-pad)
+    하얀 방에서 안내를 읽고 EXIT 타일로 나가 보세요.
+  </div>
+
+  <div class="info-panel" id="infoPanel">
+    <h1>SLEEEEP WORLD</h1>
+    <p>이곳은 잠들기 직전의 하얀 방입니다.</p>
+    <p>방 안을 천천히 거닐며 안내문을 읽은 뒤,<br>
+       바닥에 표시된 <strong>EXIT</strong> 타일을 통해 다음 공간으로 이동하세요.</p>
+    <p>← ↑ → ↓ 키 또는 화면 왼쪽 아래 방향키로 움직일 수 있습니다.</p>
   </div>
 
   <div class="fade-overlay" id="fade"></div>
 </div>
+
+<!-- 사운드: 파일 이름은 실제 mp3로 교체해서 사용하세요 -->
+<audio id="stoneSound0" src="stone1.mp3" loop></audio>
+<audio id="stoneSound1" src="stone2.mp3" loop></audio>
+<audio id="stoneSound2" src="stone3.mp3" loop></audio>
+<audio id="rockAmbience" src="rock_ambience.mp3" loop></audio>
 
 <script>
   /***********************
    * 맵 데이터
    * 0 = 바닥
    * 1 = 벽
-   * 2 = 출구(maze에서만)
+   * 2 = 출구
    ***********************/
-  const mazeMap = [
+  // 1. 하얀 방 (정보룸)
+  const infoMap = [
+    [1,1,1,1,1,1,1],
+    [1,0,0,0,0,0,1],
+    [1,0,0,0,0,0,1],
+    [1,0,0,0,0,0,1],
+    [1,0,0,0,0,2,1], // 오른쪽 아래 쪽 EXIT
+    [1,1,1,1,1,1,1]
+  ];
+
+  // 2. 비석 + 사운드 필드
+  const stonesMap = [
     [1,1,1,1,1,1,1,1,1],
-    [1,0,0,0,1,0,0,0,1],
-    [1,0,1,0,1,0,1,0,1],
-    [1,0,1,0,0,0,1,0,1],
-    [1,0,1,1,1,0,1,0,1],
-    [1,0,0,0,0,0,1,0,1],
-    [1,1,1,1,1,0,1,0,1],
-    [1,0,0,0,0,0,0,2,1], // 오른쪽 아래 쪽에 출구(2)
+    [1,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,2,1], // 출구 → 붉은 바위
     [1,1,1,1,1,1,1,1,1]
   ];
 
-  // 방(ROOM) 맵 – 단순한 사각형 방
-  const roomMap = [
+  // 3. 붉은 바위 공간
+  const rockMap = [
     [1,1,1,1,1,1,1],
     [1,0,0,0,0,0,1],
     [1,0,0,0,0,0,1],
@@ -326,32 +404,80 @@
     [1,1,1,1,1,1,1]
   ];
 
-  let currentMap = mazeMap;
-  let currentScene = 'maze'; // 'maze' | 'room'
+  const tileW = 64;
+  const tileH = 32;
+  const originX = 260;
+  const originY = 60;
+
+  const worldEl     = document.getElementById('world');
+  const tileLayer   = document.getElementById('tileLayer');
+  const propsLayer  = document.getElementById('propsLayer');
+  const playerEl    = document.getElementById('player');
+  const logEl       = document.getElementById('log');
+  const fadeEl      = document.getElementById('fade');
+  const infoPanelEl = document.getElementById('infoPanel');
+
+  const stoneAudios = [
+    document.getElementById('stoneSound0'),
+    document.getElementById('stoneSound1'),
+    document.getElementById('stoneSound2')
+  ];
+  const rockAudio = document.getElementById('rockAmbience');
+
+  // 씬 정의
+  const scenes = {
+    info: {
+      key:'info',
+      map: infoMap,
+      start:{x:3,y:3},
+      exitTargets:[{x:5,y:4,to:'stones'}],
+      worldClass:'scene-info',
+      props:[
+        {type:'bed', x:2, y:3},
+        {type:'table', x:4, y:3},
+        {type:'rug', x:3, y:4}
+      ]
+    },
+    stones: {
+      key:'stones',
+      map: stonesMap,
+      start:{x:1,y:1},
+      exitTargets:[{x:7,y:5,to:'rock'}],
+      worldClass:'scene-stones',
+      props:[
+        {type:'stone', x:2, y:2, soundIndex:0},
+        {type:'stone', x:4, y:3, soundIndex:1},
+        {type:'stone', x:6, y:2, soundIndex:2}
+      ]
+    },
+    rock: {
+      key:'rock',
+      map: rockMap,
+      start:{x:3,y:4},
+      exitTargets:[], // 마지막 씬
+      worldClass:'scene-rock',
+      props:[
+        {type:'redrock', x:3, y:3}
+      ]
+    }
+  };
+
+  let currentSceneKey = 'info';
+  let currentScene = scenes[currentSceneKey];
+  let currentMap   = currentScene.map;
 
   const rows = () => currentMap.length;
   const cols = () => currentMap[0].length;
 
-  const tileLayer = document.getElementById('tileLayer');
-  const roomPropsLayer = document.getElementById('roomProps');
-  const playerEl = document.getElementById('player');
-  const worldEl = document.getElementById('world');
-  const logEl = document.getElementById('log');
-  const fadeEl = document.getElementById('fade');
-
-  // 아이소메트릭 투영 값
-  const tileW = 64;
-  const tileH = 32;
-  const originX = 260; // 월드 내부 기준
-  const originY = 60;
-
-  // 플레이어 위치 (맵 좌표)
-  let px = 1;
-  let py = 1;
+  // 플레이어 좌표
+  let px = currentScene.start.x;
+  let py = currentScene.start.y;
 
   function buildWorld(){
     tileLayer.innerHTML = '';
-    roomPropsLayer.innerHTML = '';
+    propsLayer.innerHTML = '';
+
+    worldEl.className = 'world ' + currentScene.worldClass;
 
     const r = rows();
     const c = cols();
@@ -361,9 +487,8 @@
         const val = currentMap[y][x];
         const tile = document.createElement('div');
         tile.className = 'tile';
-
         if(val === 1) tile.classList.add('wall');
-        if(currentScene === 'maze' && val === 2) tile.classList.add('exit');
+        if(val === 2) tile.classList.add('exit');
 
         const base = document.createElement('div');
         base.className = 'tile-base';
@@ -380,38 +505,30 @@
         tile.style.left = (originX + isoX) + 'px';
         tile.style.top  = (originY + isoY) + 'px';
         tile.style.zIndex = 10 + x + y;
-
         tileLayer.appendChild(tile);
       }
     }
 
-    if(currentScene === 'room'){
-      worldEl.classList.add('scene-room');
-      // 간단한 방 소품 배치: 침대, 탁자, 러그
-      addRoomProp('bed', 2, 2);
-      addRoomProp('table', 4, 2);
-      addRoomProp('rug', 3, 3);
-    } else {
-      worldEl.classList.remove('scene-room');
-    }
+    // 소품 배치
+    currentScene.props.forEach(p => addProp(p));
+    // info 룸 안내판 On/Off
+    infoPanelEl.style.display = (currentSceneKey === 'info') ? 'block' : 'none';
   }
 
-  function addRoomProp(type, gx, gy){
+  function addProp(p){
     const wrapper = document.createElement('div');
-    wrapper.className = 'room-prop ' + type;
-
+    wrapper.className = 'prop ' + p.type;
     const block = document.createElement('div');
     block.className = 'block';
     wrapper.appendChild(block);
 
-    const isoX = (gx - gy) * (tileW/2);
-    const isoY = (gx + gy) * (tileH/2);
-
+    const isoX = (p.x - p.y) * (tileW/2);
+    const isoY = (p.x + p.y) * (tileH/2);
     wrapper.style.left = (originX + isoX) + 'px';
     wrapper.style.top  = (originY + isoY) + 'px';
-    wrapper.style.zIndex = 40 + gx + gy;
+    wrapper.style.zIndex = 40 + p.x + p.y;
 
-    roomPropsLayer.appendChild(wrapper);
+    propsLayer.appendChild(wrapper);
   }
 
   function updatePlayerPosition(){
@@ -425,15 +542,15 @@
     playerEl.style.zIndex = 100 + px + py;
 
     updateCamera(screenX, screenY);
+    if(currentSceneKey === 'stones') updateStoneSound();
   }
 
   function updateCamera(screenX, screenY){
-    // 플레이어를 대략 월드 중앙 근처에 두도록 카메라 이동
     const desiredX = 260;
     const desiredY = 140;
     const diffX = desiredX - screenX;
     const diffY = desiredY - screenY;
-    const camX = diffX * 0.25; // 값을 줄수록 움직임이 미묘해짐
+    const camX = diffX * 0.25;
     const camY = diffY * 0.25;
 
     document.documentElement.style.setProperty('--camX', camX + 'px');
@@ -442,7 +559,7 @@
 
   function canMove(nx, ny){
     if(nx < 0 || nx >= cols() || ny < 0 || ny >= rows()) return false;
-    return currentMap[ny][nx] !== 1; // 벽(1)만 막음
+    return currentMap[ny][nx] !== 1;
   }
 
   function move(dx, dy){
@@ -452,46 +569,84 @@
       px = nx;
       py = ny;
       updatePlayerPosition();
-
-      const tileVal = currentMap[py][px];
-      if(currentScene === 'maze' && tileVal === 2){
-        // 출구 도착 → 방으로 전환
-        enterRoomScene();
-      }
+      checkExit();
     }else{
-      logEl.textContent = (currentScene === 'maze')
-        ? '벽이 있어요. 다른 길을 찾아보세요.'
-        : '방의 벽에 막혔어요.';
+      logEl.textContent =
+        (currentSceneKey === 'info')   ? '방의 벽에 막혔어요.' :
+        (currentSceneKey === 'stones') ? '비석 사이 길을 찾아보세요.' :
+                                         '바위를 둘러싼 경계를 살펴보세요.';
     }
   }
 
-  function enterRoomScene(){
-    logEl.textContent = '출구를 찾았습니다. 방으로 이동 중...';
-    fadeEl.classList.add('active');
+  function checkExit(){
+    const val = currentMap[py][px];
+    if(val !== 2) return;
+    const target = currentScene.exitTargets.find(e => e.x === px && e.y === py);
+    if(!target) return;
+    goToScene(target.to);
+  }
 
+  function goToScene(key){
+    fadeEl.classList.add('active');
     setTimeout(()=>{
-      currentScene = 'room';
-      currentMap = roomMap;
-      // 방 안 시작 위치 (대략 중앙)
-      px = 3;
-      py = 3;
+      currentSceneKey = key;
+      currentScene    = scenes[currentSceneKey];
+      currentMap      = currentScene.map;
+      px = currentScene.start.x;
+      py = currentScene.start.y;
+      handleSceneAudio();
       buildWorld();
       updatePlayerPosition();
-      logEl.textContent = '방 안으로 들어왔습니다. 자유롭게 걸어보세요.';
+      logEl.textContent =
+        (key === 'stones')
+          ? '비석 사이를 걸으며 소리를 들어보세요. EXIT를 통해 다음 공간으로 나갈 수 있습니다.'
+          : (key === 'rock')
+            ? '거대한 붉은 바위 앞입니다. 이곳은 여정의 마지막 공간입니다.'
+            : '하얀 방으로 돌아왔습니다.';
       fadeEl.classList.remove('active');
     }, 650);
   }
 
-  /*************
-   * 입력 처리
-   *************/
+  function handleSceneAudio(){
+    if(currentSceneKey === 'stones'){
+      stoneAudios.forEach(a=>{
+        try{ a.play(); }catch(e){}
+        a.volume = 0.1;
+      });
+      rockAudio.pause();
+    }else if(currentSceneKey === 'rock'){
+      stoneAudios.forEach(a=>{ a.pause(); });
+      try{ rockAudio.play(); }catch(e){}
+      rockAudio.volume = 0.8;
+    }else{
+      stoneAudios.forEach(a=>{ a.pause(); });
+      rockAudio.pause();
+    }
+  }
+
+  function updateStoneSound(){
+    currentScene.props.forEach(p=>{
+      if(p.type !== 'stone' || p.soundIndex == null) return;
+      const a = stoneAudios[p.soundIndex];
+      if(!a) return;
+      const dist = Math.abs(px - p.x) + Math.abs(py - p.y);
+      let vol = 0.1;
+      if(dist <= 1) vol = 1;
+      else if(dist <= 2) vol = 0.6;
+      else if(dist <= 3) vol = 0.3;
+      a.volume = vol;
+    });
+  }
+
+  // 키보드
   window.addEventListener('keydown', e=>{
-    if(e.key === 'ArrowUp') move(0,-1);
-    else if(e.key === 'ArrowDown') move(0,1);
-    else if(e.key === 'ArrowLeft') move(-1,0);
-    else if(e.key === 'ArrowRight') move(1,0);
+    if(e.key === 'ArrowUp')    { move(0,-1); }
+    else if(e.key === 'ArrowDown') { move(0,1); }
+    else if(e.key === 'ArrowLeft') { move(-1,0); }
+    else if(e.key === 'ArrowRight'){ move(1,0); }
   });
 
+  // D-pad
   document.querySelectorAll('.dpad button[data-dir]').forEach(btn=>{
     const dir = btn.dataset.dir;
     btn.addEventListener('click', ()=>{
@@ -502,11 +657,17 @@
     });
   });
 
-  /*************
-   * 초기화
-   *************/
+  // 초기화
   buildWorld();
   updatePlayerPosition();
+  handleSceneAudio();
+
+  // PWA 서비스워커 등록
+  if('serviceWorker' in navigator){
+    window.addEventListener('load', ()=>{
+      navigator.serviceWorker.register('sw.js').catch(console.error);
+    });
+  }
 </script>
 
 </body>
