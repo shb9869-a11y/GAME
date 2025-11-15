@@ -2,11 +2,11 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>Isometric Yard Demo</title>
+<title>Yard → Stone Room</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="ISO-YARD">
+<meta name="apple-mobile-web-app-title" content="SLEEP-YARD">
 <meta name="theme-color" content="#000000">
 
 <style>
@@ -90,7 +90,7 @@
     pointer-events:none;
   }
 
-  /* ================== 이소메트릭 섬 바닥 ================== */
+  /* =============== 공통: 이소메트릭 섬 =============== */
 
   .island{
     position:absolute;
@@ -104,8 +104,10 @@
     box-shadow:0 18px 0 #000;
     overflow:visible;
   }
+  .scene-stone .island{
+    background:#fff5f5;
+  }
 
-  /* 섬 모서리에 튀어나온 플랫폼들 */
   .platform{
     position:absolute;
     width:120px;
@@ -114,56 +116,46 @@
     border:4px solid #000;
     box-shadow:0 12px 0 #000;
   }
+  .scene-stone .platform{
+    background:#fff5f5;
+  }
   .platform.p1{ left:-40px; bottom:30px; transform:skewX(25deg); }
   .platform.p2{ right:-60px; bottom:120px; transform:skewX(25deg); }
   .platform.p3{ left:140px; top:-40px; transform:skewX(25deg); }
 
-  /* 잔디 느낌 패턴 */
   .grass-dot{
     position:absolute;
     width:3px;
     height:10px;
     border-radius:50px;
     background:#b5b5b5;
-    opacity:0.7;
+    opacity:0.6;
   }
 
-  /* ================== 타워(건물) ================== */
+  /* =============== 타워 =============== */
 
   .tower{
     position:absolute;
     left:50%;
-    bottom:70px;
+    bottom:72px;
     width:110px;
-    height:260px;
+    height:230px;
     transform:translateX(-50%) skewX(25deg);
-    background:#f0f0f0;
+    background:#f2f2f2;
     border:4px solid #000;
     box-shadow:0 16px 0 #000;
   }
 
-  .tower-top{
-    position:absolute;
-    left:50%;
-    top:-38px;
-    width:220px;
-    height:80px;
-    transform:translateX(-50%);
-    background:#f0f0f0;
-    border:4px solid #000;
-    box-shadow:0 12px 0 #000;
-  }
-
   .tower-window{
     position:absolute;
-    width:32px;
-    height:32px;
+    width:30px;
+    height:30px;
     background:#000;
     border:3px solid #000;
   }
   .tower-window.w1{ left:50%; top:40px; transform:translateX(-50%); }
-  .tower-window.w2{ left:18px; top:100px; }
-  .tower-window.w3{ right:18px; top:140px; }
+  .tower-window.w2{ left:14px; top:100px; }
+  .tower-window.w3{ right:14px; top:140px; }
 
   .tower-door{
     position:absolute;
@@ -176,21 +168,21 @@
     border:4px solid #000;
   }
 
-  /* ================== 나무 / 바위 / 울타리 ================== */
+  /* =============== 나무 / 바위 / 울타리 =============== */
 
   .tree{
     position:absolute;
-    width:26px;
-    height:60px;
+    width:40px;
+    height:70px;
   }
   .tree-trunk{
     position:absolute;
     left:50%;
     bottom:0;
     width:8px;
-    height:22px;
+    height:24px;
     transform:translateX(-50%);
-    background:#444;
+    background:#555;
     border-radius:4px;
     border:2px solid #000;
   }
@@ -199,17 +191,25 @@
     left:50%;
     bottom:18px;
     width:34px;
-    height:34px;
+    height:26px;
     transform:translateX(-50%);
-    background:#e0e0e0;
+  }
+  .tree-top span{
+    position:absolute;
+    width:24px;
+    height:24px;
     border-radius:50%;
+    background:#e3e3e3;
     border:3px solid #000;
   }
+  .tree-top .t1{ left:-4px; top:-2px; }
+  .tree-top .t2{ left:10px; top:4px; }
+  .tree-top .t3{ left:-2px; top:12px; }
 
   .rock{
     position:absolute;
-    width:40px;
-    height:26px;
+    width:42px;
+    height:28px;
     background:#dedede;
     border-radius:18px;
     border:3px solid #000;
@@ -218,22 +218,75 @@
 
   .bush{
     position:absolute;
-    width:60px;
-    height:30px;
+    width:64px;
+    height:34px;
     background:#e0e0e0;
-    border-radius:20px;
+    border-radius:22px;
     border:3px solid #000;
     box-shadow:0 4px 0 rgba(0,0,0,0.35);
   }
 
   .fence{
     position:absolute;
-    height:14px;
+    height:15px;
     background:#fefefe;
     border:3px solid #000;
   }
 
-  /* ================== 플레이어 ================== */
+  /* =============== SCENE 2: 붉은 비석 + 선베드 =============== */
+
+  .stone{
+    position:absolute;
+    left:50%;
+    top:45%;
+    width:90px;
+    height:220px;
+    transform:translate(-50%,-50%);
+    background:linear-gradient(to bottom,#5c4f46 0 55%, #c00000 55% 100%);
+    border-radius:46px 46px 30px 30px;
+    border:4px solid #000;
+    box-shadow:0 10px 0 rgba(0,0,0,0.5);
+  }
+
+  .lounger{
+    position:absolute;
+    width:80px;
+    height:26px;
+    background:#ffffff;
+    border-radius:16px;
+    border:3px solid #000;
+    box-shadow:0 4px 0 rgba(0,0,0,0.35);
+  }
+  .lounger::after{
+    content:'';
+    position:absolute;
+    inset:5px 8px;
+    border-radius:12px;
+    border:2px solid #000;
+    opacity:0.4;
+  }
+
+  .umbrella{
+    position:absolute;
+    width:60px;
+    height:60px;
+    border-radius:50%;
+    background:#ffdfdf;
+    border:3px solid #000;
+    box-shadow:0 4px 0 rgba(0,0,0,0.35);
+  }
+  .umbrella::after{
+    content:'';
+    position:absolute;
+    left:50%;
+    top:55%;
+    width:4px;
+    height:40px;
+    transform:translateX(-50%);
+    background:#000;
+  }
+
+  /* =============== 플레이어 =============== */
 
   .player{
     position:absolute;
@@ -274,7 +327,7 @@
             rgba(0,0,0,0.45) 0, transparent 70%);
   }
 
-  /* ================== 조이스틱 ================== */
+  /* =============== 조이스틱 =============== */
 
   .joystick{
     position:absolute;
@@ -326,6 +379,20 @@
     border:2px solid #000;
     z-index:40;
   }
+
+  .fade-overlay{
+    position:absolute;
+    inset:0;
+    background:#000;
+    opacity:0;
+    pointer-events:none;
+    transition:opacity .4s ease;
+    z-index:50;
+  }
+  .fade-overlay.active{
+    opacity:1;
+    pointer-events:auto;
+  }
 </style>
 </head>
 <body>
@@ -355,31 +422,52 @@
   </div>
 
   <div class="log" id="log">
-    이소메트릭 마당입니다. 조이스틱으로 돌아다녀 보세요. (오브젝트는 아직 충돌 없이 장식만 합니다.)
+    마당에서 타워의 검은 문까지 걸어가면 붉은 비석 방으로 이동합니다.
   </div>
+
+  <div class="fade-overlay" id="fade"></div>
 </div>
 
 <script>
   const worldEl   = document.getElementById('world');
   const sceneEl   = document.getElementById('sceneLayer');
   const playerEl  = document.getElementById('player');
+  const logEl     = document.getElementById('log');
+  const fadeEl    = document.getElementById('fade');
 
-  /* ===== 장면 구성 ===== */
+  /* ===== 씬 정의 ===== */
+  const scenes = {
+    yard:{
+      key:'yard',
+      hasDoor:true,
+      doorPos:{x:0, y:-0.6} // 타워 문 위치(대략)
+    },
+    stone:{
+      key:'stone',
+      hasDoor:false
+    }
+  };
+
+  let currentSceneKey = 'yard';
+  let currentScene    = scenes[currentSceneKey];
+
+  /* ===== 빌드 ===== */
+
   function buildScene(){
     sceneEl.innerHTML = '';
-    worldEl.className = 'world';
+    worldEl.className = 'world scene-' + currentSceneKey;
 
     const island = document.createElement('div');
     island.className = 'island';
 
-    /* 섬 주변 플랫폼 */
+    // 플랫폼
     ['p1','p2','p3'].forEach(cls=>{
       const p = document.createElement('div');
       p.className = 'platform ' + cls;
       island.appendChild(p);
     });
 
-    /* 잔디 도트 몇 개 */
+    // 잔디 도트
     const grassSpots = [
       {x:20,y:60},{x:30,y:50},{x:40,y:55},{x:60,y:62},
       {x:70,y:50},{x:25,y:40},{x:55,y:42},{x:45,y:70}
@@ -392,91 +480,131 @@
       island.appendChild(dot);
     });
 
-    /* 타워 */
-    const tower = document.createElement('div');
-    tower.className = 'tower';
-    tower.innerHTML = `
-      <div class="tower-top"></div>
-      <div class="tower-window w1"></div>
-      <div class="tower-window w2"></div>
-      <div class="tower-window w3"></div>
-      <div class="tower-door"></div>
-    `;
-    island.appendChild(tower);
+    if(currentSceneKey === 'yard'){
+      /* 타워 */
+      const tower = document.createElement('div');
+      tower.className = 'tower';
+      tower.innerHTML = `
+        <div class="tower-window w1"></div>
+        <div class="tower-window w2"></div>
+        <div class="tower-window w3"></div>
+        <div class="tower-door"></div>
+      `;
+      island.appendChild(tower);
 
-    /* 나무들 (왼쪽/오른쪽) */
-    const trees = [
-      {x:18,y:62},{x:22,y:52},{x:26,y:42},
-      {x:74,y:62},{x:78,y:52},{x:82,y:42},
-      {x:15,y:30},{x:85,y:30}
-    ];
-    trees.forEach(t=>{
-      const el = document.createElement('div');
-      el.className = 'tree';
-      el.style.left = t.x + '%';
-      el.style.top  = t.y + '%';
-      el.innerHTML = `<div class="tree-top"></div><div class="tree-trunk"></div>`;
-      island.appendChild(el);
-    });
+      /* 나무들 */
+      const trees = [
+        {x:18,y:62},{x:22,y:52},{x:26,y:42},
+        {x:74,y:62},{x:78,y:52},{x:82,y:42},
+        {x:15,y:30},{x:85,y:30}
+      ];
+      trees.forEach(t=>{
+        const el = document.createElement('div');
+        el.className = 'tree';
+        el.style.left = t.x + '%';
+        el.style.top  = t.y + '%';
+        el.innerHTML = `
+          <div class="tree-top">
+            <span class="t1"></span>
+            <span class="t2"></span>
+            <span class="t3"></span>
+          </div>
+          <div class="tree-trunk"></div>
+        `;
+        island.appendChild(el);
+      });
 
-    /* 바위들 */
-    const rocks = [
-      {x:10,y:70},{x:30,y:75},{x:72,y:75}
-    ];
-    rocks.forEach(r=>{
-      const el = document.createElement('div');
-      el.className = 'rock';
-      el.style.left = r.x + '%';
-      el.style.top  = r.y + '%';
-      el.style.transform = 'translate(-50%,-50%)';
-      island.appendChild(el);
-    });
+      /* 바위 */
+      const rocks = [
+        {x:10,y:70},{x:30,y:75},{x:72,y:75}
+      ];
+      rocks.forEach(r=>{
+        const el = document.createElement('div');
+        el.className = 'rock';
+        el.style.left = r.x + '%';
+        el.style.top  = r.y + '%';
+        el.style.transform = 'translate(-50%,-50%)';
+        island.appendChild(el);
+      });
 
-    /* 덤불 */
-    const bushes = [
-      {x:12,y:48},{x:88,y:48}
-    ];
-    bushes.forEach(b=>{
-      const el = document.createElement('div');
-      el.className = 'bush';
-      el.style.left = b.x + '%';
-      el.style.top  = b.y + '%';
-      el.style.transform = 'translate(-50%,-50%)';
-      island.appendChild(el);
-    });
+      /* 덤불 */
+      const bushes = [
+        {x:12,y:48},{x:88,y:48}
+      ];
+      bushes.forEach(b=>{
+        const el = document.createElement('div');
+        el.className = 'bush';
+        el.style.left = b.x + '%';
+        el.style.top  = b.y + '%';
+        el.style.transform = 'translate(-50%,-50%)';
+        island.appendChild(el);
+      });
 
-    /* 울타리 (하단, 좌, 우 일부) */
-    const fenceBottom = document.createElement('div');
-    fenceBottom.className = 'fence';
-    fenceBottom.style.left = '8%';
-    fenceBottom.style.bottom = '18px';
-    fenceBottom.style.width = '84%';
-    island.appendChild(fenceBottom);
+      /* 울타리 */
+      const fenceBottom = document.createElement('div');
+      fenceBottom.className = 'fence';
+      fenceBottom.style.left = '8%';
+      fenceBottom.style.bottom = '18px';
+      fenceBottom.style.width = '84%';
+      island.appendChild(fenceBottom);
 
-    const fenceLeft = document.createElement('div');
-    fenceLeft.className = 'fence';
-    fenceLeft.style.width = '120px';
-    fenceLeft.style.left = '-4%';
-    fenceLeft.style.top = '40%';
-    fenceLeft.style.transform = 'rotate(90deg)';
-    island.appendChild(fenceLeft);
+      const fenceLeft = document.createElement('div');
+      fenceLeft.className = 'fence';
+      fenceLeft.style.width = '120px';
+      fenceLeft.style.left = '-4%';
+      fenceLeft.style.top = '40%';
+      fenceLeft.style.transform = 'rotate(90deg)';
+      island.appendChild(fenceLeft);
 
-    const fenceRight = document.createElement('div');
-    fenceRight.className = 'fence';
-    fenceRight.style.width = '120px';
-    fenceRight.style.right = '-4%';
-    fenceRight.style.top = '38%';
-    fenceRight.style.transform = 'rotate(90deg)';
-    island.appendChild(fenceRight);
+      const fenceRight = document.createElement('div');
+      fenceRight.className = 'fence';
+      fenceRight.style.width = '120px';
+      fenceRight.style.right = '-4%';
+      fenceRight.style.top = '38%';
+      fenceRight.style.transform = 'rotate(90deg)';
+      island.appendChild(fenceRight);
+
+      logEl.textContent = '마당입니다. 타워의 검은 문에 닿으면 붉은 비석 방으로 이동합니다.';
+    } else if(currentSceneKey === 'stone'){
+      /* 중앙 붉은 비석 */
+      const stone = document.createElement('div');
+      stone.className = 'stone';
+      island.appendChild(stone);
+
+      /* 선베드 + 파라솔 8세트 */
+      const spots = [
+        {x:25,y:25},{x:50,y:20},{x:75,y:25},
+        {x:25,y:75},{x:50,y:80},{x:75,y:75},
+        {x:15,y:50},{x:85,y:50}
+      ];
+      spots.forEach((s,i)=>{
+        const lounger = document.createElement('div');
+        lounger.className = 'lounger';
+        lounger.style.left = s.x + '%';
+        lounger.style.top  = s.y + '%';
+        lounger.style.transform = 'translate(-50%,-50%)';
+
+        const umb = document.createElement('div');
+        umb.className = 'umbrella';
+        umb.style.left = (s.x + (s.x<50? -6:6)) + '%';
+        umb.style.top  = (s.y - 18) + '%';
+        umb.style.transform = 'translate(-50%,-50%)';
+
+        island.appendChild(lounger);
+        island.appendChild(umb);
+      });
+
+      logEl.textContent = '붉은 비석과 선베드가 놓인 방입니다. 자유롭게 걸어 다니며 공간을 느껴보세요.';
+    }
 
     sceneEl.appendChild(island);
   }
 
-  /* ===== 월드 좌표 & 플레이어 이동 ===== */
+  /* ===== 플레이어 & 카메라 ===== */
 
-  // x,y ∈ [-2,2] 정도의 평면을 섬 위에 맵핑
+  // x,y ∈ [-2,2] 영역
   let playerX = 0;
-  let playerY = 0.6;  // 약간 아래에서 시작
+  let playerY = 0.6;  // 약간 아래
   const limitX = 2.0;
   const limitY = 2.0;
   const speed  = 1.6;
@@ -488,7 +616,6 @@
   }
 
   function worldToScreen(x, y){
-    // 이소메트릭 기울기 보정 (대략적인 값)
     const baseX = 400;
     const baseY = 280;
     const sx = baseX + x * 140;
@@ -509,6 +636,38 @@
     const camY = diffY * 0.12;
     document.documentElement.style.setProperty('--camX', camX + 'px');
     document.documentElement.style.setProperty('--camY', camY + 'px');
+  }
+
+  /* ===== 문 충돌 체크 ===== */
+
+  function checkDoor(){
+    if(!currentScene.hasDoor) return;
+    const dx = playerX - currentScene.doorPos.x;
+    const dy = playerY - currentScene.doorPos.y;
+    const dist = Math.hypot(dx, dy);
+    if(dist < 0.35){
+      goToScene('stone');
+    }
+  }
+
+  function goToScene(key){
+    fadeEl.classList.add('active');
+    setTimeout(()=>{
+      currentSceneKey = key;
+      currentScene    = scenes[currentSceneKey];
+
+      if(key === 'stone'){
+        playerX = 0;
+        playerY = 1.0;
+      }else{
+        playerX = 0;
+        playerY = 0.6;
+      }
+      clampToIsland();
+      buildScene();
+      updatePlayerVisual();
+      fadeEl.classList.remove('active');
+    }, 350);
   }
 
   /* ===== 조이스틱 ===== */
@@ -573,7 +732,7 @@
     resetJoystick();
   });
 
-  // 키보드 테스트용 (원하면 삭제)
+  // 키보드용 (테스트용 – 필요 없으면 지워도 됨)
   window.addEventListener('keydown', e=>{
     if(e.key === 'ArrowUp')    joyVector.y = -1;
     if(e.key === 'ArrowDown')  joyVector.y =  1;
@@ -582,7 +741,7 @@
   });
   window.addEventListener('keyup', e=>{
     if(['ArrowUp','ArrowDown'].includes(e.key)) joyVector.y = 0;
-    if(['ArrowLeft','ArrowRight'].includes(e.key)) joyVector.x = 0;
+    if(['ArrowLeft','Right'].includes(e.key))   joyVector.x = 0;
   });
 
   /* ===== 메인 루프 ===== */
@@ -597,6 +756,7 @@
 
     clampToIsland();
     updatePlayerVisual();
+    checkDoor();
 
     requestAnimationFrame(loop);
   }
