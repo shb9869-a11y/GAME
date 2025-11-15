@@ -6,7 +6,6 @@
         content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
   <title>SLEEP CITY</title>
 
-  <!-- 픽셀 게임 폰트 -->
   <link rel="stylesheet"
         href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap">
 
@@ -34,7 +33,6 @@
       font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo",system-ui,sans-serif;
     }
 
-    /* 세로모드 경고 */
     .rotate-warning{
       position:fixed;
       inset:0;
@@ -68,7 +66,6 @@
       justify-content:center;
     }
 
-    /* 블랙 페이드 레이어 */
     .scene-fade{
       position:absolute;
       inset:0;
@@ -82,7 +79,6 @@
       opacity:1;
     }
 
-    /* 안개 레이어 */
     .fog-layer{
       position:absolute;
       inset:0;
@@ -106,7 +102,6 @@
       100%{opacity:0.2;}
     }
 
-    /* 중앙 팝업 공통 */
     .popup-frame{
       width:70vw;
       max-width:820px;
@@ -122,7 +117,7 @@
       overflow:hidden;
     }
 
-    /* ================== 씬 1 : 인트로 ================== */
+    /* ===== 인트로 ===== */
     #introScene{
       position:absolute;
       inset:0;
@@ -296,10 +291,6 @@
       outline:none;
       min-width:140px;
     }
-    .start-btn:active{
-      background:#181818;
-      transform:translateY(1px);
-    }
     .start-btn[disabled]{
       opacity:0.6;
       cursor:default;
@@ -334,9 +325,6 @@
       text-shadow:0 0 6px rgba(255,255,255,0.3);
       width:100%;
     }
-    .overlay-line{
-      min-height:1.3em;
-    }
     .overlay-third{
       margin-top:20px;
       font-size:clamp(11px,2vw,20px);
@@ -350,7 +338,7 @@
       opacity:0;
     }
 
-    /* ================== 씬 2 : 좌우 건물 + 중앙 길 ================== */
+    /* ===== 씬 2 : 좌우 건물 + 길 ===== */
     #streetScene{
       position:absolute;
       inset:0;
@@ -375,7 +363,6 @@
       overflow:hidden;
     }
 
-    /* 좌우 어두운 건물 벽 */
     .street-wall{
       position:absolute;
       top:0;
@@ -408,7 +395,6 @@
       opacity:0.85;
     }
 
-    /* 중앙 길 – 건물 사이를 꽉 채움 */
     .street-road{
       position:absolute;
       top:0;
@@ -420,7 +406,7 @@
     }
     .street-road-inner{
       position:absolute;
-      inset:8% 0; /* 좌우 여백 0 → 건물 사이를 길이 꽉 채움 */
+      inset:0;  /* 위/아래/좌/우 전부 채우기 */
       background:#0b0c11;
       box-shadow:0 0 16px rgba(0,0,0,0.9);
       overflow:hidden;
@@ -445,7 +431,6 @@
       to{transform:translate(-50%,40px);}
     }
 
-    /* 캐릭터 */
     .character{
       position:absolute;
       width:18px;
@@ -482,7 +467,6 @@
       transition:opacity 0.8s ease-out, transform 0.8s ease-out;
     }
 
-    /* 길 끝 붉은 건물 (처음엔 안 보임) */
     .red-building{
       position:absolute;
       top:-8%;
@@ -499,7 +483,6 @@
     .red-building.show{
       display:block;
     }
-
     .red-building-windows{
       position:absolute;
       inset:12% 18% 42% 18%;
@@ -512,7 +495,6 @@
       background:var(--window-on);
       box-shadow:0 0 8px rgba(255,216,0,0.7);
     }
-
     .red-building-door{
       position:absolute;
       bottom:0;
@@ -535,7 +517,6 @@
       background:#f5f5f5;
     }
 
-    /* 방향키 */
     .cursor-pad{
       position:fixed;
       left:14px;
@@ -565,9 +546,6 @@
       padding:0;
       cursor:pointer;
     }
-    .cursor-btn:active{
-      background:#111;
-    }
 
     .side-btn{
       position:fixed;
@@ -585,9 +563,6 @@
       justify-content:center;
       outline:none;
       z-index:50;
-    }
-    .side-btn:active{
-      background:#111;
     }
   </style>
 </head>
@@ -720,15 +695,15 @@
       }
     });
 
-    /* 인트로 시퀀스 & 전환 */
-    const startBtn   = document.getElementById("startBtn");
-    const overlay    = document.getElementById("overlay");
+    /* 인트로 시퀀스 */
+    const startBtn     = document.getElementById("startBtn");
+    const overlay      = document.getElementById("overlay");
     const overlayLines = document.getElementById("overlayLines");
     const overlayThird = document.getElementById("overlayThird");
-    const sceneFade  = document.getElementById("sceneFade");
-    const fogLayer   = document.getElementById("fogLayer");
-    const introScene = document.getElementById("introScene");
-    const streetScene= document.getElementById("streetScene");
+    const sceneFade    = document.getElementById("sceneFade");
+    const fogLayer     = document.getElementById("fogLayer");
+    const introScene   = document.getElementById("introScene");
+    const streetScene  = document.getElementById("streetScene");
     let started = false;
 
     function typeLine(text, pauseAfter, cb){
@@ -743,9 +718,7 @@
         idx++;
         if(idx >= text.length){
           clearInterval(timer);
-          if(cb){
-            setTimeout(cb, pauseAfter);
-          }
+          if(cb) setTimeout(cb, pauseAfter);
         }
       }, speed);
     }
@@ -791,7 +764,7 @@
       startOverlaySequence();
     });
 
-    /* 씬 2 건물/붉은 건물 생성 */
+    /* 씬 2 생성 */
     const streetLeft  = document.getElementById("streetLeft");
     const streetRight = document.getElementById("streetRight");
     const redBuilding = document.getElementById("redBuilding");
@@ -826,7 +799,7 @@
       redWindows.appendChild(w);
     }
 
-    /* 캐릭터 컨트롤 & 문 진입 */
+    /* 캐릭터 컨트롤 */
     const character = document.getElementById("character");
     let charX = 50;
     let charY = 20;
@@ -876,29 +849,37 @@
         doorEntered = true;
         character.classList.add("entered");
         setTimeout(()=>{
-          sceneFade.classList.add("on"); // 문 안으로 들어가며 페이드
+          sceneFade.classList.add("on");
         }, 400);
       }
     }
 
     updateCharacter();
 
-    // 방향키: streetScene.active 검사 제거 → 씬 2에서 바로 컨트롤 가능
+    /* 방향키: click + touchstart 둘 다 처리 */
+    function padHandler(dir){
+      const stepY = 4;
+      const stepX = 2;
+
+      if(dir === "up")   charY += stepY;
+      if(dir === "down") charY -= stepY;
+      if(dir === "left") charX -= stepX;
+      if(dir === "right")charX += stepX;
+
+      updateCharacter();
+    }
+
     document.querySelectorAll(".cursor-btn").forEach(btn=>{
       const dir = btn.dataset.dir;
       if(!dir) return;
 
-      btn.addEventListener("click", ()=>{
-        const stepY = 4;
-        const stepX = 2;
+      const handler = (e)=>{
+        e.preventDefault();
+        padHandler(dir);
+      };
 
-        if(dir === "up")   charY += stepY;
-        if(dir === "down") charY -= stepY;
-        if(dir === "left") charX -= stepX;
-        if(dir === "right")charX += stepX;
-
-        updateCharacter();
-      });
+      btn.addEventListener("click", handler);
+      btn.addEventListener("touchstart", handler, {passive:false});
     });
   </script>
 </body>
