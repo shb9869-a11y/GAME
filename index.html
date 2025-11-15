@@ -6,7 +6,6 @@
         content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
   <title>Layered City</title>
 
-  <!-- 홈 추가용 기본 설정 -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="SLEEP CITY">
@@ -14,439 +13,237 @@
 
   <style>
     :root {
-      --appH: 100vh;
-      --frame: clamp(16px, 4vmin, 40px);
-      --ui-gap: 10px;
-
-      --bg: #000;
-      --popup-bg: #050509;
-      --text: #f5f5f5;
-
       --window-on: #ffd800;
       --window-off: #000;
+      --text: #f5f5f5;
+      --popup-bg: #050509;
     }
-
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
+    * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body {
-      width: 100%;
-      height: 100%;
-      background: var(--bg);
-      color: var(--text);
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif;
+      width: 100%; height: 100%;
+      background: #000;
       overflow: hidden;
+      font-family: system-ui, -apple-system, "Apple SD Gothic Neo", sans-serif;
+      color: var(--text);
     }
 
-    body {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    /* 세로모드 경고 */
+    /* 가로모드 필수 */
     .rotate-warning {
       position: fixed;
       inset: 0;
+      background: #000;
+      color: #fff;
       display: none;
       align-items: center;
       justify-content: center;
-      background: #000;
-      color: #fff;
       z-index: 999;
       text-align: center;
-      padding: 24px;
-      font-size: 14px;
-      line-height: 1.6;
     }
-
     @media (orientation: portrait) {
-      .rotate-warning {
-        display: flex;
-      }
+      .rotate-warning { display: flex; }
     }
 
-    .app-shell {
+    /* 전체 레이아웃 */
+    .wrap {
       width: 100%;
-      height: var(--appH);
+      height: 100%;
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: var(--frame);
+      padding-top: 20px;
+      gap: 18px;
     }
 
-    /* 화면 중앙, 이전보다 절반 정도 크기의 팝업 */
+    /* 🔥 팝업을 작게 — 가로 width 줄임 */
     .popup {
-      position: relative;
-      width: min(70vw, 800px);     /* 가로 기준 약 절반 */
-      height: min(45vh, 420px);    /* 세로도 축소 */
+      width: 60vw;                  /* ← 너비 줄임 */
+      max-width: 720px;
+      height: 50vh;
+      max-height: 400px;
+      background: var(--popup-bg);
       border: 2px solid #fff;
-      background: radial-gradient(circle at top, #12121b 0, #050509 45%, #000 100%);
-      box-shadow: 0 0 0 4px #000, 0 0 20px rgba(0,0,0,0.85);
+      box-shadow: 0 0 20px rgba(0,0,0,0.8);
+      position: relative;
+      display: flex;
+      flex-direction: column;
       padding: 10px;
-      display: flex;
-      flex-direction: column;
-      gap: var(--ui-gap);
     }
 
-    .popup-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 11px;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      opacity: 0.9;
-    }
-
-    .popup-title {
-      font-weight: 600;
-    }
-
-    .popup-main {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    /* 중앙 사각형 창 (하늘 + 건물) */
+    /* 건물 뷰 */
     .city-window {
       flex: 1;
-      border: 1px solid #333;
       background: #000;
+      border: 1px solid #333;
       position: relative;
       overflow: hidden;
-      image-rendering: pixelated;
     }
-
-    .city-window::before {
-      /* 살짝 그레인 느낌 */
-      content: "";
-      position: absolute;
-      inset: 0;
-      background-image:
-        radial-gradient(circle at 0 0, rgba(255,255,255,0.12) 0, transparent 55%),
-        radial-gradient(circle at 100% 0, rgba(255,255,255,0.08) 0, transparent 60%);
-      mix-blend-mode: soft-light;
-      opacity: 0.09;
-      pointer-events: none;
-    }
-
-    .city-layers {
-      position: absolute;
-      inset: 0;
-      display: block;
-    }
+    .city-layers { position: absolute; inset: 0; }
 
     .layer {
       position: absolute;
-      left: 0;
-      right: 0;
       display: flex;
+      left: 0; right: 0;
       align-items: flex-end;
       justify-content: space-between;
-      pointer-events: none;
     }
+    .layer-back { bottom: 25%; transform: scale(0.9); opacity: 0.7; }
+    .layer-mid { bottom: 12%; transform: scale(0.96); opacity: 0.85; }
+    .layer-front { bottom: 0; opacity: 1; }
 
-    .layer-back {
-      bottom: 25%;
-      transform: scale(0.9);
-      opacity: 0.7;
-    }
-
-    .layer-mid {
-      bottom: 12%;
-      transform: scale(0.98);
-      opacity: 0.85;
-    }
-
-    .layer-front {
-      bottom: 0;
-      opacity: 1;
-    }
-
+    /* 건물 */
     .building {
       position: relative;
+      padding: 4px 3px 6px;
+      border: 1px solid rgba(0,0,0,0.7);
+      box-shadow: 0 -2px 0 rgba(255,255,255,0.05) inset;
+      image-rendering: pixelated;
       display: flex;
       flex-direction: column;
-      align-items: stretch;
-      justify-content: flex-start;
-      border: 1px solid rgba(0,0,0,0.7);
-      box-shadow:
-        0 -2px 0 rgba(255,255,255,0.05) inset,
-        0 0 4px rgba(0,0,0,0.7);
-      padding: 4px 3px 5px;
-      image-rendering: pixelated;
     }
 
-    /* 지붕 공통 */
-    .roof {
-      width: 80%;
-      margin: 0 auto 3px;
-      position: relative;
-    }
-
-    .roof-flat {
-      height: 4px;
-      background: rgba(255,255,255,0.08);
-      border-bottom: 1px solid rgba(0,0,0,0.8);
-    }
-
+    /* 지붕 */
+    .roof { width: 80%; margin: 0 auto 4px; }
+    .roof-flat { height: 4px; background: rgba(255,255,255,0.08); }
     .roof-tri {
-      height: 0;
-      width: 0;
+      width: 0; height: 0;
       border-left: 12px solid transparent;
       border-right: 12px solid transparent;
-      border-bottom: 10px solid rgba(255,255,255,0.1);
-      margin-bottom: 2px;
+      border-bottom: 12px solid rgba(255,255,255,0.15);
     }
-
     .roof-step {
       height: 8px;
       background: linear-gradient(to right,
-        rgba(255,255,255,0.05) 0 40%,
-        rgba(0,0,0,0.7) 40% 60%,
-        rgba(255,255,255,0.08) 60% 100%);
+        rgba(255,255,255,0.06), rgba(0,0,0,0.7), rgba(255,255,255,0.06));
       clip-path: polygon(0 100%, 0 25%, 30% 25%, 30% 0, 60% 0, 60% 25%, 100% 25%, 100% 100%);
-      margin-bottom: 2px;
     }
 
+    /* 창문 */
     .windows {
-      width: 100%;
       display: grid;
       grid-template-columns: repeat(2, 1fr);
       grid-auto-rows: 8px;
-      gap: 3px 3px;
-      padding: 0 2px 3px;
+      gap: 3px;
     }
-
     .window {
-      width: 100%;
-      height: 100%;
       background: var(--window-on);
-      box-shadow:
-        0 0 2px rgba(255,216,0,0.7),
-        0 0 4px rgba(255,216,0,0.5);
+      box-shadow: 0 0 4px rgba(255,216,0,0.6);
     }
-
     body.lights-off .window {
       background: var(--window-off);
       box-shadow: none;
     }
 
-    /* 하단 텍스트 + 버튼 */
-    .ui-bottom {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: var(--ui-gap);
-      font-size: 11px;
-    }
-
-    .ui-text {
-      flex: 1;
-      line-height: 1.5;
-      opacity: 0.85;
-    }
-
-    .ui-right {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-end;
-      gap: 4px;
-    }
-
+    /* 🔥 START 버튼: 팝업 밖 아래에 둠 */
     .start-btn {
-      min-width: 110px;
-      padding: 8px 16px;
+      padding: 10px 20px;
       border: 2px solid #fff;
       background: #000;
       color: #fff;
-      font-size: 11px;
-      letter-spacing: 0.18em;
-      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      font-size: 14px;
       cursor: pointer;
-      outline: none;
-      image-rendering: pixelated;
+      text-transform: uppercase;
     }
-
     .start-btn:active {
-      transform: translateY(1px);
-      box-shadow: 0 0 0 2px #fff inset;
       background: #111;
+      transform: translateY(1px);
     }
-
-    .start-btn[disabled] {
-      opacity: 0.55;
-      cursor: default;
-    }
-
-    .status-label {
-      font-size: 10px;
-      opacity: 0.75;
+    .status {
+      font-size: 11px;
+      margin-top: -10px;
+      opacity: 0.7;
     }
   </style>
 </head>
-<body class="lights-on">
-  <div class="rotate-warning">
-    화면을 가로 모드로 돌려주세요.<br>
-    Please rotate your device to landscape.
-  </div>
+<body>
+  <div class="rotate-warning">가로 모드로 돌려주세요.</div>
 
-  <div class="app-shell">
+  <div class="wrap">
+    <!-- 🔳 중앙 작은 팝업 -->
     <div class="popup">
-      <div class="popup-header">
-        <div class="popup-title">SLEEP CITY</div>
-        <div>VER. 0.2</div>
-      </div>
-
-      <div class="popup-main">
-        <!-- 중앙 사각형 창 -->
-        <div class="city-window">
-          <div class="city-layers">
-            <div class="layer layer-back" data-count="11"></div>
-            <div class="layer layer-mid" data-count="9"></div>
-            <div class="layer layer-front" data-count="7"></div>
-          </div>
-        </div>
-
-        <div class="ui-bottom">
-          <div class="ui-text">
-            각양각색의 지붕과 색을 가진 건물들이 밤하늘을 빼곡히 채우고 있습니다.<br>
-            START를 누르면 모든 창문의 노란 불이 한순간에 꺼집니다.
-          </div>
-          <div class="ui-right">
-            <button class="start-btn" id="startBtn">START</button>
-            <div class="status-label" id="statusLabel">LIGHT: ON</div>
-          </div>
+      <div class="city-window">
+        <div class="city-layers">
+          <div class="layer layer-back" data-count="12"></div>
+          <div class="layer layer-mid" data-count="10"></div>
+          <div class="layer layer-front" data-count="8"></div>
         </div>
       </div>
     </div>
+
+    <!-- 🔥 팝업 밖으로 완전히 뺀 UI -->
+    <button class="start-btn" id="startBtn">START</button>
+    <div class="status" id="statusLabel">LIGHT: ON</div>
   </div>
 
   <script>
+    /* 여러 색상 */
     const palette = [
-      "#101018", // 아주 짙은 남보라
-      "#14141c",
-      "#181822",
-      "#1e1b26",
-      "#221726",
-      "#271824",
-      "#2b1a2c", // 버건디 퍼플
-      "#1a1a1a",
-      "#222",
-      "#1b1020"
+      "#1b1b22", "#15151b", "#221726",
+      "#2b1a2c", "#181820", "#1e1b26",
+      "#1a1a1a", "#14141c", "#291b23"
     ];
 
-    /**
-     * 랜덤 헥스 색을 약간 어둡게 만드는 함수
-     */
-    function darken(hex, amount = 0.2) {
-      const h = hex.replace("#", "");
-      const r = parseInt(h.substring(0,2), 16);
-      const g = parseInt(h.substring(2,4), 16);
-      const b = parseInt(h.substring(4,6), 16);
-      const f = v => Math.max(0, Math.min(255, Math.floor(v * (1 - amount))));
-      return `rgb(${f(r)}, ${f(g)}, ${f(b)})`;
-    }
+    function makeBuilding(layerName, i) {
+      const b = document.createElement("div");
+      b.className = "building";
 
-    function makeBuilding(layerName, indexInLayer) {
-      const building = document.createElement("div");
-      building.className = "building";
+      const heightBase = layerName === "back" ? 50 : (layerName === "mid" ? 40 : 30);
+      const height = heightBase + (i * 4) % 25;
+      b.style.height = height + "%";
+      b.style.flex = (0.4 + (i % 4) * 0.25).toFixed(2);
 
-      // 레이어별 대략적인 크기
-      let baseHeight;
-      if (layerName === "back") baseHeight = 80;
-      else if (layerName === "mid") baseHeight = 65;
-      else baseHeight = 50;
+      const color = palette[(i * 2 + (layerName === "front" ? 1 : 0)) % palette.length];
+      b.style.background = color;
 
-      // 높이 / 폭 랜덤
-      const heightVar = 20 + (indexInLayer * 3) % 25;
-      const pxHeight = baseHeight + heightVar;
-      const widthFlex = 0.4 + (indexInLayer % 4) * 0.2; // 0.4 ~ 1.0
+      /* 지붕 */
+      const r = document.createElement("div");
+      r.classList.add("roof");
+      const rt = i % 3;
+      if (rt === 0) r.classList.add("roof-flat");
+      else if (rt === 1) r.classList.add("roof-tri");
+      else r.classList.add("roof-step");
+      b.appendChild(r);
 
-      building.style.height = pxHeight + "%";
-      building.style.flex = widthFlex.toFixed(2);
-
-      // 색상
-      const baseColor = palette[(indexInLayer * 3 + (layerName === "front" ? 2 : 0)) % palette.length];
-      building.style.background = baseColor;
-      building.style.borderColor = darken(baseColor, 0.5);
-      building.style.boxShadow = `0 -2px 0 rgba(255,255,255,0.04) inset, 
-                                  0 0 6px rgba(0,0,0,0.8)`;
-
-      // 지붕
-      const roof = document.createElement("div");
-      const roofTypeIndex = (indexInLayer + (layerName === "front" ? 1 : 0)) % 3;
-      roof.classList.add("roof");
-      if (roofTypeIndex === 0) roof.classList.add("roof-flat");
-      else if (roofTypeIndex === 1) roof.classList.add("roof-tri");
-      else roof.classList.add("roof-step");
-      building.appendChild(roof);
-
-      // 창문
+      /* 창문 */
       const windows = document.createElement("div");
       windows.className = "windows";
-
-      const floorsBase = layerName === "back" ? 8 : (layerName === "mid" ? 7 : 6);
-      const floors = floorsBase + (indexInLayer % 4); // 층수 조금씩 다르게
-      const cols = 2;
-      const total = floors * cols;
-
-      for (let i = 0; i < total; i++) {
+      const floors = 6 + (i % 4);
+      for (let k = 0; k < floors * 2; k++) {
         const w = document.createElement("div");
         w.className = "window";
 
-        // 몇 개는 미리 꺼진 창도 섞기
-        if (Math.random() < 0.12) {
-          w.style.background = getComputedStyle(document.documentElement)
-            .getPropertyValue("--window-off") || "#000";
+        if (Math.random() < 0.1) {
+          w.style.background = "#000";
           w.style.boxShadow = "none";
         }
         windows.appendChild(w);
       }
 
-      building.appendChild(windows);
-      return building;
+      b.appendChild(windows);
+      return b;
     }
 
-    function populateCity() {
-      const layers = document.querySelectorAll(".layer");
-      layers.forEach(layer => {
-        const count = parseInt(layer.dataset.count, 10) || 8;
-        const classList = Array.from(layer.classList);
-        // layer-back -> back
-        const layerName = classList.includes("layer-back")
-          ? "back"
-          : classList.includes("layer-mid")
-            ? "mid"
-            : "front";
+    /* 레이어에 랜덤 건물 채우기 */
+    document.querySelectorAll(".layer").forEach(layer => {
+      const count = Number(layer.dataset.count);
+      const name =
+        layer.classList.contains("layer-back") ? "back" :
+        layer.classList.contains("layer-mid") ? "mid" : "front";
 
-        for (let i = 0; i < count; i++) {
-          const b = makeBuilding(layerName, i);
-          layer.appendChild(b);
-        }
-      });
-    }
+      for (let i = 0; i < count; i++) {
+        layer.appendChild(makeBuilding(name, i));
+      }
+    });
 
-    populateCity();
-
-    // START 버튼: 노란 창문을 모두 끄기
+    /* START: 불 끄기 */
     const startBtn = document.getElementById("startBtn");
     const statusLabel = document.getElementById("statusLabel");
-    let lightsOff = false;
-
     startBtn.addEventListener("click", () => {
-      if (lightsOff) return;
       document.body.classList.add("lights-off");
-      lightsOff = true;
-      statusLabel.textContent = "LIGHT: OFF";
-      startBtn.textContent = "OFF";
       startBtn.disabled = true;
+      startBtn.textContent = "OFF";
+      statusLabel.textContent = "LIGHT: OFF";
     });
   </script>
 </body>
