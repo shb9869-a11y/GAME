@@ -43,7 +43,7 @@
       display:none;
       align-items:center;
       justify-content:center;
-      z-index:200;
+      z-index:300;
       text-align:center;
       padding:24px;
       font-size:14px;
@@ -62,19 +62,62 @@
     .app{
       width:100%;
       height:100%;
+      position:relative;
+    }
+
+    /* ================== 공통 페이드 레이어 ================== */
+    .scene-fade{
+      position:absolute;
+      inset:0;
+      background:#000;
+      opacity:0;
+      pointer-events:none;
+      transition:opacity 1.2s linear;
+      z-index:220;
+    }
+    .scene-fade.on{
+      opacity:1;
+    }
+
+    /* 안개 레이어 */
+    .fog-layer{
+      position:absolute;
+      inset:0;
+      pointer-events:none;
+      opacity:0;
+      z-index:210;
+      background:
+        radial-gradient(circle at 20% 30%, rgba(255,255,255,0.12) 0, transparent 55%),
+        radial-gradient(circle at 80% 60%, rgba(255,255,255,0.1) 0, transparent 60%);
+      mix-blend-mode:screen;
+    }
+    .fog-play{
+      animation:fogPulse 3.5s ease-in-out 3;
+    }
+    @keyframes fogPulse{
+      0%{opacity:0;}
+      20%{opacity:0.4;}
+      40%{opacity:0;}
+      60%{opacity:0.45;}
+      80%{opacity:0;}
+      100%{opacity:0.2;}
+    }
+
+    /* ================== 인트로 씬 ================== */
+    #introScene{
+      position:absolute;
+      inset:0;
       display:flex;
       flex-direction:column;
       align-items:center;
       justify-content:center;
-      padding:16px 24px 24px;
       gap:16px;
-      transition:opacity 6s linear; /* 프리셋 전체 페이드아웃 */
-    }
-    .app.app-fade-out{
-      opacity:0;
+      padding:16px 24px 24px;
+      z-index:100;
+      transition:opacity 1s linear;
     }
 
-    /* 중앙 건물 팝업 (얇은 회색 실선) */
+    /* 중앙 팝업 + 얇은 회색 선 */
     .city-shell{
       width:70vw;
       max-width:820px;
@@ -83,9 +126,10 @@
       display:flex;
       align-items:center;
       justify-content:center;
-      border:1px solid #555; /* 경계 얇은 회색 선 */
+      border:1px solid #555;
       background:#000;
       box-shadow:0 0 20px rgba(0,0,0,0.9);
+      position:relative;
     }
 
     .city-window{
@@ -97,33 +141,34 @@
       image-rendering:pixelated;
     }
 
-    /* 픽셀 초승달 (왼쪽 위, 노란색) */
+    /* 픽셀 초승달 (노란색, 조금 더 픽셀 느낌) */
     .moon{
       position:absolute;
       top:10px;
-      left:14px;
-      width:24px;
-      height:24px;
+      left:12px;
+      width:18px;
+      height:18px;
       background:var(--window-on);
-      border-radius:4px;
+      image-rendering:pixelated;
       box-shadow:
         0 0 4px rgba(255,216,0,0.9),
         0 0 8px rgba(255,216,0,0.7);
-      transition:filter 2s linear, opacity 2s linear;
+      transition:
+        filter 3s linear,
+        opacity 3s linear;
     }
     .moon::before{
       content:"";
       position:absolute;
       left:6px;
       top:2px;
-      width:16px;
-      height:20px;
+      width:12px;
+      height:14px;
       background:var(--sky);
-      border-radius:4px;
     }
     body.lights-off .moon{
-      filter:brightness(0.1);
-      opacity:0;
+      filter:brightness(0.15);
+      opacity:0.2;
     }
 
     .city-layers{
@@ -138,7 +183,7 @@
       display:flex;
       align-items:flex-end;
       justify-content:space-between;
-      gap:6px; /* 건물 간격 */
+      gap:6px;
       pointer-events:none;
     }
     .layer-back{
@@ -156,7 +201,6 @@
       opacity:1;
     }
 
-    /* 건물: 얇게 + 회색 계열 */
     .building{
       position:relative;
       display:flex;
@@ -170,7 +214,7 @@
       min-width:4%;
     }
 
-    /* 지붕 (꼭짓점 분명하게) */
+    /* 지붕 */
     .roof{
       width:90%;
       margin:0 auto 4px;
@@ -191,17 +235,17 @@
       background:#dcdcdc;
       clip-path:polygon(
         0 100%, 0 35%,
-        30% 35%, 30% 0,
-        70% 0, 70% 35%,
+        30% 35%, 30 0,
+        70 0, 70 35%,
         100% 35%, 100% 100%
       );
     }
 
-    /* 창문 */
+    /* 창문 (느리게 꿀렁) */
     .windows{
       width:100%;
       display:grid;
-      grid-template-columns:repeat(2,1fr); /* 가로 두 개 */
+      grid-template-columns:repeat(2,1fr);
       grid-auto-rows:8px;
       gap:3px;
       padding:0 2px 2px;
@@ -213,43 +257,37 @@
       background:var(--window-on);
       box-shadow:0 0 4px rgba(255,216,0,0.6);
       opacity:0.9;
-      /* 계속 꿀렁이면서 깜빡이기 */
-      animation:windowFlicker 1.8s infinite steps(2);
-      animation-delay: calc(var(--rand) * 1.5s);
+      animation:windowFlicker 3.4s infinite ease-in-out;
+      animation-delay:calc(var(--rand) * 2.5s);
       transition:
-        opacity 2s linear,
-        background 2s linear,
-        box-shadow 2s linear;
+        background 3s linear,
+        box-shadow 3s linear,
+        opacity 3s linear,
+        filter 3s linear;
     }
+    @keyframes windowFlicker{
+      0%{opacity:0.5; transform:scaleY(1);}
+      40%{opacity:0.9; transform:scaleY(1.04);}
+      70%{opacity:0.7; transform:scaleY(1);}
+      100%{opacity:0.6; transform:scaleY(1.02);}
+    }
+
+    /* 불 꺼질 때: 3초 페이드, 창문은 검정으로 살아있게 */
     body.lights-off .window{
-      animation:none;
-      opacity:0;
       background:var(--window-off);
       box-shadow:none;
+      opacity:1;
+      animation:none;
+      filter:brightness(0.5);
     }
 
-    @keyframes windowFlicker{
-      0%{
-        opacity:0.5;
-        transform:scaleY(1);
-      }
-      50%{
-        opacity:1;
-        transform:scaleY(1.03);
-      }
-      100%{
-        opacity:0.7;
-        transform:scaleY(1);
-      }
-    }
-
-    /* 중앙 Start 버튼만 */
+    /* 중앙 Start 버튼 영역 */
     .bottom-center{
       width:70vw;
       max-width:820px;
       display:flex;
       align-items:center;
-      justify-content:center; /* 가운데 정렬 */
+      justify-content:center;
     }
 
     .start-btn{
@@ -273,7 +311,7 @@
       cursor:default;
     }
 
-    /* 방향키: 화면 자체 왼쪽 아래 고정 */
+    /* 방향키: 화면 왼쪽 아래 고정 */
     .cursor-pad{
       position:fixed;
       left:14px;
@@ -307,7 +345,7 @@
       background:#111;
     }
 
-    /* 오른쪽 아래 버튼 (폰 화면 기준) */
+    /* 오른쪽 아래 버튼 */
     .side-btn{
       position:fixed;
       right:16px;
@@ -329,44 +367,230 @@
       background:#111;
     }
 
-    /* 오버레이: SLEEEEEEEEEEP 텍스트 */
+    /* 인트로 텍스트 오버레이 (팝업 안에서만) */
     .overlay{
-      position:fixed;
-      inset:0;
+      position:absolute;
+      inset:10% 8%;
       display:none;
       align-items:center;
       justify-content:center;
+      z-index:40;
       pointer-events:none;
-      z-index:100;
     }
     .overlay.show{
       display:flex;
     }
     .overlay-inner{
-      text-align:center;
-      padding:16px;
-      color:#f5f5f5;
+      width:100%;
+      height:100%;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
       font-family:"Press Start 2P","Courier New",monospace;
+      text-align:center;
+      color:#f5f5f5;
     }
     .overlay-lines{
-      font-size:clamp(18px,5vw,40px);
-      line-height:1.7;
+      font-size:clamp(12px,2.3vw,22px);
+      line-height:1.6;
       text-shadow:0 0 6px rgba(255,255,255,0.3);
+      width:100%;
     }
     .overlay-line{
       min-height:1.3em;
     }
     .overlay-third{
-      margin-top:24px;
-      font-size:clamp(16px,4vw,32px);
+      margin-top:20px;
+      font-size:clamp(11px,2vw,20px);
       opacity:0;
-      transition:opacity 2s linear;
+      transition:opacity 1.5s linear;
     }
     .overlay-third.show{
       opacity:1;
     }
     .overlay-third.fade-out{
       opacity:0;
+    }
+
+    /* ================== 두 번째 씬: 도로 + 캐릭터 ================== */
+    #streetScene{
+      position:absolute;
+      inset:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      opacity:0;
+      pointer-events:none;
+      transition:opacity 1.8s ease-out;
+      z-index:100;
+    }
+    #streetScene.active{
+      opacity:1;
+      pointer-events:auto;
+    }
+
+    .street-wrap{
+      width:100%;
+      height:100%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:#000;
+    }
+
+    .street-inner{
+      width:80vw;
+      max-width:900px;
+      height:80vh;
+      max-height:520px;
+      position:relative;
+      overflow:hidden;
+      background:#020207;
+    }
+
+    /* 좌우 빼곡한 건물 */
+    .side-column{
+      position:absolute;
+      top:0;
+      bottom:0;
+      width:22%;
+      display:flex;
+      flex-direction:column;
+      justify-content:space-around;
+      align-items:stretch;
+      padding:8px 4px;
+    }
+    .side-left{ left:0; }
+    .side-right{ right:0; }
+
+    .side-building{
+      background:#14151c;
+      border:1px solid #000;
+      padding:4px 2px 6px;
+      box-shadow:0 0 12px rgba(0,0,0,0.8);
+    }
+    .side-windows{
+      display:grid;
+      grid-template-columns:repeat(2,1fr);
+      grid-auto-rows:8px;
+      gap:3px;
+    }
+    .side-window{
+      background:var(--window-on);
+      box-shadow:0 0 4px rgba(255,216,0,0.55);
+      opacity:0.85;
+      animation:sideFlicker 3.6s infinite ease-in-out;
+      animation-delay:calc(var(--rand) * 3s);
+    }
+    @keyframes sideFlicker{
+      0%{opacity:0.5;}
+      40%{opacity:0.95;}
+      80%{opacity:0.6;}
+      100%{opacity:0.8;}
+    }
+
+    /* 중간 도로 */
+    .road{
+      position:absolute;
+      top:0;
+      bottom:0;
+      left:22%;
+      right:22%;
+      background:#050509;
+      overflow:hidden;
+    }
+    .road-center{
+      position:absolute;
+      inset:10% 30%;
+      background:#0c0c10;
+      box-shadow:0 0 12px rgba(0,0,0,0.9);
+      overflow:hidden;
+    }
+    .lane{
+      position:absolute;
+      left:50%;
+      top:-100%;
+      width:4px;
+      height:300%;
+      background:repeating-linear-gradient(
+        to bottom,
+        #f5f5f5 0 18px,
+        transparent 18px 36px
+      );
+      transform:translateX(-50%);
+      opacity:0.8;
+      animation:laneMove 5s linear infinite;
+    }
+    @keyframes laneMove{
+      from{transform:translate(-50%,0);}
+      to{transform:translate(-50%,40px);}
+    }
+
+    /* 캐릭터 (중앙 위로 걷는 느낌, 실제로는 도로가 움직임) */
+    .character{
+      position:absolute;
+      bottom:20%;
+      left:50%;
+      transform:translateX(-50%);
+      width:18px;
+      height:24px;
+      background:#f5f5f5;
+      image-rendering:pixelated;
+      box-shadow:0 0 6px rgba(255,255,255,0.7);
+    }
+    .character::before{
+      content:"";
+      position:absolute;
+      left:4px;
+      top:4px;
+      width:10px;
+      height:8px;
+      background:#000;
+    }
+    .character::after{
+      content:"";
+      position:absolute;
+      left:3px;
+      bottom:0;
+      width:12px;
+      height:8px;
+      background:#101010;
+    }
+    .character-walk{
+      animation:charWalk 0.6s steps(2,end) infinite;
+    }
+    @keyframes charWalk{
+      0%{transform:translateX(-50%) translateY(0);}
+      50%{transform:translateX(-50%) translateY(-2px);}
+      100%{transform:translateX(-50%) translateY(0);}
+    }
+
+    /* 도로 끝의 빌딩 (창문 빼곡) */
+    .end-building{
+      position:absolute;
+      top:-25%;
+      left:32%;
+      right:32%;
+      height:40%;
+      background:#191a22;
+      border:1px solid #000;
+      box-shadow:0 0 14px rgba(0,0,0,0.9);
+    }
+    .end-windows{
+      position:absolute;
+      inset:10% 18%;
+      display:grid;
+      grid-template-columns:repeat(4,1fr);
+      grid-auto-rows:8px;
+      gap:3px;
+    }
+    .end-window{
+      background:var(--window-on);
+      box-shadow:0 0 4px rgba(255,216,0,0.55);
+      opacity:0.9;
+      animation:sideFlicker 3.8s infinite ease-in-out;
+      animation-delay:calc(var(--rand) * 3s);
     }
   </style>
 </head>
@@ -376,73 +600,96 @@
     Please rotate your device to landscape.
   </div>
 
-  <!-- 프리셋 전체 -->
-  <div class="app" id="appRoot">
-    <!-- 중앙 건물 팝업 -->
-    <div class="city-shell">
-      <div class="city-window">
-        <div class="moon"></div>
-        <div class="city-layers">
-          <div class="layer layer-back" data-count="13"></div>
-          <div class="layer layer-mid" data-count="11"></div>
-          <div class="layer layer-front" data-count="9"></div>
+  <div class="app">
+    <!-- 블랙 페이드 -->
+    <div class="scene-fade" id="sceneFade"></div>
+    <!-- 안개 -->
+    <div class="fog-layer" id="fogLayer"></div>
+
+    <!-- ============ 인트로 씬 ============ -->
+    <div id="introScene">
+      <div class="city-shell">
+        <div class="city-window">
+          <div class="moon"></div>
+          <div class="city-layers">
+            <div class="layer layer-back" data-count="13"></div>
+            <div class="layer layer-mid" data-count="11"></div>
+            <div class="layer layer-front" data-count="9"></div>
+          </div>
+
+          <!-- 인트로 텍스트 (팝업 안) -->
+          <div class="overlay" id="overlay">
+            <div class="overlay-inner">
+              <div class="overlay-lines" id="overlayLines"></div>
+              <div class="overlay-third" id="overlayThird"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bottom-center">
+        <button class="start-btn" id="startBtn">START</button>
+      </div>
+    </div>
+
+    <!-- ============ 두 번째 씬: 도로 + 캐릭터 ============ -->
+    <div id="streetScene">
+      <div class="street-wrap">
+        <div class="street-inner">
+          <!-- 좌우 빽빽한 건물들 -->
+          <div class="side-column side-left" id="sideLeft"></div>
+          <div class="side-column side-right" id="sideRight"></div>
+
+          <!-- 중간 도로 -->
+          <div class="road">
+            <div class="road-center">
+              <div class="lane"></div>
+              <div class="character character-walk"></div>
+              <div class="end-building">
+                <div class="end-windows" id="endWindows"></div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- 중앙 Start 버튼 -->
-    <div class="bottom-center">
-      <button class="start-btn" id="startBtn">START</button>
+    <!-- 방향키 -->
+    <div class="cursor-pad">
+      <button class="cursor-btn" aria-label="up">▲</button>
+      <div class="cursor-row">
+        <button class="cursor-btn" aria-label="left">◀</button>
+        <button class="cursor-btn" aria-label="down">▼</button>
+        <button class="cursor-btn" aria-label="right">▶</button>
+      </div>
     </div>
-  </div>
 
-  <!-- 방향키 (폰 왼쪽 아래) -->
-  <div class="cursor-pad">
-    <button class="cursor-btn" aria-label="up">▲</button>
-    <div class="cursor-row">
-      <button class="cursor-btn" aria-label="left">◀</button>
-      <button class="cursor-btn" aria-label="down">▼</button>
-      <button class="cursor-btn" aria-label="right">▶</button>
-    </div>
-  </div>
-
-  <!-- 오른쪽 아래 버튼 -->
-  <button class="side-btn" aria-label="extra button">●</button>
-
-  <!-- 오버레이 텍스트 -->
-  <div class="overlay" id="overlay">
-    <div class="overlay-inner">
-      <div class="overlay-lines" id="overlayLines"></div>
-      <div class="overlay-third" id="overlayThird"></div>
-    </div>
+    <!-- 오른쪽 아래 버튼 -->
+    <button class="side-btn" aria-label="extra button">●</button>
   </div>
 
   <script>
-    // 회색 계열 팔레트
+    // ====== 인트로 건물 생성 ======
     const palette = [
       "#16171b","#1b1c22","#20232a",
       "#252831","#2b3038","#313640",
       "#373c46","#1b1c20","#22252c"
     ];
 
-    function makeBuilding(layerName, i){
+    function makeIntroBuilding(layerName, i){
       const b = document.createElement("div");
       b.className = "building";
 
-      // 레이어별 기본 높이
       const base = layerName === "back" ? 55 : (layerName === "mid" ? 45 : 35);
       const h = base + (i * 4) % 22;
       b.style.height = h + "%";
 
-      // 두께 조금씩 다르게
-      const flexVal = 0.18 + (i % 4) * 0.04; // 0.18 ~ 0.30
+      const flexVal = 0.18 + (i % 4) * 0.04;
       b.style.flex = flexVal.toFixed(2);
 
-      // 색상 (회색 계열)
       const color = palette[(i * 2 + (layerName === "front" ? 1 : 0)) % palette.length];
       b.style.background = color;
 
-      // 지붕
       const roof = document.createElement("div");
       roof.classList.add("roof");
       const rt = i % 3;
@@ -451,18 +698,14 @@
       else roof.classList.add("roof-step");
       b.appendChild(roof);
 
-      // 창문
       const windows = document.createElement("div");
       windows.className = "windows";
       const floors = 6 + (i % 4);
       for(let k=0;k<floors*2;k++){
         const w = document.createElement("div");
         w.className = "window";
-
-        // flicker 랜덤 딜레이
         w.style.setProperty("--rand", Math.random().toString());
 
-        // 일부는 원래부터 꺼진 창
         if(Math.random() < 0.12){
           w.style.background = "#000";
           w.style.boxShadow = "none";
@@ -474,82 +717,134 @@
       return b;
     }
 
-    // 레이어 채우기
     document.querySelectorAll(".layer").forEach(layer=>{
       const count = Number(layer.dataset.count);
       const name =
         layer.classList.contains("layer-back") ? "back" :
         layer.classList.contains("layer-mid") ? "mid" : "front";
+
       for(let i=0;i<count;i++){
-        layer.appendChild(makeBuilding(name,i));
+        layer.appendChild(makeIntroBuilding(name,i));
       }
     });
 
+    // ====== 인트로 텍스트 시퀀스 ======
     const startBtn = document.getElementById("startBtn");
-    const appRoot = document.getElementById("appRoot");
     const overlay = document.getElementById("overlay");
     const overlayLines = document.getElementById("overlayLines");
     const overlayThird = document.getElementById("overlayThird");
+    const sceneFade = document.getElementById("sceneFade");
+    const fogLayer = document.getElementById("fogLayer");
+    const introScene = document.getElementById("introScene");
+    const streetScene = document.getElementById("streetScene");
+
     let started = false;
 
-    function typeLine(text, cb){
+    function typeLine(text, pauseAfter, cb){
       const lineEl = document.createElement("div");
       lineEl.className = "overlay-line";
       overlayLines.appendChild(lineEl);
 
       let idx = 0;
-      const speed = 70; // 타이핑 속도
+      const speed = 70;
       const timer = setInterval(()=>{
         lineEl.textContent = text.slice(0, idx+1);
         idx++;
         if(idx >= text.length){
           clearInterval(timer);
-          if(cb) setTimeout(cb, 150);
+          if(cb){
+            setTimeout(cb, pauseAfter);
+          }
         }
       }, speed);
     }
 
     function startOverlaySequence(){
       overlay.classList.add("show");
-      appRoot.classList.add("app-fade-out");
-
       const lines = [
         "SLEEEEEEEEEEP,",
         "SLEEEEEEEEEEP,",
         "SLEEEEEEEEEEP,"
       ];
 
-      typeLine(lines[0], ()=>{
-        typeLine(lines[1], ()=>{
-          typeLine(lines[2], ()=>{
-            // THE THIRD SLEEP
+      typeLine(lines[0], 1300, ()=>{
+        typeLine(lines[1], 1300, ()=>{
+          typeLine(lines[2], 1300, ()=>{
+            // 세 번째 라인 끝나고 1.3초, 이제 THE THIRD SLEEP
             overlayThird.textContent = "THE THIRD SLEEP";
             overlayThird.classList.add("show");
 
-            // 2초 후 THIRD SLEEP 페이드 아웃
+            // 1.5초 있다가 전체 화면 페이드아웃 + 다음 씬 준비
             setTimeout(()=>{
               overlayThird.classList.add("fade-out");
-            }, 2000);
+              sceneFade.classList.add("on");
+
+              // 페이드로 화면 가려지는 동안 씬 전환 준비
+              setTimeout(()=>{
+                introScene.style.display = "none";
+                streetScene.classList.add("active");
+                // 안개 2~3번 오고 가기
+                fogLayer.classList.add("fog-play");
+                // 블랙 페이드 살짝 풀어서 도로 씬 보이게
+                sceneFade.classList.remove("on");
+              }, 900); // 블랙으로 거의 닫힌 시점
+
+            }, 1500);
           });
         });
       });
     }
 
-    // Start 버튼: 전체 불 2초 페이드 + 텍스트 시퀀스 + 프리셋 페이드아웃
+    // Start 버튼: 불 3초 페이드 (lights-off 클래스) + 텍스트 시퀀스
     startBtn.addEventListener("click", ()=>{
       if(started) return;
       started = true;
 
-      document.body.classList.add("lights-off"); // 창문 + 달 색 빠짐 (2초)
-
+      document.body.classList.add("lights-off"); // 3초 동안 불 꺼지는 변화
       startBtn.disabled = true;
       startBtn.textContent = "OFF";
 
-      // 텍스트 시퀀스 + 프리셋 페이드 시작
       startOverlaySequence();
     });
 
-    // 방향키, 오른쪽 버튼은 지금은 기능 없음 (UI만)
+    // ====== 두 번째 씬: 좌우 건물/끝 빌딩 창문 ======
+    function createSideBuildings(container, count){
+      for(let i=0;i<count;i++){
+        const b = document.createElement("div");
+        b.className = "side-building";
+
+        const floors = 4 + (i % 3);
+        const gw = document.createElement("div");
+        gw.className = "side-windows";
+
+        const total = floors * 2;
+        for(let j=0;j<total;j++){
+          const w = document.createElement("div");
+          w.className = "side-window";
+          w.style.setProperty("--rand", Math.random().toString());
+          gw.appendChild(w);
+        }
+
+        b.appendChild(gw);
+        container.appendChild(b);
+      }
+    }
+
+    const sideLeft = document.getElementById("sideLeft");
+    const sideRight = document.getElementById("sideRight");
+    createSideBuildings(sideLeft, 6);
+    createSideBuildings(sideRight, 6);
+
+    // 끝 빌딩 창문
+    const endWindows = document.getElementById("endWindows");
+    for(let i=0;i<8*4;i++){
+      const w = document.createElement("div");
+      w.className = "end-window";
+      w.style.setProperty("--rand", Math.random().toString());
+      endWindows.appendChild(w);
+    }
+
+    // 방향키/오른쪽 버튼은 아직 기능 없음 (나중에 대화창/조작 붙이면 됨)
   </script>
 </body>
 </html>
