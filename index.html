@@ -6,13 +6,20 @@
         content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no" />
   <title>SLEEEEEEEEEP</title>
 
+  <!-- 홈 화면 추가(PWA 기본 설정) -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#14002a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="SLEEEEEP">
+
   <!-- 픽셀 게임 느낌 폰트 -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 
   <style>
-    * , *::before , *::after{
+    *, *::before, *::after{
       box-sizing:border-box;
       margin:0;
       padding:0;
@@ -45,7 +52,7 @@
       width:100vw;
       height:100vh;
       overflow:hidden;
-      background:linear-gradient(#2b1050 0 50%, #1d0634 50% 68%, #160024 68% 100%);
+      background:linear-gradient(#2b1050 0 55%, #1d0634 55% 70%, #160024 70% 100%);
     }
 
     /* 세로모드 안내 */
@@ -73,26 +80,26 @@
       .rotate-notice{ display:none; }
     }
 
-    /* 타이틀 텍스트 */
+    /* 타이틀 텍스트 - 하늘을 꽉 채우게 크게 */
     .title-stack{
       position:absolute;
       top:6vh;
       left:50%;
       transform:translateX(-50%);
       text-align:center;
-      text-shadow:0 4px 0 rgba(0,0,0,0.65);
-      letter-spacing:0.12em;
-      font-size:clamp(18px,3.3vmin,28px);
-      line-height:1.4;
+      text-shadow:0 4px 0 rgba(0,0,0,0.7);
+      letter-spacing:0.14em;
+      font-size:clamp(22px,5vmin,40px);
+      line-height:1.35;
     }
 
     /* 도시 레이어 */
     .city-wrap{
       position:absolute;
       left:50%;
-      bottom:24vh;
+      bottom:22vh;
       transform:translateX(-50%);
-      width:120vw; /* 양쪽으로 좀 더 넓게 */
+      width:140vw; /* 더 길게 */
     }
 
     .cityline,
@@ -100,45 +107,62 @@
       display:flex;
       align-items:flex-end;
       justify-content:center;
-      gap:6px;
     }
 
     .building{
-      width:26px;
-      border-radius:2px 2px 0 0;
+      flex:0 0 auto;
+      width:22px;
       position:relative;
-      box-shadow:0 0 0 2px rgba(0,0,0,0.35);
-    }
-
-    .building::before{
-      content:"";
-      position:absolute;
-      inset:4px 6px 4px 6px;
-      background-image:
-        linear-gradient(#0000 0 30%, rgba(0,0,0,0.14) 30% 32%);
-      background-size:100% 10px;
+      margin-right:-8px; /* 서로 겹치도록 */
+      border-radius:0;   /* 직각 */
+      box-shadow:0 0 0 2px rgba(0,0,0,0.45);
       image-rendering:pixelated;
     }
 
-    /* 건물 높이 & 색 랜덤 느낌 */
-    .building:nth-child(4n+1){ height:120px; background:#e0b7ff; }
-    .building:nth-child(4n+2){ height:150px; background:#b38bff; }
-    .building:nth-child(4n+3){ height:100px; background:#d29cff; }
-    .building:nth-child(4n+4){ height:180px; background:#8c6adb; }
+    /* 창문 2줄 느낌: 세로 2열, 가로로 반복 */
+    .building::before{
+      content:"";
+      position:absolute;
+      inset:5px 4px 6px 4px;
+      background-image:
+        repeating-linear-gradient(
+          to bottom,
+          rgba(0,0,0,0.18) 0 4px,
+          transparent 4px 9px
+        ),
+        repeating-linear-gradient(
+          to bottom,
+          rgba(0,0,0,0.18) 0 4px,
+          transparent 4px 9px
+        );
+      background-size:40% 100%, 40% 100%;
+      background-position:18% 0, 82% 0; /* 양쪽에 창문 2개 */
+      background-repeat:no-repeat;
+    }
 
-    .building.tall{ height:210px; }
-    .building.short{ height:80px; }
+    /* 건물 높이 & 색 다양하게 */
+    .building:nth-child(8n+1){ height:80px;  background:#e0b7ff; }
+    .building:nth-child(8n+2){ height:110px; background:#b38bff; }
+    .building:nth-child(8n+3){ height:95px;  background:#d29cff; }
+    .building:nth-child(8n+4){ height:70px;  background:#8c6adb; }
+    .building:nth-child(8n+5){ height:130px; background:#c49bff; }
+    .building:nth-child(8n+6){ height:85px;  background:#a071ff; }
+    .building:nth-child(8n+7){ height:105px; background:#d7b2ff; }
+    .building:nth-child(8n+8){ height:75px;  background:#9263dd; }
+
+    /* 아주 낮거나 / 조금 더 높은 애들 섞기 */
+    .building.low{  height:60px; }
+    .building.high{ height:140px; }
 
     /* 물과 경계 */
     .water-edge{
       width:100%;
       height:10px;
-      margin-top:6px;
+      margin-top:4px;
       background:
         repeating-linear-gradient(-45deg,
           #000 0 4px,
-          #000 4px 8px,
-          #000000 8px 8px);
+          #000 4px 8px);
       image-rendering:pixelated;
     }
 
@@ -146,18 +170,18 @@
       position:absolute;
       left:0;
       right:0;
-      bottom:-19vh;
+      bottom:-18vh;
       height:26vh;
       background:linear-gradient(to bottom, #3a1b60 0%, #4d2c7a 40%, #5b3c88 100%);
-      opacity:0.85;
+      opacity:0.9;
     }
 
     .reflection{
       position:absolute;
       left:50%;
-      bottom:2vh;
+      bottom:3vh;
       transform:translateX(-50%) scaleY(-1);
-      opacity:0.28;
+      opacity:0.25;
       filter:blur(1px);
     }
 
@@ -165,7 +189,7 @@
     .start-wrap{
       position:absolute;
       left:50%;
-      bottom:10vh;
+      bottom:9vh;
       transform:translateX(-50%);
     }
 
@@ -174,7 +198,7 @@
       border:4px solid #f9f3ff;
       background:#2b1050;
       color:#f9f3ff;
-      font-size:clamp(16px,2.5vmin,22px);
+      font-size:clamp(16px,2.7vmin,24px);
       letter-spacing:0.16em;
       text-transform:uppercase;
       box-shadow:0 6px 0 #00000090;
@@ -207,26 +231,30 @@
 
     <div class="city-wrap">
       <div class="cityline">
-        <!-- 건물 가로로 많이 깔기 -->
-        <div class="building short"></div>
+        <!-- 서로 겹치면서 사이즈 제각각인 건물들 -->
+        <div class="building low"></div>
         <div class="building"></div>
-        <div class="building tall"></div>
+        <div class="building high"></div>
         <div class="building"></div>
-        <div class="building short"></div>
-        <div class="building tall"></div>
+        <div class="building low"></div>
+        <div class="building high"></div>
         <div class="building"></div>
-        <div class="building tall"></div>
         <div class="building"></div>
-        <div class="building short"></div>
+        <div class="building high"></div>
+        <div class="building low"></div>
         <div class="building"></div>
-        <div class="building tall"></div>
+        <div class="building high"></div>
         <div class="building"></div>
-        <div class="building short"></div>
+        <div class="building low"></div>
         <div class="building"></div>
-        <div class="building tall"></div>
+        <div class="building high"></div>
         <div class="building"></div>
-        <div class="building short"></div>
-        <div class="building tall"></div>
+        <div class="building low"></div>
+        <div class="building"></div>
+        <div class="building high"></div>
+        <div class="building low"></div>
+        <div class="building"></div>
+        <div class="building high"></div>
         <div class="building"></div>
       </div>
 
@@ -236,25 +264,30 @@
     <!-- 물과 반사 -->
     <div class="water-surface"></div>
     <div class="reflection">
-      <div class="building short"></div>
+      <!-- 위와 비슷한 구성: 반사 -->
+      <div class="building low"></div>
       <div class="building"></div>
-      <div class="building tall"></div>
+      <div class="building high"></div>
       <div class="building"></div>
-      <div class="building short"></div>
-      <div class="building tall"></div>
+      <div class="building low"></div>
+      <div class="building high"></div>
       <div class="building"></div>
-      <div class="building tall"></div>
       <div class="building"></div>
-      <div class="building short"></div>
+      <div class="building high"></div>
+      <div class="building low"></div>
       <div class="building"></div>
-      <div class="building tall"></div>
+      <div class="building high"></div>
       <div class="building"></div>
-      <div class="building short"></div>
+      <div class="building low"></div>
       <div class="building"></div>
-      <div class="building tall"></div>
+      <div class="building high"></div>
       <div class="building"></div>
-      <div class="building short"></div>
-      <div class="building tall"></div>
+      <div class="building low"></div>
+      <div class="building"></div>
+      <div class="building high"></div>
+      <div class="building low"></div>
+      <div class="building"></div>
+      <div class="building high"></div>
       <div class="building"></div>
     </div>
 
@@ -271,6 +304,11 @@
 </div>
 
 <script>
+  // PWA용 서비스 워커 등록 (sw.js 만들어 두면 홈 추가시 앱처럼 동작)
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(console.error);
+  }
+
   // Start 버튼 클릭 시 실행될 부분
   const startBtn = document.getElementById("startButton");
   startBtn.addEventListener("click", () => {
