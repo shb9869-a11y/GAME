@@ -2,11 +2,17 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>TOEM style Isometric Maze</title>
+<title>TOEM-style Isometric Maze & Room</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
   *{box-sizing:border-box;margin:0;padding:0;}
+
+  :root{
+    --camX: 0px;
+    --camY: 0px;
+  }
+
   body{
     background:#000;
     font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
@@ -17,6 +23,21 @@
     color:#fff;
   }
 
+  /* 가로 모드 전용 안내 */
+  .rotate-warning{
+    position:fixed;
+    inset:0;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    background:#000;
+    color:#fff;
+    font-size:18px;
+    text-align:center;
+    padding:20px;
+    z-index:1000;
+  }
+
   .game-root{
     position:relative;
     width: 800px;
@@ -25,18 +46,27 @@
     overflow:hidden;
   }
 
-  /* 월드 전체 */
+  @media (orientation:portrait){
+    .game-root{display:none;}
+    .rotate-warning{display:flex;}
+  }
+  @media (orientation:landscape){
+    .game-root{display:block;}
+  }
+
+  /* 월드 (카메라가 따라다니는 공간) */
   .world{
     position:absolute;
     left:50%;
     top:55%;
-    transform:translate(-50%,-50%);
-    width: 520px;
-    height: 320px;
+    width:520px;
+    height:320px;
+    transform:translate(calc(-50% + var(--camX)),
+                        calc(-50% + var(--camY)));
+    transition:transform .25s ease-out;
     pointer-events:none;
   }
 
-  /* 타일 레이어 */
   .tile-layer,
   .entity-layer{
     position:absolute;
@@ -44,7 +74,7 @@
     pointer-events:none;
   }
 
-  /* 바닥 타일 */
+  /* 기본 바닥 타일 */
   .tile{
     position:absolute;
     width:64px;
@@ -52,6 +82,7 @@
     transform-origin:center center;
     transform:translate(-50%,-50%);
   }
+
   .tile-base{
     position:absolute;
     left:50%;
@@ -63,7 +94,7 @@
     border:2px solid #000;
   }
 
-  /* 벽(장애물) – 바닥 위에 3D 블록 느낌 */
+  /* 벽(장애물) */
   .tile.wall .wall-block{
     position:absolute;
     left:50%;
@@ -76,12 +107,26 @@
     box-shadow:0 12px 0 #000;
   }
 
+  /* 출구 타일 표시 */
+  .tile.exit .tile-base{
+    background:repeating-linear-gradient(
+      45deg, #dcdcdc 0 6px, #ffffff 6px 12px
+    );
+  }
+
+  /* ROOM 씬에서 벽은 낮은 벽 느낌으로 */
+  .scene-room .tile.wall .wall-block{
+    height:25px;
+    box-shadow:0 8px 0 #000;
+  }
+
   /* 플레이어 캐릭터 */
   .player{
     position:absolute;
     width:32px;
     height:48px;
     transform-origin:center bottom;
+    transition:left .18s linear, top .18s linear;
   }
   .player .shadow{
     position:absolute;
@@ -90,7 +135,8 @@
     width:32px;
     height:12px;
     transform:translateX(-50%);
-    background:radial-gradient(ellipse at center, rgba(0,0,0,0.45) 0, transparent 70%);
+    background:radial-gradient(ellipse at center,
+             rgba(0,0,0,0.45) 0, transparent 70%);
   }
   .player .body{
     position:absolute;
@@ -115,73 +161,40 @@
     border:3px solid #000;
   }
 
-  /* 질문 UI */
-  .dialogue-wrapper{
+  /* ROOM 씬의 가구(침대, 탁자 등) */
+  .room-prop{
+    position:absolute;
+    transform-origin:center center;
+  }
+  .room-prop .block{
     position:absolute;
     left:50%;
-    top:6%;
-    transform:translateX(-50%);
-    z-index:20;
-  }
-  .dialogue-box{
-    background:#000;
-    padding:10px 20px;
-    border-radius:8px;
-    border:3px solid #fff;
-    box-shadow:0 4px 0 #000;
-    text-transform:uppercase;
-    letter-spacing:0.08em;
-    font-size:18px;
-  }
-  .choices{
-    margin-top:8px;
-    display:flex;
-    justify-content:center;
-    gap:14px;
-  }
-  .choice{
-    position:relative;
-    padding:6px 16px;
-    background:#f8f8f8;
-    color:#000;
-    border-radius:8px;
-    border:3px solid #000;
-    text-transform:uppercase;
-    letter-spacing:0.06em;
-    font-size:15px;
-    min-width:110px;
-    text-align:center;
-    cursor:pointer;
-  }
-  .choice.selected{
-    background:#000;
-    color:#fff;
-    box-shadow:0 0 0 3px #fff;
-  }
-
-  /* 오른쪽 화살표 (다음 씬 아이콘) */
-  .next-arrow{
-    position:absolute;
-    right:24px;
     top:50%;
-    transform:translateY(-50%);
-    width:32px;
-    height:32px;
-    border-radius:50%;
-    border:4px solid #fff;
-    display:flex;
-    align-items:center;
-    justify-content:center;
+    width:60px;
+    height:40px;
+    transform:translate(-50%,-50%) skewY(-26deg);
+    background:#f5f5f5;
+    border:3px solid #000;
+    box-shadow:0 10px 0 #000;
   }
-  .next-arrow::before{
+  .room-prop.bed .block{
+    width:80px;
+    height:46px;
+  }
+  .room-prop.rug .block{
+    width:100px;
+    height:34px;
+    background:#e6e6e6;
+    box-shadow:0 0 0 #000;
+  }
+  .room-prop.rug .block::after{
     content:"";
-    border-style:solid;
-    border-width:6px 0 6px 11px;
-    border-color:transparent transparent transparent #fff;
-    margin-left:1px;
+    position:absolute;
+    inset:6px;
+    border:2px dashed #777;
   }
 
-  /* 좌측 하단 방향키(D-pad) */
+  /* 좌측 하단 방향키 */
   .dpad{
     position:absolute;
     left:20px;
@@ -224,12 +237,32 @@
     color:#ccc;
     z-index:40;
   }
+
+  /* 씬 전환용 페이드 */
+  .fade-overlay{
+    position:absolute;
+    inset:0;
+    background:#000;
+    opacity:0;
+    pointer-events:none;
+    transition:opacity .6s ease;
+    z-index:50;
+  }
+  .fade-overlay.active{
+    opacity:1;
+    pointer-events:auto;
+  }
 </style>
 </head>
 <body>
 
-<div class="game-root">
-  <div class="world">
+<div class="rotate-warning">
+  이 게임은<br><strong>가로 모드</strong>에서만 플레이할 수 있어요.<br><br>
+  기기를 가로로 돌려주세요.
+</div>
+
+<div class="game-root" id="gameRoot">
+  <div class="world" id="world">
     <div class="tile-layer" id="tileLayer"></div>
     <div class="entity-layer">
       <div class="player" id="player">
@@ -238,18 +271,9 @@
         <div class="head"></div>
       </div>
     </div>
+    <!-- ROOM 씬에서만 쓰는 소품 -->
+    <div class="entity-layer" id="roomProps"></div>
   </div>
-
-  <!-- 질문/선택 UI (그냥 샘플) -->
-  <div class="dialogue-wrapper">
-    <div class="dialogue-box">HOW ARE YOU FEELING?</div>
-    <div class="choices">
-      <div class="choice selected">EXCITED!</div>
-      <div class="choice">NERVOUS</div>
-    </div>
-  </div>
-
-  <div class="next-arrow"></div>
 
   <!-- 좌측 하단 방향키 -->
   <div class="dpad">
@@ -266,16 +290,21 @@
     <div class="empty"></div>
   </div>
 
-  <div class="log" id="log">←↑→↓ 또는 D-pad 로 캐릭터를 움직여보세요.</div>
+  <div class="log" id="log">
+    미로에서 출구까지 걸어가 보세요. (←↑→↓ 또는 D-pad)
+  </div>
+
+  <div class="fade-overlay" id="fade"></div>
 </div>
 
 <script>
-  /**
-   * 0 = 빈칸(이동 가능)
-   * 1 = 벽(이동 불가)
-   * 간단한 미로 예시
-   */
-  const maze = [
+  /***********************
+   * 맵 데이터
+   * 0 = 바닥
+   * 1 = 벽
+   * 2 = 출구(maze에서만)
+   ***********************/
+  const mazeMap = [
     [1,1,1,1,1,1,1,1,1],
     [1,0,0,0,1,0,0,0,1],
     [1,0,1,0,1,0,1,0,1],
@@ -283,65 +312,137 @@
     [1,0,1,1,1,0,1,0,1],
     [1,0,0,0,0,0,1,0,1],
     [1,1,1,1,1,0,1,0,1],
-    [1,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,2,1], // 오른쪽 아래 쪽에 출구(2)
     [1,1,1,1,1,1,1,1,1]
   ];
-  const rows = maze.length;
-  const cols = maze[0].length;
+
+  // 방(ROOM) 맵 – 단순한 사각형 방
+  const roomMap = [
+    [1,1,1,1,1,1,1],
+    [1,0,0,0,0,0,1],
+    [1,0,0,0,0,0,1],
+    [1,0,0,0,0,0,1],
+    [1,0,0,0,0,0,1],
+    [1,1,1,1,1,1,1]
+  ];
+
+  let currentMap = mazeMap;
+  let currentScene = 'maze'; // 'maze' | 'room'
+
+  const rows = () => currentMap.length;
+  const cols = () => currentMap[0].length;
 
   const tileLayer = document.getElementById('tileLayer');
+  const roomPropsLayer = document.getElementById('roomProps');
+  const playerEl = document.getElementById('player');
+  const worldEl = document.getElementById('world');
+  const logEl = document.getElementById('log');
+  const fadeEl = document.getElementById('fade');
 
-  // 아이소메트릭 투영에 필요한 값
+  // 아이소메트릭 투영 값
   const tileW = 64;
   const tileH = 32;
-  const originX = 260; // 화면 중앙 부근
-  const originY = 70;
+  const originX = 260; // 월드 내부 기준
+  const originY = 60;
 
-  // 타일 DOM 생성
-  for(let y=0; y<rows; y++){
-    for(let x=0; x<cols; x++){
-      const tile = document.createElement('div');
-      tile.className = 'tile' + (maze[y][x] === 1 ? ' wall' : '');
-      const base = document.createElement('div');
-      base.className = 'tile-base';
-      tile.appendChild(base);
+  // 플레이어 위치 (맵 좌표)
+  let px = 1;
+  let py = 1;
 
-      if(maze[y][x] === 1){
-        const wall = document.createElement('div');
-        wall.className = 'wall-block';
-        tile.appendChild(wall);
+  function buildWorld(){
+    tileLayer.innerHTML = '';
+    roomPropsLayer.innerHTML = '';
+
+    const r = rows();
+    const c = cols();
+
+    for(let y=0; y<r; y++){
+      for(let x=0; x<c; x++){
+        const val = currentMap[y][x];
+        const tile = document.createElement('div');
+        tile.className = 'tile';
+
+        if(val === 1) tile.classList.add('wall');
+        if(currentScene === 'maze' && val === 2) tile.classList.add('exit');
+
+        const base = document.createElement('div');
+        base.className = 'tile-base';
+        tile.appendChild(base);
+
+        if(val === 1){
+          const wall = document.createElement('div');
+          wall.className = 'wall-block';
+          tile.appendChild(wall);
+        }
+
+        const isoX = (x - y) * (tileW/2);
+        const isoY = (x + y) * (tileH/2);
+        tile.style.left = (originX + isoX) + 'px';
+        tile.style.top  = (originY + isoY) + 'px';
+        tile.style.zIndex = 10 + x + y;
+
+        tileLayer.appendChild(tile);
       }
+    }
 
-      // 아이소메트릭 좌표 -> 화면 좌표
-      const isoX = (x - y) * (tileW/2);
-      const isoY = (x + y) * (tileH/2);
-      tile.style.left = (originX + isoX) + 'px';
-      tile.style.top  = (originY + isoY) + 'px';
-      tile.style.zIndex = 10 + x + y; // 아래쪽에 있는 타일이 위에 보이게
-
-      tileLayer.appendChild(tile);
+    if(currentScene === 'room'){
+      worldEl.classList.add('scene-room');
+      // 간단한 방 소품 배치: 침대, 탁자, 러그
+      addRoomProp('bed', 2, 2);
+      addRoomProp('table', 4, 2);
+      addRoomProp('rug', 3, 3);
+    } else {
+      worldEl.classList.remove('scene-room');
     }
   }
 
-  // 플레이어 위치 (미로 좌표)
-  let px = 1; // 시작 x
-  let py = 1; // 시작 y
-  const playerEl = document.getElementById('player');
-  const logEl = document.getElementById('log');
+  function addRoomProp(type, gx, gy){
+    const wrapper = document.createElement('div');
+    wrapper.className = 'room-prop ' + type;
+
+    const block = document.createElement('div');
+    block.className = 'block';
+    wrapper.appendChild(block);
+
+    const isoX = (gx - gy) * (tileW/2);
+    const isoY = (gx + gy) * (tileH/2);
+
+    wrapper.style.left = (originX + isoX) + 'px';
+    wrapper.style.top  = (originY + isoY) + 'px';
+    wrapper.style.zIndex = 40 + gx + gy;
+
+    roomPropsLayer.appendChild(wrapper);
+  }
 
   function updatePlayerPosition(){
     const isoX = (px - py) * (tileW/2);
     const isoY = (px + py) * (tileH/2);
-    playerEl.style.left = (originX + isoX) + 'px';
-    playerEl.style.top  = (originY + isoY) + 'px';
-    playerEl.style.zIndex = 100 + px + py; // 항상 위에
+    const screenX = originX + isoX;
+    const screenY = originY + isoY;
+
+    playerEl.style.left = screenX + 'px';
+    playerEl.style.top  = screenY + 'px';
+    playerEl.style.zIndex = 100 + px + py;
+
+    updateCamera(screenX, screenY);
   }
 
-  updatePlayerPosition();
+  function updateCamera(screenX, screenY){
+    // 플레이어를 대략 월드 중앙 근처에 두도록 카메라 이동
+    const desiredX = 260;
+    const desiredY = 140;
+    const diffX = desiredX - screenX;
+    const diffY = desiredY - screenY;
+    const camX = diffX * 0.25; // 값을 줄수록 움직임이 미묘해짐
+    const camY = diffY * 0.25;
+
+    document.documentElement.style.setProperty('--camX', camX + 'px');
+    document.documentElement.style.setProperty('--camY', camY + 'px');
+  }
 
   function canMove(nx, ny){
-    if(nx < 0 || nx >= cols || ny < 0 || ny >= rows) return false;
-    return maze[ny][nx] === 0;
+    if(nx < 0 || nx >= cols() || ny < 0 || ny >= rows()) return false;
+    return currentMap[ny][nx] !== 1; // 벽(1)만 막음
   }
 
   function move(dx, dy){
@@ -351,27 +452,46 @@
       px = nx;
       py = ny;
       updatePlayerPosition();
-      logEl.textContent = `플레이어 미로 좌표: x=${px}, y=${py}`;
+
+      const tileVal = currentMap[py][px];
+      if(currentScene === 'maze' && tileVal === 2){
+        // 출구 도착 → 방으로 전환
+        enterRoomScene();
+      }
     }else{
-      // 벽에 부딪힌 경우
-      logEl.textContent = '벽이 있어요! 다른 길을 찾아보세요.';
+      logEl.textContent = (currentScene === 'maze')
+        ? '벽이 있어요. 다른 길을 찾아보세요.'
+        : '방의 벽에 막혔어요.';
     }
   }
 
-  // 키보드 이동
+  function enterRoomScene(){
+    logEl.textContent = '출구를 찾았습니다. 방으로 이동 중...';
+    fadeEl.classList.add('active');
+
+    setTimeout(()=>{
+      currentScene = 'room';
+      currentMap = roomMap;
+      // 방 안 시작 위치 (대략 중앙)
+      px = 3;
+      py = 3;
+      buildWorld();
+      updatePlayerPosition();
+      logEl.textContent = '방 안으로 들어왔습니다. 자유롭게 걸어보세요.';
+      fadeEl.classList.remove('active');
+    }, 650);
+  }
+
+  /*************
+   * 입력 처리
+   *************/
   window.addEventListener('keydown', e=>{
-    if(e.key === 'ArrowUp'){        // 등각 기준으로 위쪽: y-1
-      move(0,-1);
-    }else if(e.key === 'ArrowDown'){
-      move(0,1);
-    }else if(e.key === 'ArrowLeft'){
-      move(-1,0);
-    }else if(e.key === 'ArrowRight'){
-      move(1,0);
-    }
+    if(e.key === 'ArrowUp') move(0,-1);
+    else if(e.key === 'ArrowDown') move(0,1);
+    else if(e.key === 'ArrowLeft') move(-1,0);
+    else if(e.key === 'ArrowRight') move(1,0);
   });
 
-  // D-pad 이동 (클릭/터치)
   document.querySelectorAll('.dpad button[data-dir]').forEach(btn=>{
     const dir = btn.dataset.dir;
     btn.addEventListener('click', ()=>{
@@ -381,6 +501,13 @@
       if(dir === 'right') move(1,0);
     });
   });
+
+  /*************
+   * 초기화
+   *************/
+  buildWorld();
+  updatePlayerPosition();
 </script>
+
 </body>
 </html>
