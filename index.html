@@ -6,6 +6,10 @@
         content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
   <title>SLEEP CITY</title>
 
+  <!-- 픽셀 게임 폰트 -->
+  <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap">
+
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="SLEEP CITY">
@@ -39,7 +43,7 @@
       display:none;
       align-items:center;
       justify-content:center;
-      z-index:999;
+      z-index:200;
       text-align:center;
       padding:24px;
       font-size:14px;
@@ -64,9 +68,13 @@
       justify-content:center;
       padding:16px 24px 24px;
       gap:16px;
+      transition:opacity 6s linear; /* 프리셋 전체 페이드아웃 */
+    }
+    .app.app-fade-out{
+      opacity:0;
     }
 
-    /* 중앙 건물 창 (하얀 테두리 제거) */
+    /* 중앙 건물 팝업 (얇은 회색 실선) */
     .city-shell{
       width:70vw;
       max-width:820px;
@@ -75,6 +83,9 @@
       display:flex;
       align-items:center;
       justify-content:center;
+      border:1px solid #555; /* 경계 얇은 회색 선 */
+      background:#000;
+      box-shadow:0 0 20px rgba(0,0,0,0.9);
     }
 
     .city-window{
@@ -84,28 +95,35 @@
       position:relative;
       overflow:hidden;
       image-rendering:pixelated;
-      box-shadow:0 0 20px rgba(0,0,0,0.9);
     }
 
-    /* 초승달 (왼쪽 위) */
+    /* 픽셀 초승달 (왼쪽 위, 노란색) */
     .moon{
       position:absolute;
-      width:28px;
-      height:28px;
       top:10px;
       left:14px;
-      border-radius:50%;
-      background:#fdfdfd;
-    }
-    .moon::after{
-      content:"";
-      position:absolute;
       width:24px;
       height:24px;
-      top:3px;
-      left:7px;
-      border-radius:50%;
+      background:var(--window-on);
+      border-radius:4px;
+      box-shadow:
+        0 0 4px rgba(255,216,0,0.9),
+        0 0 8px rgba(255,216,0,0.7);
+      transition:filter 2s linear, opacity 2s linear;
+    }
+    .moon::before{
+      content:"";
+      position:absolute;
+      left:6px;
+      top:2px;
+      width:16px;
+      height:20px;
       background:var(--sky);
+      border-radius:4px;
+    }
+    body.lights-off .moon{
+      filter:brightness(0.1);
+      opacity:0;
     }
 
     .city-layers{
@@ -120,7 +138,7 @@
       display:flex;
       align-items:flex-end;
       justify-content:space-between;
-      gap:6px; /* 건물 사이 간격 */
+      gap:6px; /* 건물 간격 */
       pointer-events:none;
     }
     .layer-back{
@@ -138,7 +156,7 @@
       opacity:1;
     }
 
-    /* 건물: 더 얇게 */
+    /* 건물: 얇게 + 회색 계열 */
     .building{
       position:relative;
       display:flex;
@@ -147,26 +165,26 @@
       border:1px solid rgba(0,0,0,0.7);
       box-shadow:0 -2px 0 rgba(255,255,255,0.04) inset;
       image-rendering:pixelated;
-      flex:0.2;           /* 기본 두께 */
-      max-width:8%;       /* 너무 뚱뚱해지지 않게 제한 */
+      flex:0.2;
+      max-width:8%;
       min-width:4%;
     }
 
-    /* 지붕 (꼭짓점 확실하게) */
+    /* 지붕 (꼭짓점 분명하게) */
     .roof{
       width:90%;
       margin:0 auto 4px;
     }
     .roof-flat{
       height:4px;
-      background:rgba(255,255,255,0.12);
+      background:#dadada;
     }
     .roof-tri{
       width:0;
       height:0;
       border-left:10px solid transparent;
       border-right:10px solid transparent;
-      border-bottom:14px solid rgba(240,240,240,0.85);
+      border-bottom:14px solid #f0f0f0;
     }
     .roof-step{
       height:10px;
@@ -183,7 +201,7 @@
     .windows{
       width:100%;
       display:grid;
-      grid-template-columns:repeat(2,1fr); /* 가로 두 개 유지 */
+      grid-template-columns:repeat(2,1fr); /* 가로 두 개 */
       grid-auto-rows:8px;
       gap:3px;
       padding:0 2px 2px;
@@ -194,39 +212,87 @@
       height:100%;
       background:var(--window-on);
       box-shadow:0 0 4px rgba(255,216,0,0.6);
-      transition:background 2s linear, box-shadow 2s linear; /* 🔥 2초 페이드 */
+      opacity:0.9;
+      /* 계속 꿀렁이면서 깜빡이기 */
+      animation:windowFlicker 1.8s infinite steps(2);
+      animation-delay: calc(var(--rand) * 1.5s);
+      transition:
+        opacity 2s linear,
+        background 2s linear,
+        box-shadow 2s linear;
     }
     body.lights-off .window{
+      animation:none;
+      opacity:0;
       background:var(--window-off);
       box-shadow:none;
     }
 
-    /* 하단 UI */
-    .bottom-ui{
+    @keyframes windowFlicker{
+      0%{
+        opacity:0.5;
+        transform:scaleY(1);
+      }
+      50%{
+        opacity:1;
+        transform:scaleY(1.03);
+      }
+      100%{
+        opacity:0.7;
+        transform:scaleY(1);
+      }
+    }
+
+    /* 중앙 Start 버튼만 */
+    .bottom-center{
       width:70vw;
       max-width:820px;
       display:flex;
       align-items:center;
-      justify-content:space-between;
-      gap:16px;
+      justify-content:center; /* 가운데 정렬 */
     }
 
-    /* 왼쪽 아래 움직임 커서 */
+    .start-btn{
+      padding:10px 30px;
+      border:1px solid #f5f5f5;
+      background:#101010;
+      color:#f5f5f5;
+      font-size:13px;
+      letter-spacing:0.18em;
+      text-transform:uppercase;
+      cursor:pointer;
+      outline:none;
+      min-width:140px;
+    }
+    .start-btn:active{
+      background:#181818;
+      transform:translateY(1px);
+    }
+    .start-btn[disabled]{
+      opacity:0.6;
+      cursor:default;
+    }
+
+    /* 방향키: 화면 자체 왼쪽 아래 고정 */
     .cursor-pad{
+      position:fixed;
+      left:14px;
+      bottom:16px;
       display:flex;
       flex-direction:column;
       gap:4px;
       align-items:center;
       justify-content:center;
       font-size:12px;
+      z-index:50;
     }
     .cursor-row{
       display:flex;
       gap:4px;
     }
     .cursor-btn{
-      width:30px;
-      height:30px;
+      width:32px;
+      height:32px;
       border:1px solid #777;
       background:#050505;
       color:#f5f5f5;
@@ -241,30 +307,11 @@
       background:#111;
     }
 
-    /* 가운데 Start 버튼 – 더 깔끔하게 */
-    .start-btn{
-      padding:10px 30px;
-      border:1px solid #f5f5f5;
-      background:#101010;
-      color:#f5f5f5;
-      font-size:13px;
-      letter-spacing:0.18em;
-      text-transform:uppercase;
-      cursor:pointer;
-      outline:none;
-      min-width:130px;
-    }
-    .start-btn:active{
-      background:#181818;
-      transform:translateY(1px);
-    }
-    .start-btn[disabled]{
-      opacity:0.6;
-      cursor:default;
-    }
-
-    /* 오른쪽 아래 버튼 */
+    /* 오른쪽 아래 버튼 (폰 화면 기준) */
     .side-btn{
+      position:fixed;
+      right:16px;
+      bottom:16px;
       width:40px;
       height:40px;
       border:1px solid #777;
@@ -276,18 +323,50 @@
       align-items:center;
       justify-content:center;
       outline:none;
+      z-index:50;
     }
     .side-btn:active{
       background:#111;
     }
 
-    .status-label{
-      width:70vw;
-      max-width:820px;
-      font-size:11px;
-      opacity:0.7;
+    /* 오버레이: SLEEEEEEEEEEP 텍스트 */
+    .overlay{
+      position:fixed;
+      inset:0;
+      display:none;
+      align-items:center;
+      justify-content:center;
+      pointer-events:none;
+      z-index:100;
+    }
+    .overlay.show{
+      display:flex;
+    }
+    .overlay-inner{
       text-align:center;
-      margin-top:-4px;
+      padding:16px;
+      color:#f5f5f5;
+      font-family:"Press Start 2P","Courier New",monospace;
+    }
+    .overlay-lines{
+      font-size:clamp(18px,5vw,40px);
+      line-height:1.7;
+      text-shadow:0 0 6px rgba(255,255,255,0.3);
+    }
+    .overlay-line{
+      min-height:1.3em;
+    }
+    .overlay-third{
+      margin-top:24px;
+      font-size:clamp(16px,4vw,32px);
+      opacity:0;
+      transition:opacity 2s linear;
+    }
+    .overlay-third.show{
+      opacity:1;
+    }
+    .overlay-third.fade-out{
+      opacity:0;
     }
   </style>
 </head>
@@ -297,8 +376,9 @@
     Please rotate your device to landscape.
   </div>
 
-  <div class="app">
-    <!-- 중앙 건물 창 -->
+  <!-- 프리셋 전체 -->
+  <div class="app" id="appRoot">
+    <!-- 중앙 건물 팝업 -->
     <div class="city-shell">
       <div class="city-window">
         <div class="moon"></div>
@@ -310,23 +390,31 @@
       </div>
     </div>
 
-    <!-- 하단 UI: 좌측 커서 / 중앙 Start / 우측 버튼 -->
-    <div class="bottom-ui">
-      <div class="cursor-pad">
-        <button class="cursor-btn" aria-label="up">▲</button>
-        <div class="cursor-row">
-          <button class="cursor-btn" aria-label="left">◀</button>
-          <button class="cursor-btn" aria-label="down">▼</button>
-          <button class="cursor-btn" aria-label="right">▶</button>
-        </div>
-      </div>
-
+    <!-- 중앙 Start 버튼 -->
+    <div class="bottom-center">
       <button class="start-btn" id="startBtn">START</button>
-
-      <button class="side-btn" aria-label="extra button">●</button>
     </div>
+  </div>
 
-    <div class="status-label" id="statusLabel">LIGHT: ON</div>
+  <!-- 방향키 (폰 왼쪽 아래) -->
+  <div class="cursor-pad">
+    <button class="cursor-btn" aria-label="up">▲</button>
+    <div class="cursor-row">
+      <button class="cursor-btn" aria-label="left">◀</button>
+      <button class="cursor-btn" aria-label="down">▼</button>
+      <button class="cursor-btn" aria-label="right">▶</button>
+    </div>
+  </div>
+
+  <!-- 오른쪽 아래 버튼 -->
+  <button class="side-btn" aria-label="extra button">●</button>
+
+  <!-- 오버레이 텍스트 -->
+  <div class="overlay" id="overlay">
+    <div class="overlay-inner">
+      <div class="overlay-lines" id="overlayLines"></div>
+      <div class="overlay-third" id="overlayThird"></div>
+    </div>
   </div>
 
   <script>
@@ -371,8 +459,11 @@
         const w = document.createElement("div");
         w.className = "window";
 
-        // 몇몇은 미리 꺼진 창
-        if(Math.random() < 0.1){
+        // flicker 랜덤 딜레이
+        w.style.setProperty("--rand", Math.random().toString());
+
+        // 일부는 원래부터 꺼진 창
+        if(Math.random() < 0.12){
           w.style.background = "#000";
           w.style.boxShadow = "none";
         }
@@ -394,21 +485,71 @@
       }
     });
 
-    // Start 버튼: 2초 페이드로 불 끄기
     const startBtn = document.getElementById("startBtn");
-    const statusLabel = document.getElementById("statusLabel");
-    let lightsOff = false;
+    const appRoot = document.getElementById("appRoot");
+    const overlay = document.getElementById("overlay");
+    const overlayLines = document.getElementById("overlayLines");
+    const overlayThird = document.getElementById("overlayThird");
+    let started = false;
 
+    function typeLine(text, cb){
+      const lineEl = document.createElement("div");
+      lineEl.className = "overlay-line";
+      overlayLines.appendChild(lineEl);
+
+      let idx = 0;
+      const speed = 70; // 타이핑 속도
+      const timer = setInterval(()=>{
+        lineEl.textContent = text.slice(0, idx+1);
+        idx++;
+        if(idx >= text.length){
+          clearInterval(timer);
+          if(cb) setTimeout(cb, 150);
+        }
+      }, speed);
+    }
+
+    function startOverlaySequence(){
+      overlay.classList.add("show");
+      appRoot.classList.add("app-fade-out");
+
+      const lines = [
+        "SLEEEEEEEEEEP,",
+        "SLEEEEEEEEEEP,",
+        "SLEEEEEEEEEEP,"
+      ];
+
+      typeLine(lines[0], ()=>{
+        typeLine(lines[1], ()=>{
+          typeLine(lines[2], ()=>{
+            // THE THIRD SLEEP
+            overlayThird.textContent = "THE THIRD SLEEP";
+            overlayThird.classList.add("show");
+
+            // 2초 후 THIRD SLEEP 페이드 아웃
+            setTimeout(()=>{
+              overlayThird.classList.add("fade-out");
+            }, 2000);
+          });
+        });
+      });
+    }
+
+    // Start 버튼: 전체 불 2초 페이드 + 텍스트 시퀀스 + 프리셋 페이드아웃
     startBtn.addEventListener("click", ()=>{
-      if(lightsOff) return;
-      document.body.classList.add("lights-off");
-      lightsOff = true;
+      if(started) return;
+      started = true;
+
+      document.body.classList.add("lights-off"); // 창문 + 달 색 빠짐 (2초)
+
       startBtn.disabled = true;
       startBtn.textContent = "OFF";
-      statusLabel.textContent = "LIGHT: OFF (2s fade)";
+
+      // 텍스트 시퀀스 + 프리셋 페이드 시작
+      startOverlaySequence();
     });
 
-    // 커서/오른쪽 버튼은 지금은 기능 없음 (UI만)
+    // 방향키, 오른쪽 버튼은 지금은 기능 없음 (UI만)
   </script>
 </body>
 </html>
