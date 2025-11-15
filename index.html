@@ -395,9 +395,6 @@
     }
     .side-left{ left:0; }
     .side-right{ right:0; }
-    .side-column.hidden{
-      opacity:0;
-    }
 
     .side-building{
       background:#14151c;
@@ -465,7 +462,7 @@
       left:50%;
       bottom:20%;
       transform:translateX(-50%);
-      transition:transform 0.06s linear;
+      transition:transform 0.06s linear, opacity 0.06s linear;
     }
     .character::before{
       content:"";
@@ -487,7 +484,8 @@
     }
     .character.entered{
       opacity:0;
-      transition:opacity 0.6s ease-out;
+      transform:translateX(-50%) translateY(6px);
+      transition:opacity 0.8s ease-out, transform 0.8s ease-out;
     }
 
     /* 도로 중간 빌딩: 처음에는 창문 빼곡, 불 꺼진 회색 */
@@ -501,9 +499,6 @@
       border:1px solid #000;
       box-shadow:0 0 14px rgba(0,0,0,0.9);
       transition:opacity 1s linear;
-    }
-    .end-building.hidden{
-      opacity:0;
     }
     .end-windows{
       position:absolute;
@@ -529,13 +524,12 @@
       background:#7b1118;
       border:1px solid #000;
       box-shadow:0 0 16px rgba(0,0,0,0.9);
-      display:none;
       opacity:0;
+      display:none;
       transition:opacity 1.2s ease-out;
     }
-    .final-building.show{
+    .final-building.visible{
       display:block;
-      opacity:1;
     }
     .final-door{
       position:absolute;
@@ -852,8 +846,8 @@
 
     const sideLeft = document.getElementById("sideLeft");
     const sideRight = document.getElementById("sideRight");
-    createSideBuildings(sideLeft, 10);
-    createSideBuildings(sideRight, 10);
+    createSideBuildings(sideLeft, 14);   // 얄쌍하고 많이
+    createSideBuildings(sideRight, 14);
 
     const endBuilding = document.getElementById("endBuilding");
     const endWindows = document.getElementById("endWindows");
@@ -867,49 +861,77 @@
     const finalBuilding = document.getElementById("finalBuilding");
     const finalDoor = document.getElementById("finalDoor");
 
-    // ====== 캐릭터 컨트롤 & 거리 로직 ======
+    // ====== 캐릭터 컨트롤 & 길 끝 연출 ======
     const character = document.getElementById("character");
     let charX = 50;   // road-center 안에서 퍼센트
-    let charY = 20;
-    let distance = 0; // 얼마나 위로 걸었는지
+    let charY = 20;   // 20 ~ 80 사이 이동
 
+    function clamp(v,min,max){
+      return v < min ? min : (v > max ? max : v);
+    }
+
+    // 캐릭터 위치 업데이트 + 주변 환경 변화
     function updateCharacter(){
       if(!character) return;
-      // 약간의 움직임 영역 제한
-      if(charX < 35) charX = 35;
-      if(charX > 65) charX = 65;
-      if(charY < 10) charY = 10;
-      if(charY > 80) charY = 80;
+
+      // 이동 범위 제한 (약간의 좌우/상하만)
+      charX = clamp(charX, 35, 65);
+      charY = clamp(charY, 20, 80);
+
       character.style.left = charX + "%";
       character.style.bottom = charY + "%";
-    }
-    updateCharacter();
 
-    // 어느 정도 걸으면: 옆 건물 & 중간 빌딩 사라지고 빨간 건물 등장
-    const SIDE_FADE_DISTANCE = 70;   // 위로 쭉 걸으면 도달
-    const DOOR_ENTER_DISTANCE = 100; // 이쯤이면 거의 길 끝
-
-    function checkProgress(){
-      if(distance > SIDE_FADE_DISTANCE){
-        sideLeft.classList.add("hidden");
-        sideRight.classList.add("hidden");
-        endBuilding.classList.add("hidden");
-        finalBuilding.classList.add("show");
-      }
-
-      // 문에 "들어가기": 빨간 건물 보이는 상태 + 캐릭터 위치가 문 위쪽 근처
-      if(distance > DOOR_ENTER_DISTANCE &&
-         finalBuilding.classList.contains("show")){
-        const nearDoorX = Math.abs(charX - 50) < 5;
-        const nearDoorY = charY > 65;
-        if(nearDoorX && nearDoorY){
-          character.classList.add("entered");
-          sceneFade.classList.add("on"); // 문 안으로 들어가면서 페이드 아웃
-          // 여기서 다음 씬 로딩 연결하면 됨 (location.href 등)
-        }
-      }
+      updateEnvironment();
+      checkDoorEnter();
     }
 
+    // 위로 걸어갈수록: 양옆 건물 + 중간 건물 서서히 사라지고, 빨간 건물 등장
+    function updateEnvironment(){
+      // charY: 20(시작) ~ 80(맨 위 근처)
+      const progress = clamp((charY - 20) / 60, 0, 1); // 0~1
+
+      const sideOpacity = 1 - progress;            // 위로 갈수록 1 → 0
+      const midOpacity  = 1 - progress;            // 중간 회색 건물도 같이 감소
+
+      sideLeft.style.opacity  = sideOpacity;
+      sideRight.style.opacity = sideOpacity;
+      endBuilding.style.opacity = midOpacity;
+
+      // 빨간 건물은 progress가 어느 정도 올라가면 서서히 등장
+      if(progress > 0.3){
+        const redProg = clamp((progress - 0.3) / 0.7, 0, 1); // 0.3~1 구간에서 0~1
+        finalBuilding.classList.add("visible");
+        finalBuilding.style.opacity = redProg;
+      }else{
+        finalBuilding.style.opacity = 0;
+        finalBuilding.classList.remove("visible");
+      }
+    }
+
+    // 문 앞에 도착하면 캐릭터 희미 → 화면 페이드아웃
+    let doorEntered = false;
+    function checkDoorEnter(){
+      if(doorEntered) return;
+
+      const fbOpacity = parseFloat(getComputedStyle(finalBuilding).opacity || "0");
+      if(fbOpacity < 0.9) return; // 빨간 건물이 충분히 보일 때만
+
+      const nearDoorX = Math.abs(charX - 50) < 5;   // 거의 중앙
+      const nearDoorY = charY > 72;                 // 위쪽 끝 근처까지 올라갔을 때
+
+      if(nearDoorX && nearDoorY){
+        doorEntered = true;
+        character.classList.add("entered");      // 캐릭터 희미해짐
+        setTimeout(()=>{
+          sceneFade.classList.add("on");        // 화면 검게 페이드 아웃
+          // 이 다음에 실제로 다음 씬으로 넘어가고 싶으면 여기서 location.href 등 연결하면 됨
+        }, 400);
+      }
+    }
+
+    updateCharacter(); // 초기 위치 세팅 & 환경 적용
+
+    // D-패드 입력
     document.querySelectorAll(".cursor-btn").forEach(btn=>{
       const dir = btn.dataset.dir;
       if(!dir) return;
@@ -919,17 +941,18 @@
 
         if(dir === "up"){
           charY += step;
-          distance += step;   // 위로 갈 때만 "쭉 걸어간" 거리로 축적
         }
         if(dir === "down"){
           charY -= step;
-          distance = Math.max(0, distance - step/2);
         }
-        if(dir === "left") charX -= step;
-        if(dir === "right") charX += step;
+        if(dir === "left"){
+          charX -= step;
+        }
+        if(dir === "right"){
+          charX += step;
+        }
 
         updateCharacter();
-        checkProgress();
       });
     });
   </script>
