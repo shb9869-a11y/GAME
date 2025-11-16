@@ -107,7 +107,7 @@
       100%{opacity:0.2;}
     }
 
-    /* 중앙 팝업 공통 */
+    /* 중앙 팝업 공통 (세 씬 공통) */
     .popup-frame{
       width:70vw;
       max-width:820px;
@@ -121,7 +121,7 @@
       justify-content:center;
       position:relative;
       overflow:visible;      /* 아래 대사창이 밖으로 나오도록 */
-      margin-bottom:7vh;     /* 세 씬 모두 동일한 위치 */
+      margin-bottom:5vh;     /* 프리셋/장면1/장면2 모두 동일 기준 + 기존보다 살짝 아래 */
     }
 
     /* ========== 씬1: 인트로 ========== */
@@ -446,7 +446,7 @@
       opacity:0.12;
     }
 
-    /* 사람 캐릭터 (팔/다리 길게) */
+    /* 사람 캐릭터 (팔/다리 더 얇고 길게) */
     .character{
       position:absolute;
       width:18px;
@@ -467,26 +467,26 @@
       background:#111;
       box-shadow:7px 0 0 #111;
     }
-    /* 팔 – 좌우로 길게 뻗기 */
+    /* 팔 – 좌우로 더 얇고 길게 */
     .character::before{
       content:"";
       position:absolute;
-      top:12px;
-      left:-8px;
-      width:34px;
-      height:6px;
+      top:11px;
+      left:-10px;
+      width:38px;
+      height:3px;
       background:var(--skin);
     }
-    /* 다리 – 아래로 두 가닥 길게 */
+    /* 다리 – 아래로 두 가닥, 얇고 길게 */
     .character::after{
       content:"";
       position:absolute;
-      bottom:-4px;
-      left:2px;
-      width:4px;
-      height:14px;
+      bottom:-6px;
+      left:3px;
+      width:2px;
+      height:18px;
       background:var(--skin);
-      box-shadow:8px 0 0 var(--skin);
+      box-shadow:10px 0 0 var(--skin);
     }
     .character.fade-out{
       opacity:0;
@@ -578,7 +578,7 @@
     .joystick{
       position:fixed;
       left:16px;
-      bottom:18px;
+      bottom:10px; /* 이전 느낌으로 더 아래 */
       width:96px;
       height:96px;
       z-index:200;
@@ -629,7 +629,7 @@
       flex:1;
       padding-right:12px;
       white-space:pre-line;
-      text-align:left;
+      text-align:left;   /* 팝업창 좌측 하단 느낌 */
     }
     .dialog-next{
       flex:0 0 auto;
@@ -638,7 +638,7 @@
       background:#101010;
       color:#f5f5f5;
       font-size:inherit;
-      cursor:pointer;
+      cursor:pointer;    /* 우측 하단 NEXT */
     }
   </style>
 </head>
@@ -728,8 +728,7 @@
     </div>
   </div>
 
-  <!-- 배경음악 & 움직임 사운드 (파일은 직접 넣기) -->
-  <audio id="bgm" src="bgm_sleep_city.mp3" loop></audio>
+  <!-- 움직임 사운드 (파일은 직접 넣기) -->
   <audio id="stepSfx" src="step_move.wav"></audio>
 
   <script>
@@ -797,10 +796,54 @@
     const streetScene   = document.getElementById("streetScene");
     const whiteScene    = document.getElementById("whiteScene");
 
-    const bgm           = document.getElementById("bgm");
     const stepSfx       = document.getElementById("stepSfx");
 
     let started = false;
+
+    /* ====== Web Audio BGM (Sleeeeep 스타일 패드) ====== */
+    let audioCtx = null;
+    let bgmStarted = false;
+
+    function startBgm(){
+      if(bgmStarted) return;
+      bgmStarted = true;
+
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if(!AC) return;
+      if(!audioCtx) audioCtx = new AC();
+
+      const master = audioCtx.createGain();
+      master.gain.value = 0.18;
+      master.connect(audioCtx.destination);
+
+      const filter = audioCtx.createBiquadFilter();
+      filter.type = "lowpass";
+      filter.frequency.value = 900;
+      filter.Q.value = 0.7;
+      filter.connect(master);
+
+      const freqs = [90, 140, 220];
+      freqs.forEach((f,i)=>{
+        const osc = audioCtx.createOscillator();
+        osc.type = "sine";
+        osc.frequency.value = f;
+        const g = audioCtx.createGain();
+        g.gain.value = 0.18/(i+1);
+        osc.connect(g);
+        g.connect(filter);
+        osc.start();
+      });
+
+      // 아주 느린 템포의 숨쉬는 느낌
+      const lfo = audioCtx.createOscillator();
+      lfo.type = "sine";
+      lfo.frequency.value = 0.07; // 느리게
+      const lfoGain = audioCtx.createGain();
+      lfoGain.gain.value = 0.08;
+      lfo.connect(lfoGain);
+      lfoGain.connect(master.gain);
+      lfo.start();
+    }
 
     function typeLine(text, pauseAfter, cb){
       const lineEl = document.createElement("div");
@@ -853,10 +896,15 @@
       if(started) return;
       started = true;
 
-      // BGM 시작 (어나더코어 느낌의 파일을 bgm_sleep_city.mp3로 넣어두면 됨)
-      if(bgm){
-        bgm.volume = 0.6;
-        bgm.play().catch(()=>{ /* iOS에서 막히면 무시 */ });
+      // BGM 시작 (첫 터치에서 AudioContext 생성 & 재생)
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if(AC){
+        if(!audioCtx) audioCtx = new AC();
+        if(audioCtx.state === "suspended"){
+          audioCtx.resume().then(startBgm).catch(()=>{});
+        }else{
+          startBgm();
+        }
       }
 
       // 불 서서히 꺼지기
@@ -932,9 +980,6 @@
 
       character.style.left   = charX + "%";
       character.style.bottom = charY + "%";
-
-      updateRedBuildingVisibility();
-      maybeTriggerDialog();
     }
 
     function wrapIfNeeded(){
@@ -942,9 +987,11 @@
       if(charY >= 92){
         charY = 10;
         laps++;
-        if(laps >= 3){
+        if(laps >= 3 && !buildingShown){
           buildingShown = true;
           redBuilding.classList.add("show");
+          // 빨간 건물이 나오자마자 메시지 바로 시작
+          startDialog();
         }
       }
     }
@@ -954,21 +1001,6 @@
       whiteY = clamp(whiteY, 10, 90);
       whiteChar.style.left = whiteX + "%";
       whiteChar.style.top  = whiteY + "%";
-    }
-
-    function updateRedBuildingVisibility(){
-      if(buildingShown){
-        redBuilding.classList.add("show");
-      }else{
-        redBuilding.classList.remove("show");
-      }
-    }
-
-    function isNearDoorOrBuilding(){
-      if(!buildingShown || !redBuilding.classList.contains("show")) return false;
-      // 빨간 건물 쪽으로 충분히 올라오면 바로 발동 (문 앞 느낌)
-      const nearTop = charY > 78;
-      return nearTop;
     }
 
     /* ========= 문 앞 대화 ========= */
@@ -988,13 +1020,8 @@
     let typing        = false;
     let typingTimer   = null;
 
-    function maybeTriggerDialog(){
-      if(dialogStarted) return;
-      if(!isNearDoorOrBuilding()) return;
-      startDialog();
-    }
-
     function startDialog(){
+      if(dialogStarted) return;
       dialogStarted = true;
       dialogActive  = true;
       dialogIndex   = 0;
@@ -1102,14 +1129,13 @@
         return;
       }
 
-      // 시각적으로는 손가락 방향과 동일하게 움직이고,
-      // 이동 방향은 화면 좌표를 고려해 위/아래 반전
+      // 시각적으로는 손가락 방향과 동일하게, 이동 방향은 위/아래 반전
       joyDX = nx;
       joyDY = -ny; // 위로 밀면 위로 이동
 
       const knobR = max * 0.55;
       const kx = nx * knobR;
-      const ky = ny * knobR; // 손가락 방향과 동일하게
+      const ky = ny * knobR; // 손가락 방향과 동일하게 보이게
       joyKnob.style.transform = `translate(${kx}px,${ky}px)`;
     }
 
@@ -1163,8 +1189,8 @@
           charX += joyDX * speed * dt;
           charY += joyDY * speed * dt;
           wrapIfNeeded();
-          updateCharacter();
         }
+        updateCharacter();
       }else if(whiteScene.style.display === "flex"){
         whiteX += joyDX * speed * dt;
         whiteY -= joyDY * speed * dt; // white는 top 기준
