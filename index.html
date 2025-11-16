@@ -21,6 +21,7 @@
       --window-off: #050509;
       --text: #f5f5f5;
       --sky: #050509;
+      --skin: #f5c7a0;
     }
 
     *{margin:0;padding:0;box-sizing:border-box;}
@@ -407,13 +408,13 @@
       overflow:hidden;
     }
 
-    /* 도로 가운데 점선 */
+    /* 도로 가운데 점선 - 지금은 정지 (애니메이션 없음) */
     .street-lane{
       position:absolute;
       left:50%;
-      top:-100%;
+      top:0;
       width:4px;
-      height:300%;
+      height:100%;
       background:repeating-linear-gradient(
         to bottom,
         #dcdcdc 0 18px,
@@ -421,47 +422,44 @@
       );
       transform:translateX(-50%);
       opacity:0.12;
-      animation:laneMove 6s linear infinite;
-    }
-    @keyframes laneMove{
-      from{transform:translate(-50%,0);}
-      to{transform:translate(-50%,40px);}
     }
 
-    /* 캐릭터 */
+    /* 사람 캐릭터 (참고 이미지 느낌) */
     .character{
       position:absolute;
       width:18px;
-      height:24px;
-      background:#f5f5f5;
+      height:26px;
+      background:var(--skin);
       image-rendering:pixelated;
-      box-shadow:0 0 6px rgba(255,255,255,0.7);
       left:50%;
       bottom:15%;
       transform:translate(-50%,0);
-      transition:transform 0.06s linear;
+      transition:transform 0.06s linear, opacity 0.4s ease-out;
     }
+    /* 눈 2개 */
     .character::before{
       content:"";
       position:absolute;
+      top:5px;
       left:4px;
-      top:4px;
-      width:10px;
-      height:8px;
-      background:#000;
+      width:3px;
+      height:3px;
+      background:#111;
+      box-shadow:7px 0 0 #111;
     }
+    /* 다리 2개 */
     .character::after{
       content:"";
       position:absolute;
-      left:3px;
       bottom:0;
-      width:12px;
-      height:8px;
-      background:#101010;
+      left:2px;
+      width:4px;
+      height:6px;
+      background:var(--skin);
+      box-shadow:8px 0 0 var(--skin);
     }
     .character.fade-out{
       opacity:0;
-      transition:opacity 0.6s ease-out;
     }
 
     /* 위쪽 빨간 건물 (처음엔 숨김) */
@@ -525,20 +523,23 @@
       justify-content:center;
       z-index:120;
     }
-    .white-window{
+    #whiteScene .popup-frame{
+      background:#ffffff;
+      border-color:#ddd;
+    }
+    .white-room{
       width:100%;
       height:100%;
       background:#ffffff;
-      color:#000;
       display:flex;
       align-items:center;
       justify-content:center;
-      font-family:"Press Start 2P","Courier New",monospace;
-      font-size:clamp(10px,1.6vw,16px);
-      text-align:center;
+    }
+    .white-room .character{
+      box-shadow:none;
     }
 
-    /* ========== UI: 방향키 + 액션키 ========== */
+    /* ========== UI: 방향키 ========== */
     .dpad{
       position:fixed;
       left:14px;
@@ -569,23 +570,41 @@
       cursor:pointer;
     }
 
-    .action-btn{
-      position:fixed;
-      right:18px;
-      bottom:20px;
-      width:46px;
-      height:46px;
-      border-radius:50%;
-      border:1px solid #777;
-      background:#050505;
-      color:#f5f5f5;
-      font-size:16px;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      cursor:pointer;
-      z-index:200;
+    /* ========== 문 앞 대화창 ========== */
+    .dialog-box{
+      position:absolute;
+      left:0;
+      right:0;
+      bottom:0;
+      height:28%;
+      background:rgba(0,0,0,0.9);
+      border-top:1px solid #555;
+      display:none;
+      align-items:flex-start;
+      justify-content:space-between;
+      padding:8px 12px;
       font-family:"Press Start 2P","Courier New",monospace;
+      font-size:clamp(9px,1.7vw,13px);
+      line-height:1.6;
+      color:#f5f5f5;
+    }
+    .dialog-box.show{
+      display:flex;
+    }
+    .dialog-text{
+      flex:1;
+      padding-right:12px;
+      white-space:pre-line;
+    }
+    .dialog-next{
+      flex:0 0 auto;
+      align-self:flex-end;
+      padding:6px 14px;
+      border:1px solid #f5f5f5;
+      background:#101010;
+      color:#f5f5f5;
+      font-size:inherit;
+      cursor:pointer;
     }
   </style>
 </head>
@@ -640,6 +659,12 @@
               </div>
 
               <div class="character" id="character"></div>
+
+              <!-- 문 앞 대사창 -->
+              <div class="dialog-box" id="dialogBox">
+                <div class="dialog-text" id="dialogText"></div>
+                <button class="dialog-next" id="dialogNext">NEXT</button>
+              </div>
             </div>
           </div>
 
@@ -648,11 +673,11 @@
       </div>
     </div>
 
-    <!-- 씬3: 하얀 방 -->
+    <!-- 씬3: 하얀 방 (인물만) -->
     <div id="whiteScene">
       <div class="popup-frame">
-        <div class="white-window">
-          YOU ARE INSIDE<br>THE WHITE ROOM.
+        <div class="white-room">
+          <div class="character" id="whiteCharacter"></div>
         </div>
       </div>
     </div>
@@ -666,9 +691,6 @@
         <button class="d-btn" data-dir="right">▶</button>
       </div>
     </div>
-
-    <!-- 액션 버튼 (대화/아이템/문 열기 등) -->
-    <button class="action-btn" id="actionBtn">A</button>
   </div>
 
   <script>
@@ -784,7 +806,6 @@
               setTimeout(()=>{
                 introScene.style.display = "none";
                 streetScene.style.display = "flex";
-                // 바로 페이드 아웃
                 sceneFade.classList.remove("on");
               }, 800);
             }, 1500);
@@ -840,8 +861,14 @@
     }
 
     /* ========= 캐릭터 이동 & 빨간 건물 / 문 진입 ========= */
-    const character = document.getElementById("character");
-    const actionBtn = document.getElementById("actionBtn");
+    const character   = document.getElementById("character");
+    const whiteChar   = document.getElementById("whiteCharacter");
+    const dialogBox   = document.getElementById("dialogBox");
+    const dialogText  = document.getElementById("dialogText");
+    const dialogNext  = document.getElementById("dialogNext");
+
+    // 하얀 방 캐릭터도 동일 스타일 사용 위해 class 복사
+    whiteChar.className = character.className;
 
     let charX = 50;   // 0~100 (%)
     let charY = 15;
@@ -859,14 +886,16 @@
       character.style.bottom = charY + "%";
 
       updateRedBuildingVisibility();
+      maybeTriggerDialog();
     }
 
+    // 길을 더 길게: 거의 위쪽까지 가야 건물 등장
     function updateRedBuildingVisibility(){
-      // 위로 올라갈수록 빨간 건물이 서서히 등장
-      const progress = clamp((charY - 15) / 55, 0, 1); // 15→70 사이
+      // charY: 15에서 시작 → 90 근처까지
+      const progress = clamp((charY - 15) / 75, 0, 1); // 더 긴 거리
 
-      if(progress > 0.6){
-        const t = (progress - 0.6) / 0.4;
+      if(progress > 0.7){
+        const t = (progress - 0.7) / 0.3;
         redBuilding.classList.add("show");
         redBuilding.style.opacity = t;
       }else{
@@ -876,39 +905,115 @@
     }
 
     function isNearDoor(){
-      // 빨간 건물 거의 완전히 보이고
       const visible = redBuilding.classList.contains("show") &&
         parseFloat(getComputedStyle(redBuilding).opacity || "0") > 0.95;
       if(!visible) return false;
 
-      // X축: 가운데 근처 / Y축: 상단 근처
       const nearCenter = Math.abs(charX - 50) < 6;
-      const nearTop    = charY > 78;
+      const nearTop    = charY > 80;
       return nearCenter && nearTop;
     }
 
-    let inDoor = false;
+    /* ========= 문 앞 대화 시퀀스 ========= */
+    const dialogLines = [
+      "문이다.",
+      "한 번 들어가볼까?",
+      "그래도 무섭잖아",
+      "아니야 들어가보자.",
+      "왜..?",
+      "뭐가 나올지 모르지까.",
+      "가자."
+    ];
 
-    function enterDoor(){
-      if(inDoor) return;
+    let dialogStarted = false;
+    let dialogActive  = false;
+    let dialogIndex   = 0;
+    let typing        = false;
+    let typingTimer   = null;
+
+    function maybeTriggerDialog(){
+      if(dialogStarted) return;
       if(!isNearDoor()) return;
 
-      inDoor = true;
+      startDialog();
+    }
+
+    function startDialog(){
+      dialogStarted = true;
+      dialogActive  = true;
+      dialogIndex   = 0;
+      dialogBox.classList.add("show");
+      typeDialogLine(dialogLines[0]);
+    }
+
+    function typeDialogLine(text){
+      if(typingTimer) clearInterval(typingTimer);
+      dialogText.textContent = "";
+      let idx = 0;
+      typing = true;
+      typingTimer = setInterval(()=>{
+        dialogText.textContent = text.slice(0, idx+1);
+        idx++;
+        if(idx >= text.length){
+          clearInterval(typingTimer);
+          typingTimer = null;
+          typing = false;
+        }
+      }, 60);
+    }
+
+    function showNextDialog(){
+      if(!dialogActive) return;
+
+      // 타이핑 중이면 전체 문장 바로 출력
+      if(typing){
+        if(typingTimer) clearInterval(typingTimer);
+        typingTimer = null;
+        typing = false;
+        dialogText.textContent = dialogLines[dialogIndex];
+        return;
+      }
+
+      dialogIndex++;
+      if(dialogIndex < dialogLines.length){
+        typeDialogLine(dialogLines[dialogIndex]);
+      }else{
+        // 마지막 문장 NEXT → 하얀 방으로
+        endDialogAndEnterWhiteRoom();
+      }
+    }
+
+    function endDialogAndEnterWhiteRoom(){
+      dialogActive = false;
+      dialogBox.classList.remove("show");
       character.classList.add("fade-out");
       sceneFade.classList.add("on");
 
       setTimeout(()=>{
         streetScene.style.display = "none";
         whiteScene.style.display  = "flex";
-        // 화이트룸 노출
         sceneFade.classList.remove("on");
       }, 800);
     }
 
+    dialogNext.addEventListener("click", e=>{
+      e.preventDefault();
+      showNextDialog();
+    });
+    dialogNext.addEventListener("touchstart", e=>{
+      e.preventDefault();
+      showNextDialog();
+    }, {passive:false});
+
     updateCharacter();
 
-    /* ========= 방향키 / 액션 버튼 입력 ========= */
+    /* ========= 방향키 입력 ========= */
     function handleMove(dir){
+      // 씬2가 활성화된 상태에서만 이동
+      if(streetScene.style.display !== "flex") return;
+      // 대사 진행 중에는 움직이지 않음
+      if(dialogActive) return;
+
       const stepY = 4;
       const stepX = 4;
 
@@ -920,7 +1025,6 @@
       updateCharacter();
     }
 
-    // D패드 (좌측 하단) – click + touchstart
     document.querySelectorAll(".d-btn").forEach(btn=>{
       const dir = btn.dataset.dir;
       if(!dir) return;
@@ -933,14 +1037,6 @@
       btn.addEventListener("click", handler);
       btn.addEventListener("touchstart", handler, {passive:false});
     });
-
-    // 액션 버튼 – 문 앞에서 A 누르면 하얀 방으로
-    function handleAction(e){
-      e.preventDefault();
-      enterDoor();
-    }
-    actionBtn.addEventListener("click", handleAction);
-    actionBtn.addEventListener("touchstart", handleAction, {passive:false});
   </script>
 </body>
 </html>
