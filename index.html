@@ -83,7 +83,7 @@
       opacity:1;
     }
 
-    /* 안개 레이어 – 인트로에서만 살짝 사용 */
+    /* 안개 레이어 – 인트로에서만 사용 */
     .fog-layer{
       position:absolute;
       inset:0;
@@ -121,6 +121,7 @@
       justify-content:center;
       position:relative;
       overflow:hidden;
+      margin-bottom:7vh; /* 전체를 살짝 위로 */
     }
 
     /* ========== 씬1: 인트로 ========== */
@@ -295,9 +296,10 @@
       cursor:pointer;
       outline:none;
       min-width:140px;
+      transition:opacity .3s;
     }
     .start-btn[disabled]{
-      opacity:0.6;
+      opacity:0;
       cursor:default;
     }
 
@@ -408,7 +410,7 @@
       overflow:hidden;
     }
 
-    /* 도로 가운데 점선 - 지금은 정지 (애니메이션 없음) */
+    /* 도로 가운데 점선 - 정지 */
     .street-lane{
       position:absolute;
       left:50%;
@@ -424,7 +426,7 @@
       opacity:0.12;
     }
 
-    /* 사람 캐릭터 (참고 이미지 느낌) */
+    /* 사람 캐릭터 */
     .character{
       position:absolute;
       width:18px;
@@ -436,9 +438,7 @@
       transform:translate(-50%,0);
       transition:transform 0.06s linear, opacity 0.4s ease-out;
     }
-    /* 눈 2개 */
-    .character::before{
-      content:"";
+    .character .eyes{
       position:absolute;
       top:5px;
       left:4px;
@@ -447,7 +447,18 @@
       background:#111;
       box-shadow:7px 0 0 #111;
     }
-    /* 다리 2개 */
+    /* 팔 */
+    .character::before{
+      content:"";
+      position:absolute;
+      top:10px;
+      left:0px;
+      width:4px;
+      height:8px;
+      background:var(--skin);
+      box-shadow:14px 0 0 var(--skin);
+    }
+    /* 다리 */
     .character::after{
       content:"";
       position:absolute;
@@ -534,8 +545,12 @@
       display:flex;
       align-items:center;
       justify-content:center;
+      position:relative;
     }
     .white-room .character{
+      bottom:auto;
+      top:50%;
+      transform:translate(-50%,-50%);
       box-shadow:none;
     }
 
@@ -570,23 +585,21 @@
       cursor:pointer;
     }
 
-    /* ========== 문 앞 대화창 ========== */
+    /* ========== 문 앞 대화 텍스트 ========== */
     .dialog-box{
       position:absolute;
       left:0;
       right:0;
-      bottom:0;
-      height:28%;
-      background:rgba(0,0,0,0.9);
-      border-top:1px solid #555;
+      bottom:-22%; /* 팝업 아래쪽, 경계 밖 */
       display:none;
-      align-items:flex-start;
+      align-items:flex-end;
       justify-content:space-between;
-      padding:8px 12px;
+      padding:4px 6px 0;
       font-family:"Press Start 2P","Courier New",monospace;
       font-size:clamp(9px,1.7vw,13px);
       line-height:1.6;
       color:#f5f5f5;
+      pointer-events:auto;
     }
     .dialog-box.show{
       display:flex;
@@ -595,10 +608,10 @@
       flex:1;
       padding-right:12px;
       white-space:pre-line;
+      text-align:left;
     }
     .dialog-next{
       flex:0 0 auto;
-      align-self:flex-end;
       padding:6px 14px;
       border:1px solid #f5f5f5;
       background:#101010;
@@ -636,6 +649,12 @@
             </div>
           </div>
         </div>
+
+        <!-- 문 앞 대사 (씬2에서만 쓸 거지만 위치 기준 잡기 위해 여기 정의) -->
+        <div class="dialog-box" id="dialogBox">
+          <div class="dialog-text" id="dialogText"></div>
+          <button class="dialog-next" id="dialogNext">NEXT</button>
+        </div>
       </div>
 
       <div class="bottom-center">
@@ -658,17 +677,19 @@
                 <div class="red-door"></div>
               </div>
 
-              <div class="character" id="character"></div>
-
-              <!-- 문 앞 대사창 -->
-              <div class="dialog-box" id="dialogBox">
-                <div class="dialog-text" id="dialogText"></div>
-                <button class="dialog-next" id="dialogNext">NEXT</button>
+              <div class="character" id="character">
+                <div class="eyes"></div>
               </div>
             </div>
           </div>
 
           <div class="side-wall" id="rightWall"></div>
+        </div>
+
+        <!-- 팝업 기준으로 아래에 대사 박스 -->
+        <div class="dialog-box" id="streetDialogBox">
+          <div class="dialog-text" id="streetDialogText"></div>
+          <button class="dialog-next" id="streetDialogNext">NEXT</button>
         </div>
       </div>
     </div>
@@ -677,7 +698,9 @@
     <div id="whiteScene">
       <div class="popup-frame">
         <div class="white-room">
-          <div class="character" id="whiteCharacter"></div>
+          <div class="character" id="whiteCharacter">
+            <div class="eyes"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -819,10 +842,12 @@
       started = true;
 
       document.body.classList.add("lights-off"); // 불 꺼짐
-      startBtn.disabled = true;
-      startBtn.textContent = "OFF";
+      startBtn.disabled = true;                  // 서서히 사라짐
 
-      startOverlaySequence();
+      // 2초 쉬었다가 텍스트 시퀀스 시작
+      setTimeout(()=>{
+        startOverlaySequence();
+      }, 2000);
     });
 
     /* ========= 씬2: 좌우 건물들 생성 ========= */
@@ -861,24 +886,22 @@
     }
 
     /* ========= 캐릭터 이동 & 빨간 건물 / 문 진입 ========= */
-    const character   = document.getElementById("character");
-    const whiteChar   = document.getElementById("whiteCharacter");
-    const dialogBox   = document.getElementById("dialogBox");
-    const dialogText  = document.getElementById("dialogText");
-    const dialogNext  = document.getElementById("dialogNext");
+    const character       = document.getElementById("character");
+    const whiteChar       = document.getElementById("whiteCharacter");
+    const streetDialogBox = document.getElementById("streetDialogBox");
+    const streetDialogText= document.getElementById("streetDialogText");
+    const streetDialogNext= document.getElementById("streetDialogNext");
 
-    // 하얀 방 캐릭터도 동일 스타일 사용 위해 class 복사
-    whiteChar.className = character.className;
-
-    let charX = 50;   // 0~100 (%)
+    let charX = 50;   // street scene 위치 (%)
     let charY = 15;
+    let whiteX = 50;  // white room 위치 (%)
+    let whiteY = 50;
 
     function clamp(v,min,max){
       return v < min ? min : (v > max ? max : v);
     }
 
     function updateCharacter(){
-      // 중앙 길 안에서만 상하좌우 자유
       charX = clamp(charX, 8, 92);
       charY = clamp(charY, 10, 90);
 
@@ -889,9 +912,16 @@
       maybeTriggerDialog();
     }
 
+    function updateWhiteCharacter(){
+      whiteX = clamp(whiteX, 5, 95);
+      whiteY = clamp(whiteY, 5, 85);
+
+      whiteChar.style.left = whiteX + "%";
+      whiteChar.style.top  = whiteY + "%";
+    }
+
     // 길을 더 길게: 거의 위쪽까지 가야 건물 등장
     function updateRedBuildingVisibility(){
-      // charY: 15에서 시작 → 90 근처까지
       const progress = clamp((charY - 15) / 75, 0, 1); // 더 긴 거리
 
       if(progress > 0.7){
@@ -909,8 +939,8 @@
         parseFloat(getComputedStyle(redBuilding).opacity || "0") > 0.95;
       if(!visible) return false;
 
-      const nearCenter = Math.abs(charX - 50) < 6;
-      const nearTop    = charY > 80;
+      const nearCenter = Math.abs(charX - 50) < 4;
+      const nearTop    = charY > 82;
       return nearCenter && nearTop;
     }
 
@@ -942,17 +972,17 @@
       dialogStarted = true;
       dialogActive  = true;
       dialogIndex   = 0;
-      dialogBox.classList.add("show");
+      streetDialogBox.classList.add("show");
       typeDialogLine(dialogLines[0]);
     }
 
     function typeDialogLine(text){
       if(typingTimer) clearInterval(typingTimer);
-      dialogText.textContent = "";
+      streetDialogText.textContent = "";
       let idx = 0;
       typing = true;
       typingTimer = setInterval(()=>{
-        dialogText.textContent = text.slice(0, idx+1);
+        streetDialogText.textContent = text.slice(0, idx+1);
         idx++;
         if(idx >= text.length){
           clearInterval(typingTimer);
@@ -965,12 +995,11 @@
     function showNextDialog(){
       if(!dialogActive) return;
 
-      // 타이핑 중이면 전체 문장 바로 출력
       if(typing){
         if(typingTimer) clearInterval(typingTimer);
         typingTimer = null;
         typing = false;
-        dialogText.textContent = dialogLines[dialogIndex];
+        streetDialogText.textContent = dialogLines[dialogIndex];
         return;
       }
 
@@ -978,51 +1007,61 @@
       if(dialogIndex < dialogLines.length){
         typeDialogLine(dialogLines[dialogIndex]);
       }else{
-        // 마지막 문장 NEXT → 하얀 방으로
         endDialogAndEnterWhiteRoom();
       }
     }
 
     function endDialogAndEnterWhiteRoom(){
       dialogActive = false;
-      dialogBox.classList.remove("show");
+      streetDialogBox.classList.remove("show");
       character.classList.add("fade-out");
       sceneFade.classList.add("on");
 
+      // 화이트 룸 들어갈 때 캐릭터 중앙에
+      whiteX = 50;
+      whiteY = 50;
       setTimeout(()=>{
         streetScene.style.display = "none";
         whiteScene.style.display  = "flex";
+        updateWhiteCharacter();
         sceneFade.classList.remove("on");
       }, 800);
     }
 
-    dialogNext.addEventListener("click", e=>{
+    streetDialogNext.addEventListener("click", e=>{
       e.preventDefault();
       showNextDialog();
     });
-    dialogNext.addEventListener("touchstart", e=>{
+    streetDialogNext.addEventListener("touchstart", e=>{
       e.preventDefault();
       showNextDialog();
     }, {passive:false});
 
     updateCharacter();
+    updateWhiteCharacter();
 
     /* ========= 방향키 입력 ========= */
     function handleMove(dir){
-      // 씬2가 활성화된 상태에서만 이동
-      if(streetScene.style.display !== "flex") return;
-      // 대사 진행 중에는 움직이지 않음
-      if(dialogActive) return;
+      const stepY = 8;
+      const stepX = 8;
 
-      const stepY = 4;
-      const stepX = 4;
+      if(streetScene.style.display === "flex"){
+        if(dialogActive) return; // 대사 중엔 멈춤
 
-      if(dir === "up")   charY += stepY;
-      if(dir === "down") charY -= stepY;
-      if(dir === "left") charX -= stepX;
-      if(dir === "right")charX += stepX;
+        if(dir === "up")   charY += stepY;
+        if(dir === "down") charY -= stepY;
+        if(dir === "left") charX -= stepX;
+        if(dir === "right")charX += stepX;
 
-      updateCharacter();
+        updateCharacter();
+      }else if(whiteScene.style.display === "flex"){
+        if(dir === "up")   whiteY -= stepY; // white는 top 기준
+        if(dir === "down") whiteY += stepY;
+        if(dir === "left") whiteX -= stepX;
+        if(dir === "right")whiteX += stepX;
+
+        updateWhiteCharacter();
+      }
     }
 
     document.querySelectorAll(".d-btn").forEach(btn=>{
