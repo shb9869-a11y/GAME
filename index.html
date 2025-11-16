@@ -121,7 +121,7 @@
       justify-content:center;
       position:relative;
       overflow:visible;
-      margin-bottom:0; /* 위치 통일을 위해 margin-bottom 제거 */
+      margin-bottom:0;
       /* 중앙보다 살짝 위로 올리기 */
       transform:translateY(-5vh);
     }
@@ -135,7 +135,7 @@
       display:flex;
       align-items:center;       /* 중앙 정렬 */
       justify-content:center;
-      padding-bottom:0;         /* 아래로 밀던 여백 제거 */
+      padding-bottom:0;
     }
     #introScene{ z-index:100; }
     #streetScene{ z-index:110; display:none; }
@@ -448,7 +448,7 @@
       opacity:0.12;
     }
 
-    /* 사람 캐릭터 (다리 3배, 팔/다리 더 얇고 길게) */
+    /* 사람 캐릭터 (다리 길게, 팔 짧게) */
     .character{
       position:absolute;
       width:18px;
@@ -469,26 +469,26 @@
       background:#111;
       box-shadow:7px 0 0 #111;
     }
-    /* 팔 – 좌우로 얇고 길게 */
+    /* 팔 – 짧게 / 얇게 */
     .character::before{
       content:"";
       position:absolute;
-      top:11px;
-      left:-14px;
-      width:46px;
-      height:2px;              /* 굵기 절반 느낌 */
+      top:13px;
+      left:-8px;
+      width:32px;
+      height:2px;
       background:var(--skin);
     }
-    /* 다리 – 아래로 두 가닥, 얇고 3배 길이 */
+    /* 다리 – 더 길게 / 두 가닥 */
     .character::after{
       content:"";
       position:absolute;
-      bottom:-10px;
-      left:4px;
-      width:1px;               /* 더 얇게 */
-      height:54px;             /* 18px → 54px (3배) */
+      bottom:-12px;
+      left:6px;
+      width:1px;
+      height:62px;             /* 더 길게 */
       background:var(--skin);
-      box-shadow:10px 0 0 var(--skin);
+      box-shadow:8px 0 0 var(--skin);
     }
     .character.fade-out{
       opacity:0;
@@ -568,7 +568,7 @@
     .joystick{
       position:fixed;
       left:16px;
-      bottom:10px; /* 느낌 살려서 조금 아래 */
+      bottom:10px;
       width:96px;
       height:96px;
       z-index:200;
@@ -619,7 +619,7 @@
       flex:1;
       padding-right:12px;
       white-space:pre-line;
-      text-align:left;   /* 팝업 좌측 하단 느낌 */
+      text-align:left;
     }
     .dialog-next{
       flex:0 0 auto;
@@ -628,7 +628,23 @@
       background:#101010;
       color:#f5f5f5;
       font-size:inherit;
-      cursor:pointer;    /* 우측 하단 NEXT */
+      cursor:pointer;
+    }
+
+    /* ========== 오른쪽 아래 교감하기 버튼 ========== */
+    .empathy-btn{
+      position:fixed;
+      right:16px;
+      bottom:14px;
+      z-index:200;
+      padding:8px 16px;
+      border:1px solid #f5f5f5;
+      background:#101010;
+      color:#f5f5f5;
+      font-family:"Press Start 2P","Courier New",monospace;
+      font-size:10px;
+      letter-spacing:0.08em;
+      cursor:pointer;
     }
   </style>
 </head>
@@ -716,10 +732,15 @@
         <div class="joy-knob" id="joyKnob"></div>
       </div>
     </div>
+
+    <!-- 교감하기 버튼 -->
+    <button class="empathy-btn" id="empathyBtn">교감하기</button>
   </div>
 
   <!-- 움직임 사운드 (파일은 직접 넣기) -->
   <audio id="stepSfx" src="step_move.wav"></audio>
+  <!-- 타이핑 사운드 (파일은 직접 넣기) -->
+  <audio id="typeSfx" src="type.wav"></audio>
 
   <script>
     /* ========= 인트로 건물 생성 ========= */
@@ -775,6 +796,18 @@
       }
     });
 
+    /* ========= 공통 사운드 ========= */
+    const stepSfx  = document.getElementById("stepSfx");
+    const typeSfx  = document.getElementById("typeSfx");
+
+    function playTypeSfx(){
+      if(!typeSfx) return;
+      try{
+        typeSfx.currentTime = 0;
+        typeSfx.play();
+      }catch(e){}
+    }
+
     /* ========= 인트로 시퀀스 ========= */
     const startBtn      = document.getElementById("startBtn");
     const overlay       = document.getElementById("overlay");
@@ -786,7 +819,7 @@
     const streetScene   = document.getElementById("streetScene");
     const whiteScene    = document.getElementById("whiteScene");
 
-    const stepSfx       = document.getElementById("stepSfx");
+    const empathyBtn    = document.getElementById("empathyBtn");
 
     let started = false;
 
@@ -827,7 +860,7 @@
       // 아주 느린 템포의 숨쉬는 느낌
       const lfo = audioCtx.createOscillator();
       lfo.type = "sine";
-      lfo.frequency.value = 0.07; // 느리게
+      lfo.frequency.value = 0.07;
       const lfoGain = audioCtx.createGain();
       lfoGain.gain.value = 0.08;
       lfo.connect(lfoGain);
@@ -844,6 +877,7 @@
       const speed = 70;
       const timer = setInterval(()=>{
         lineEl.textContent = text.slice(0, idx+1);
+        playTypeSfx();              // 인트로 타이핑 효과음
         idx++;
         if(idx >= text.length){
           clearInterval(timer);
@@ -886,7 +920,7 @@
       if(started) return;
       started = true;
 
-      // BGM 시작 (첫 터치에서 AudioContext 생성 & 재생)
+      // BGM 시작
       const AC = window.AudioContext || window.webkitAudioContext;
       if(AC){
         if(!audioCtx) audioCtx = new AC();
@@ -964,7 +998,6 @@
     }
 
     function updateCharacter(){
-      // 화면 안 범위
       charX = clamp(charX, 8, 92);
       charY = clamp(charY, 8, 92);
 
@@ -980,7 +1013,7 @@
         if(laps >= 3 && !buildingShown){
           buildingShown = true;
           redBuilding.classList.add("show");
-          // 빨간 건물이 나오자마자 메시지 바로 시작
+          // 빨간 건물이 나오자마자 메시지 시작
           startDialog();
         }
       }
@@ -1026,6 +1059,7 @@
       typing = true;
       typingTimer = setInterval(()=>{
         dialogText.textContent = text.slice(0, idx+1);
+        playTypeSfx();              // 대사 타이핑 효과음
         idx++;
         if(idx >= text.length){
           clearInterval(typingTimer);
@@ -1125,7 +1159,7 @@
 
       const knobR = max * 0.55;
       const kx = nx * knobR;
-      const ky = ny * knobR; // 손가락 방향 그대로 보이게
+      const ky = ny * knobR;
       joyKnob.style.transform = `translate(${kx}px,${ky}px)`;
     }
 
@@ -1203,6 +1237,12 @@
       requestAnimationFrame(loop);
     }
     requestAnimationFrame(loop);
+
+    /* ========= 교감하기 버튼 (일단 자리만) ========= */
+    empathyBtn.addEventListener("click", ()=>{
+      // 나중에 원하는 인터랙션 붙이면 됨
+      console.log("교감하기 버튼 클릭");
+    });
   </script>
 </body>
 </html>
