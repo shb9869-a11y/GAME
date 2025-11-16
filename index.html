@@ -739,8 +739,6 @@
 
   <!-- 움직임 사운드 (파일은 직접 넣기) -->
   <audio id="stepSfx" src="step_move.wav"></audio>
-  <!-- 타이핑 사운드 (파일은 직접 넣기) -->
-  <audio id="typeSfx" src="type.wav"></audio>
 
   <script>
     /* ========= 인트로 건물 생성 ========= */
@@ -798,17 +796,8 @@
 
     /* ========= 공통 사운드 ========= */
     const stepSfx  = document.getElementById("stepSfx");
-    const typeSfx  = document.getElementById("typeSfx");
 
-    function playTypeSfx(){
-      if(!typeSfx) return;
-      try{
-        typeSfx.currentTime = 0;
-        typeSfx.play();
-      }catch(e){}
-    }
-
-    /* ========= 인트로 시퀀스 ========= */
+    /* ========= 인트로 시퀀스 & 공통 요소 ========= */
     const startBtn      = document.getElementById("startBtn");
     const overlay       = document.getElementById("overlay");
     const overlayLines  = document.getElementById("overlayLines");
@@ -818,28 +807,35 @@
     const introScene    = document.getElementById("introScene");
     const streetScene   = document.getElementById("streetScene");
     const whiteScene    = document.getElementById("whiteScene");
-
     const empathyBtn    = document.getElementById("empathyBtn");
 
     let started = false;
 
-    /* ====== Web Audio BGM (Sleeeeep 스타일 패드) ====== */
+    /* ====== Web Audio BGM (Sleeeeep 스타일 패드) & 시스템 비프 ====== */
     let audioCtx = null;
     let bgmStarted = false;
 
+    function ensureAudioCtx(){
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if(!AC) return null;
+      if(!audioCtx) audioCtx = new AC();
+      if(audioCtx.state === "suspended") {
+        audioCtx.resume().catch(()=>{});
+      }
+      return audioCtx;
+    }
+
     function startBgm(){
       if(bgmStarted) return;
+      const ctx = ensureAudioCtx();
+      if(!ctx) return;
       bgmStarted = true;
 
-      const AC = window.AudioContext || window.webkitAudioContext;
-      if(!AC) return;
-      if(!audioCtx) audioCtx = new AC();
-
-      const master = audioCtx.createGain();
+      const master = ctx.createGain();
       master.gain.value = 0.18;
-      master.connect(audioCtx.destination);
+      master.connect(ctx.destination);
 
-      const filter = audioCtx.createBiquadFilter();
+      const filter = ctx.createBiquadFilter();
       filter.type = "lowpass";
       filter.frequency.value = 900;
       filter.Q.value = 0.7;
@@ -847,10 +843,10 @@
 
       const freqs = [90, 140, 220];
       freqs.forEach((f,i)=>{
-        const osc = audioCtx.createOscillator();
+        const osc = ctx.createOscillator();
         osc.type = "sine";
         osc.frequency.value = f;
-        const g = audioCtx.createGain();
+        const g = ctx.createGain();
         g.gain.value = 0.18/(i+1);
         osc.connect(g);
         g.connect(filter);
@@ -858,14 +854,35 @@
       });
 
       // 아주 느린 템포의 숨쉬는 느낌
-      const lfo = audioCtx.createOscillator();
+      const lfo = ctx.createOscillator();
       lfo.type = "sine";
       lfo.frequency.value = 0.07;
-      const lfoGain = audioCtx.createGain();
+      const lfoGain = ctx.createGain();
       lfoGain.gain.value = 0.08;
       lfo.connect(lfoGain);
       lfoGain.connect(master.gain);
       lfo.start();
+    }
+
+    // SLEEEP 스타일의 짧은 시스템 비프
+    function playTypeSfx(){
+      const ctx = ensureAudioCtx();
+      if(!ctx) return;
+
+      const osc  = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type   = "square";
+      osc.frequency.value = 1350; // 약간 높은 시스템 비프 톤
+
+      const now = ctx.currentTime;
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.exponentialRampToValueAtTime(0.08, now + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.07);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.08);
     }
 
     function typeLine(text, pauseAfter, cb){
@@ -877,7 +894,7 @@
       const speed = 70;
       const timer = setInterval(()=>{
         lineEl.textContent = text.slice(0, idx+1);
-        playTypeSfx();              // 인트로 타이핑 효과음
+        playTypeSfx();              // 인트로 타이핑 시스템 사운드
         idx++;
         if(idx >= text.length){
           clearInterval(timer);
@@ -921,15 +938,7 @@
       started = true;
 
       // BGM 시작
-      const AC = window.AudioContext || window.webkitAudioContext;
-      if(AC){
-        if(!audioCtx) audioCtx = new AC();
-        if(audioCtx.state === "suspended"){
-          audioCtx.resume().then(startBgm).catch(()=>{});
-        }else{
-          startBgm();
-        }
-      }
+      startBgm();
 
       // 불 서서히 꺼지기
       document.body.classList.add("lights-dimming");
@@ -1059,7 +1068,7 @@
       typing = true;
       typingTimer = setInterval(()=>{
         dialogText.textContent = text.slice(0, idx+1);
-        playTypeSfx();              // 대사 타이핑 효과음
+        playTypeSfx();              // 대사 타이핑도 같은 시스템 사운드
         idx++;
         if(idx >= text.length){
           clearInterval(typingTimer);
@@ -1238,10 +1247,10 @@
     }
     requestAnimationFrame(loop);
 
-    /* ========= 교감하기 버튼 (일단 자리만) ========= */
+    /* ========= 교감하기 버튼 (자리만) ========= */
     empathyBtn.addEventListener("click", ()=>{
-      // 나중에 원하는 인터랙션 붙이면 됨
       console.log("교감하기 버튼 클릭");
+      // 나중에 여기서도 playTypeSfx() 써서 같은 시스템 사운드 써도 됨
     });
   </script>
 </body>
