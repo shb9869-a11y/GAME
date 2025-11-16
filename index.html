@@ -69,21 +69,21 @@
       justify-content:center;
     }
 
-    /* 페이드 레이어 (검은 화면) */
+    /* 페이드 레이어 */
     .scene-fade{
       position:absolute;
       inset:0;
       background:#000;
       opacity:0;
       pointer-events:none;
-      transition:opacity 0.9s linear;
+      transition:opacity 0.8s linear;
       z-index:220;
     }
     .scene-fade.on{
       opacity:1;
     }
 
-    /* 안개 레이어 – 인트로에서만 사용 */
+    /* 안개 레이어 */
     .fog-layer{
       position:absolute;
       inset:0;
@@ -120,8 +120,8 @@
       align-items:center;
       justify-content:center;
       position:relative;
-      overflow:hidden;
-      margin-bottom:7vh; /* 전체를 살짝 위로 */
+      overflow:visible;      /* 아래 대사창이 밖으로 나오도록 */
+      margin-bottom:7vh;     /* 전체를 살짝 위로 */
     }
 
     /* ========== 씬1: 인트로 ========== */
@@ -157,9 +157,6 @@
       box-shadow:
         0 0 4px rgba(255,216,0,0.9),
         0 0 8px rgba(255,216,0,0.7);
-      transition:
-        filter 3s linear,
-        opacity 3s linear;
     }
     .moon::before{
       content:"";
@@ -261,11 +258,6 @@
       opacity:0.85;
       animation:windowFlicker 4.2s infinite ease-in-out;
       animation-delay:calc(var(--rand) * 3s);
-      transition:
-        background 3s linear,
-        box-shadow 3s linear,
-        opacity 3s linear,
-        filter 3s linear;
     }
     @keyframes windowFlicker{
       0%{opacity:0.5; transform:scaleY(1);}
@@ -274,12 +266,12 @@
       100%{opacity:0.7; transform:scaleY(1.02);}
     }
 
+    /* START 후 불 완전 꺼짐 */
     body.lights-off .window{
       background:#000;
       box-shadow:none;
       opacity:1;
       animation:none;
-      filter:brightness(0.5);
     }
 
     .bottom-center{
@@ -323,14 +315,15 @@
       align-items:center;
       justify-content:center;
       font-family:"Press Start 2P","Courier New",monospace;
-      text-align:center;
       color:#f5f5f5;
+      text-align:center;
     }
     .overlay-lines{
       font-size:clamp(12px,2.3vw,22px);
       line-height:1.6;
       text-shadow:0 0 6px rgba(255,255,255,0.3);
       width:100%;
+      text-align:center;
     }
     .overlay-line{
       min-height:1.3em;
@@ -340,6 +333,8 @@
       font-size:clamp(11px,2vw,20px);
       opacity:0;
       transition:opacity 1.5s linear;
+      width:100%;
+      text-align:center;
     }
     .overlay-third.show{
       opacity:1;
@@ -352,7 +347,7 @@
     #streetScene{
       position:absolute;
       inset:0;
-      display:none;              /* 처음엔 숨김 */
+      display:none;
       align-items:center;
       justify-content:center;
       z-index:110;
@@ -390,11 +385,10 @@
       gap:2px;
     }
     .wall-window{
-      background:var(--window-off);  /* 모두 불 꺼짐 */
+      background:var(--window-off);
       opacity:0.9;
     }
 
-    /* 가운데 넓은 길 */
     .street-road{
       flex:1;
       background:#050509;
@@ -410,7 +404,6 @@
       overflow:hidden;
     }
 
-    /* 도로 가운데 점선 - 정지 */
     .street-lane{
       position:absolute;
       left:50%;
@@ -426,17 +419,17 @@
       opacity:0.12;
     }
 
-    /* 사람 캐릭터 */
+    /* 사람 캐릭터 (팔/다리 길게) */
     .character{
       position:absolute;
       width:18px;
-      height:26px;
+      height:30px;
       background:var(--skin);
       image-rendering:pixelated;
       left:50%;
       bottom:15%;
       transform:translate(-50%,0);
-      transition:transform 0.06s linear, opacity 0.4s ease-out;
+      transition:opacity 0.4s ease-out;
     }
     .character .eyes{
       position:absolute;
@@ -447,25 +440,25 @@
       background:#111;
       box-shadow:7px 0 0 #111;
     }
-    /* 팔 */
+    /* 팔 – 길쭉하게 */
     .character::before{
       content:"";
       position:absolute;
-      top:10px;
-      left:0px;
+      top:9px;
+      left:-2px;
       width:4px;
-      height:8px;
+      height:12px;
       background:var(--skin);
-      box-shadow:14px 0 0 var(--skin);
+      box-shadow:18px 0 0 var(--skin);
     }
-    /* 다리 */
+    /* 다리 – 길쭉하게 */
     .character::after{
       content:"";
       position:absolute;
       bottom:0;
       left:2px;
       width:4px;
-      height:6px;
+      height:10px;
       background:var(--skin);
       box-shadow:8px 0 0 var(--skin);
     }
@@ -473,26 +466,27 @@
       opacity:0;
     }
 
-    /* 위쪽 빨간 건물 (처음엔 숨김) */
+    /* 위쪽 빨간 건물 (3번 위로 지나간 후 등장, 길게) */
     .red-building{
       position:absolute;
       left:18%;
       right:18%;
-      top:3%;
-      height:30%;
+      top:1%;
+      height:40%;
       background:#7b1118;
       border:1px solid #000;
       box-shadow:0 0 20px rgba(0,0,0,0.95);
       opacity:0;
       display:none;
-      transition:opacity 1s ease-out;
+      transition:opacity 0.4s ease-out;
     }
     .red-building.show{
       display:block;
+      opacity:1;
     }
     .red-building-windows{
       position:absolute;
-      inset:12% 15% 40% 15%;
+      inset:10% 15% 35% 15%;
       display:grid;
       grid-template-columns:repeat(4,1fr);
       grid-auto-rows:8px;
@@ -554,43 +548,44 @@
       box-shadow:none;
     }
 
-    /* ========== UI: 방향키 ========== */
-    .dpad{
+    /* ========== 조이스틱 ========== */
+    .joystick{
       position:fixed;
-      left:14px;
-      bottom:16px;
-      display:flex;
-      flex-direction:column;
-      gap:4px;
-      align-items:center;
-      justify-content:center;
+      left:16px;
+      bottom:18px;
+      width:96px;
+      height:96px;
       z-index:200;
+      touch-action:none;
       user-select:none;
     }
-    .dpad-row{
-      display:flex;
-      gap:4px;
-    }
-    .d-btn{
-      width:32px;
-      height:32px;
-      border:1px solid #777;
+    .joy-base{
+      position:relative;
+      width:100%;
+      height:100%;
+      border-radius:50%;
+      border:1px solid #666;
       background:#050505;
-      color:#f5f5f5;
-      font-size:14px;
+      opacity:0.95;
       display:flex;
       align-items:center;
       justify-content:center;
-      padding:0;
-      cursor:pointer;
+    }
+    .joy-knob{
+      width:44px;
+      height:44px;
+      border-radius:50%;
+      border:1px solid #aaa;
+      background:#111;
+      transition:transform 0.08s linear;
     }
 
     /* ========== 문 앞 대화 텍스트 ========== */
     .dialog-box{
       position:absolute;
-      left:0;
-      right:0;
-      bottom:-22%; /* 팝업 아래쪽, 경계 밖 */
+      left:-4px;
+      right:-4px;
+      bottom:-22%;
       display:none;
       align-items:flex-end;
       justify-content:space-between;
@@ -649,12 +644,6 @@
             </div>
           </div>
         </div>
-
-        <!-- 문 앞 대사 (씬2에서만 쓸 거지만 위치 기준 잡기 위해 여기 정의) -->
-        <div class="dialog-box" id="dialogBox">
-          <div class="dialog-text" id="dialogText"></div>
-          <button class="dialog-next" id="dialogNext">NEXT</button>
-        </div>
       </div>
 
       <div class="bottom-center">
@@ -686,15 +675,15 @@
           <div class="side-wall" id="rightWall"></div>
         </div>
 
-        <!-- 팝업 기준으로 아래에 대사 박스 -->
-        <div class="dialog-box" id="streetDialogBox">
-          <div class="dialog-text" id="streetDialogText"></div>
-          <button class="dialog-next" id="streetDialogNext">NEXT</button>
+        <!-- 팝업 기준 아래에 대사 -->
+        <div class="dialog-box" id="dialogBox">
+          <div class="dialog-text" id="dialogText"></div>
+          <button class="dialog-next" id="dialogNext">NEXT</button>
         </div>
       </div>
     </div>
 
-    <!-- 씬3: 하얀 방 (인물만) -->
+    <!-- 씬3: 하얀 방 -->
     <div id="whiteScene">
       <div class="popup-frame">
         <div class="white-room">
@@ -705,13 +694,10 @@
       </div>
     </div>
 
-    <!-- 방향키 -->
-    <div class="dpad">
-      <button class="d-btn" data-dir="up">▲</button>
-      <div class="dpad-row">
-        <button class="d-btn" data-dir="left">◀</button>
-        <button class="d-btn" data-dir="down">▼</button>
-        <button class="d-btn" data-dir="right">▶</button>
+    <!-- 조이스틱 -->
+    <div class="joystick">
+      <div class="joy-base" id="joyBase">
+        <div class="joy-knob" id="joyKnob"></div>
       </div>
     </div>
   </div>
@@ -732,7 +718,7 @@
       const h = base + (i * 3) % 20;
       b.style.height = h + "%";
 
-      const flexVal = 0.08 + (i % 4)*0.03; // 0.08 ~ 0.17
+      const flexVal = 0.08 + (i % 4)*0.03;
       b.style.flex = flexVal.toFixed(2);
 
       const color = palette[(i * 2 + (layerName === "front" ? 1 : 0)) % palette.length];
@@ -753,10 +739,6 @@
         const w = document.createElement("div");
         w.className = "window";
         w.style.setProperty("--rand", Math.random().toString());
-        if(Math.random() < 0.12){
-          w.style.background = "#000";
-          w.style.boxShadow = "none";
-        }
         windows.appendChild(w);
       }
       b.appendChild(windows);
@@ -774,7 +756,7 @@
       }
     });
 
-    /* ========= 인트로 텍스트 시퀀스 & 씬 전환 ========= */
+    /* ========= 인트로 시퀀스 ========= */
     const startBtn      = document.getElementById("startBtn");
     const overlay       = document.getElementById("overlay");
     const overlayLines  = document.getElementById("overlayLines");
@@ -799,9 +781,7 @@
         idx++;
         if(idx >= text.length){
           clearInterval(timer);
-          if(cb){
-            setTimeout(cb, pauseAfter);
-          }
+          if(cb) setTimeout(cb, pauseAfter);
         }
       }, speed);
     }
@@ -814,13 +794,12 @@
         "SLEEEEEEEEEEP,"
       ];
 
-      typeLine(lines[0], 1300, ()=>{
-        typeLine(lines[1], 1300, ()=>{
-          typeLine(lines[2], 1300, ()=>{
+      typeLine(lines[0], 1200, ()=>{
+        typeLine(lines[1], 1200, ()=>{
+          typeLine(lines[2], 1200, ()=>{
             overlayThird.textContent = "THE THIRD SLEEP";
             overlayThird.classList.add("show");
 
-            // 텍스트 잠깐 보여주고 → 블랙 페이드 → 씬2로 전환
             setTimeout(()=>{
               overlayThird.classList.add("fade-out");
               sceneFade.classList.add("on");
@@ -831,7 +810,7 @@
                 streetScene.style.display = "flex";
                 sceneFade.classList.remove("on");
               }, 800);
-            }, 1500);
+            }, 1400);
           });
         });
       });
@@ -841,16 +820,16 @@
       if(started) return;
       started = true;
 
-      document.body.classList.add("lights-off"); // 불 꺼짐
-      startBtn.disabled = true;                  // 서서히 사라짐
+      document.body.classList.add("lights-off"); // 불 즉시 꺼짐
+      startBtn.disabled = true;
 
-      // 2초 쉬었다가 텍스트 시퀀스 시작
+      // 불 꺼진 상태 잠깐 보여주고 타이핑 시작
       setTimeout(()=>{
         startOverlaySequence();
-      }, 2000);
+      }, 400);
     });
 
-    /* ========= 씬2: 좌우 건물들 생성 ========= */
+    /* ========= 씬2: 건물들 생성 ========= */
     const leftWall   = document.getElementById("leftWall");
     const rightWall  = document.getElementById("rightWall");
     const redBuilding= document.getElementById("redBuilding");
@@ -885,25 +864,29 @@
       redWindows.appendChild(w);
     }
 
-    /* ========= 캐릭터 이동 & 빨간 건물 / 문 진입 ========= */
-    const character       = document.getElementById("character");
-    const whiteChar       = document.getElementById("whiteCharacter");
-    const streetDialogBox = document.getElementById("streetDialogBox");
-    const streetDialogText= document.getElementById("streetDialogText");
-    const streetDialogNext= document.getElementById("streetDialogNext");
+    /* ========= 캐릭터 & 랩 로직 ========= */
+    const character   = document.getElementById("character");
+    const whiteChar   = document.getElementById("whiteCharacter");
+    const dialogBox   = document.getElementById("dialogBox");
+    const dialogText  = document.getElementById("dialogText");
+    const dialogNext  = document.getElementById("dialogNext");
 
-    let charX = 50;   // street scene 위치 (%)
+    let charX = 50;
     let charY = 15;
-    let whiteX = 50;  // white room 위치 (%)
+    let whiteX = 50;
     let whiteY = 50;
+
+    let laps = 0;          // 위로 넘어간 횟수
+    let buildingShown = false;
 
     function clamp(v,min,max){
       return v < min ? min : (v > max ? max : v);
     }
 
     function updateCharacter(){
+      // 화면 안 범위
       charX = clamp(charX, 8, 92);
-      charY = clamp(charY, 10, 90);
+      charY = clamp(charY, 8, 92);
 
       character.style.left   = charX + "%";
       character.style.bottom = charY + "%";
@@ -912,39 +895,42 @@
       maybeTriggerDialog();
     }
 
+    function wrapIfNeeded(){
+      // 위로 나가면 아래에서 나오고 lap 증가
+      if(charY >= 92){
+        charY = 10;
+        laps++;
+        if(laps >= 3){
+          buildingShown = true;
+          redBuilding.classList.add("show");
+        }
+      }
+    }
+
     function updateWhiteCharacter(){
       whiteX = clamp(whiteX, 5, 95);
-      whiteY = clamp(whiteY, 5, 85);
-
+      whiteY = clamp(whiteY, 10, 90);
       whiteChar.style.left = whiteX + "%";
       whiteChar.style.top  = whiteY + "%";
     }
 
-    // 길을 더 길게: 거의 위쪽까지 가야 건물 등장
     function updateRedBuildingVisibility(){
-      const progress = clamp((charY - 15) / 75, 0, 1); // 더 긴 거리
-
-      if(progress > 0.7){
-        const t = (progress - 0.7) / 0.3;
+      if(buildingShown){
         redBuilding.classList.add("show");
-        redBuilding.style.opacity = t;
       }else{
-        redBuilding.style.opacity = 0;
         redBuilding.classList.remove("show");
       }
     }
 
     function isNearDoor(){
-      const visible = redBuilding.classList.contains("show") &&
-        parseFloat(getComputedStyle(redBuilding).opacity || "0") > 0.95;
-      if(!visible) return false;
+      if(!buildingShown || !redBuilding.classList.contains("show")) return false;
 
       const nearCenter = Math.abs(charX - 50) < 4;
-      const nearTop    = charY > 82;
+      const nearTop    = charY > 80;
       return nearCenter && nearTop;
     }
 
-    /* ========= 문 앞 대화 시퀀스 ========= */
+    /* ========= 문 앞 대화 ========= */
     const dialogLines = [
       "문이다.",
       "한 번 들어가볼까?",
@@ -972,17 +958,17 @@
       dialogStarted = true;
       dialogActive  = true;
       dialogIndex   = 0;
-      streetDialogBox.classList.add("show");
+      dialogBox.classList.add("show");
       typeDialogLine(dialogLines[0]);
     }
 
     function typeDialogLine(text){
       if(typingTimer) clearInterval(typingTimer);
-      streetDialogText.textContent = "";
+      dialogText.textContent = "";
       let idx = 0;
       typing = true;
       typingTimer = setInterval(()=>{
-        streetDialogText.textContent = text.slice(0, idx+1);
+        dialogText.textContent = text.slice(0, idx+1);
         idx++;
         if(idx >= text.length){
           clearInterval(typingTimer);
@@ -996,10 +982,10 @@
       if(!dialogActive) return;
 
       if(typing){
-        if(typingTimer) clearInterval(typingTimer);
+        clearInterval(typingTimer);
         typingTimer = null;
         typing = false;
-        streetDialogText.textContent = dialogLines[dialogIndex];
+        dialogText.textContent = dialogLines[dialogIndex];
         return;
       }
 
@@ -1013,13 +999,13 @@
 
     function endDialogAndEnterWhiteRoom(){
       dialogActive = false;
-      streetDialogBox.classList.remove("show");
+      dialogBox.classList.remove("show");
       character.classList.add("fade-out");
       sceneFade.classList.add("on");
 
-      // 화이트 룸 들어갈 때 캐릭터 중앙에
       whiteX = 50;
       whiteY = 50;
+
       setTimeout(()=>{
         streetScene.style.display = "none";
         whiteScene.style.display  = "flex";
@@ -1028,11 +1014,11 @@
       }, 800);
     }
 
-    streetDialogNext.addEventListener("click", e=>{
+    dialogNext.addEventListener("click", e=>{
       e.preventDefault();
       showNextDialog();
     });
-    streetDialogNext.addEventListener("touchstart", e=>{
+    dialogNext.addEventListener("touchstart", e=>{
       e.preventDefault();
       showNextDialog();
     }, {passive:false});
@@ -1040,42 +1026,106 @@
     updateCharacter();
     updateWhiteCharacter();
 
-    /* ========= 방향키 입력 ========= */
-    function handleMove(dir){
-      const stepY = 8;
-      const stepX = 8;
+    /* ========= 조이스틱 ========= */
+    const joyBase = document.getElementById("joyBase");
+    const joyKnob = document.getElementById("joyKnob");
 
-      if(streetScene.style.display === "flex"){
-        if(dialogActive) return; // 대사 중엔 멈춤
+    let joyActive = false;
+    let joyDX = 0;
+    let joyDY = 0;
 
-        if(dir === "up")   charY += stepY;
-        if(dir === "down") charY -= stepY;
-        if(dir === "left") charX -= stepX;
-        if(dir === "right")charX += stepX;
+    function setJoyFromEvent(e){
+      const rect = joyBase.getBoundingClientRect();
+      const cx = rect.left + rect.width/2;
+      const cy = rect.top + rect.height/2;
 
-        updateCharacter();
-      }else if(whiteScene.style.display === "flex"){
-        if(dir === "up")   whiteY -= stepY; // white는 top 기준
-        if(dir === "down") whiteY += stepY;
-        if(dir === "left") whiteX -= stepX;
-        if(dir === "right")whiteX += stepX;
+      const point = e.touches ? e.touches[0] : e;
+      let dx = point.clientX - cx;
+      let dy = point.clientY - cy;
 
-        updateWhiteCharacter();
+      const max = rect.width/2;
+      let nx = dx / max;
+      let ny = dy / max;
+
+      const len = Math.hypot(nx,ny);
+      if(len > 1){
+        nx /= len;
+        ny /= len;
       }
+
+      // 작은 움직임은 0으로
+      const dead = 0.25;
+      if(Math.hypot(nx,ny) < dead){
+        joyDX = 0;
+        joyDY = 0;
+        joyKnob.style.transform = "translate(0,0)";
+        return;
+      }
+
+      joyDX = nx;
+      joyDY = -ny; // 화면 좌표와 반대로 (위로 올라가게)
+
+      const knobR = max * 0.55;
+      const kx = nx * knobR;
+      const ky = -ny * knobR;
+      joyKnob.style.transform = `translate(${kx}px,${ky}px)`;
     }
 
-    document.querySelectorAll(".d-btn").forEach(btn=>{
-      const dir = btn.dataset.dir;
-      if(!dir) return;
+    function joyStart(e){
+      e.preventDefault();
+      joyActive = true;
+      setJoyFromEvent(e);
+      window.addEventListener("mousemove", joyMove);
+      window.addEventListener("touchmove", joyMove, {passive:false});
+      window.addEventListener("mouseup", joyEnd);
+      window.addEventListener("touchend", joyEnd);
+      window.addEventListener("touchcancel", joyEnd);
+    }
+    function joyMove(e){
+      if(!joyActive) return;
+      e.preventDefault();
+      setJoyFromEvent(e);
+    }
+    function joyEnd(e){
+      joyActive = false;
+      joyDX = 0;
+      joyDY = 0;
+      joyKnob.style.transform = "translate(0,0)";
+      window.removeEventListener("mousemove", joyMove);
+      window.removeEventListener("touchmove", joyMove);
+      window.removeEventListener("mouseup", joyEnd);
+      window.removeEventListener("touchend", joyEnd);
+      window.removeEventListener("touchcancel", joyEnd);
+    }
 
-      const handler = (e)=>{
-        e.preventDefault();
-        handleMove(dir);
-      };
+    joyBase.addEventListener("mousedown", joyStart);
+    joyBase.addEventListener("touchstart", joyStart, {passive:false});
 
-      btn.addEventListener("click", handler);
-      btn.addEventListener("touchstart", handler, {passive:false});
-    });
+    /* ========= 메인 루프 (조이스틱 이동) ========= */
+    let lastTime = null;
+    function loop(ts){
+      if(lastTime === null) lastTime = ts;
+      const dt = (ts - lastTime) / 16.67; // 약 60fps 기준
+      lastTime = ts;
+
+      const speed = 0.6; // 퍼센트/프레임 기준 속도
+
+      if(streetScene.style.display === "flex"){
+        if(!dialogActive){
+          charX += joyDX * speed * dt;
+          charY += joyDY * speed * dt;
+          wrapIfNeeded();
+          updateCharacter();
+        }
+      }else if(whiteScene.style.display === "flex"){
+        whiteX += joyDX * speed * dt;
+        whiteY -= joyDY * speed * dt; // white는 top 기준
+        updateWhiteCharacter();
+      }
+
+      requestAnimationFrame(loop);
+    }
+    requestAnimationFrame(loop);
   </script>
 </body>
 </html>
