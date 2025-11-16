@@ -107,7 +107,7 @@
       100%{opacity:0.2;}
     }
 
-    /* 중앙 팝업 공통 (세 씬 공통) */
+    /* 중앙 팝업 공통 (세 씬 공통 위치) */
     .popup-frame{
       width:70vw;
       max-width:820px;
@@ -120,22 +120,26 @@
       align-items:center;
       justify-content:center;
       position:relative;
-      overflow:visible;      /* 아래 대사창이 밖으로 나오도록 */
-      margin-bottom:5vh;     /* 프리셋/장면1/장면2 모두 동일 기준 + 기존보다 살짝 아래 */
+      overflow:visible;
+      margin-bottom:0; /* 위치 통일을 위해 margin-bottom 제거 */
     }
 
-    /* ========== 씬1: 인트로 ========== */
-    #introScene{
+    /* ========== 공통: 각 씬 레이아웃 ========== */
+    #introScene,
+    #streetScene,
+    #whiteScene{
       position:absolute;
       inset:0;
       display:flex;
-      flex-direction:column;
-      align-items:center;
+      align-items:flex-end;       /* 아래에서부터 올라오는 느낌 */
       justify-content:center;
-      gap:16px;
-      padding:16px 24px 24px;
-      z-index:100;
+      padding-bottom:12vh;        /* 팝업이 화면 아래에서 같은 높이만큼 떠 있도록 */
     }
+    #introScene{ z-index:100; }
+    #streetScene{ z-index:110; display:none; }
+    #whiteScene{ z-index:120; display:none; }
+
+    /* ========== 씬1: 인트로 ========== */
 
     .city-window{
       width:100%;
@@ -298,8 +302,12 @@
       animation:none;
     }
 
+    /* START 버튼을 팝업 아래에 고정 (팝업 위치에 영향 X) */
     .bottom-center{
-      margin-top:12px;
+      position:absolute;
+      bottom:5vh;
+      left:50%;
+      transform:translateX(-50%);
     }
     .start-btn{
       padding:10px 30px;
@@ -371,14 +379,6 @@
     }
 
     /* ========== 씬2: 좌우 건물 + 길 + 캐릭터 ========== */
-    #streetScene{
-      position:absolute;
-      inset:0;
-      display:none;
-      align-items:center;
-      justify-content:center;
-      z-index:110;
-    }
 
     .game-window{
       width:100%;
@@ -446,7 +446,7 @@
       opacity:0.12;
     }
 
-    /* 사람 캐릭터 (팔/다리 더 얇고 길게) */
+    /* 사람 캐릭터 (다리 3배, 팔/다리 더 얇고 길게) */
     .character{
       position:absolute;
       width:18px;
@@ -467,24 +467,24 @@
       background:#111;
       box-shadow:7px 0 0 #111;
     }
-    /* 팔 – 좌우로 더 얇고 길게 */
+    /* 팔 – 좌우로 얇고 길게 */
     .character::before{
       content:"";
       position:absolute;
       top:11px;
-      left:-10px;
-      width:38px;
-      height:3px;
+      left:-14px;
+      width:46px;
+      height:2px;              /* 굵기 절반 느낌 */
       background:var(--skin);
     }
-    /* 다리 – 아래로 두 가닥, 얇고 길게 */
+    /* 다리 – 아래로 두 가닥, 얇고 3배 길이 */
     .character::after{
       content:"";
       position:absolute;
-      bottom:-6px;
-      left:3px;
-      width:2px;
-      height:18px;
+      bottom:-10px;
+      left:4px;
+      width:1px;               /* 더 얇게 */
+      height:54px;             /* 18px → 54px (3배) */
       background:var(--skin);
       box-shadow:10px 0 0 var(--skin);
     }
@@ -492,7 +492,7 @@
       opacity:0;
     }
 
-    /* 위쪽 빨간 건물 (3번 위로 지나간 후 등장, 길게) */
+    /* 위쪽 빨간 건물 */
     .red-building{
       position:absolute;
       left:18%;
@@ -546,18 +546,6 @@
     }
 
     /* ========== 씬3: 하얀 방 ========== */
-    #whiteScene{
-      position:absolute;
-      inset:0;
-      display:none;
-      align-items:center;
-      justify-content:center;
-      z-index:120;
-    }
-    #whiteScene .popup-frame{
-      background:#ffffff;
-      border-color:#ddd;
-    }
     .white-room{
       width:100%;
       height:100%;
@@ -578,7 +566,7 @@
     .joystick{
       position:fixed;
       left:16px;
-      bottom:10px; /* 이전 느낌으로 더 아래 */
+      bottom:10px; /* 느낌 살려서 조금 아래 */
       width:96px;
       height:96px;
       z-index:200;
@@ -629,7 +617,7 @@
       flex:1;
       padding-right:12px;
       white-space:pre-line;
-      text-align:left;   /* 팝업창 좌측 하단 느낌 */
+      text-align:left;   /* 팝업 좌측 하단 느낌 */
     }
     .dialog-next{
       flex:0 0 auto;
@@ -1135,7 +1123,7 @@
 
       const knobR = max * 0.55;
       const kx = nx * knobR;
-      const ky = ny * knobR; // 손가락 방향과 동일하게 보이게
+      const ky = ny * knobR; // 손가락 방향 그대로 보이게
       joyKnob.style.transform = `translate(${kx}px,${ky}px)`;
     }
 
