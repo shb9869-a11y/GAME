@@ -486,7 +486,7 @@
       bottom:-12px;
       left:6px;
       width:1px;
-      height:62px;             /* 더 길게 */
+      height:62px;
       background:var(--skin);
       box-shadow:8px 0 0 var(--skin);
     }
@@ -864,7 +864,7 @@
       lfo.start();
     }
 
-    // SLEEEP 스타일의 짧은 시스템 비프
+    // SLEEEEP 스타일의 짧은 시스템 비프 (타이핑용)
     function playTypeSfx(){
       const ctx = ensureAudioCtx();
       if(!ctx) return;
@@ -1035,6 +1035,25 @@
       whiteChar.style.top  = whiteY + "%";
     }
 
+    /* ========= TTS (대화창 전용) ========= */
+    function speakDialogText(text){
+      if(!("speechSynthesis" in window)) return;
+
+      // 기존에 읽던 거 멈추기
+      window.speechSynthesis.cancel();
+
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.lang = "ko-KR";
+      utter.rate = 1.0;
+      utter.pitch = 1.0;
+
+      const voices = window.speechSynthesis.getVoices();
+      const ko = voices.find(v => v.lang && v.lang.startsWith("ko"));
+      if(ko) utter.voice = ko;
+
+      window.speechSynthesis.speak(utter);
+    }
+
     /* ========= 문 앞 대화 ========= */
     const dialogLines = [
       "문이다.",
@@ -1063,17 +1082,21 @@
 
     function typeDialogLine(text){
       if(typingTimer) clearInterval(typingTimer);
+      typing = true;
       dialogText.textContent = "";
       let idx = 0;
-      typing = true;
+
       typingTimer = setInterval(()=>{
         dialogText.textContent = text.slice(0, idx+1);
-        playTypeSfx();              // 대사 타이핑도 같은 시스템 사운드
+        playTypeSfx(); // 타이핑 사운드
         idx++;
         if(idx >= text.length){
           clearInterval(typingTimer);
           typingTimer = null;
           typing = false;
+
+          // 한 줄 다 찍힌 뒤 TTS로 읽어주기
+          speakDialogText(text);
         }
       }, 60);
     }
@@ -1081,11 +1104,13 @@
     function showNextDialog(){
       if(!dialogActive) return;
 
+      // 타이핑 중에 NEXT 누르면 → 바로 문장 완성 + 즉시 읽기
       if(typing){
         clearInterval(typingTimer);
         typingTimer = null;
         typing = false;
         dialogText.textContent = dialogLines[dialogIndex];
+        speakDialogText(dialogLines[dialogIndex]);
         return;
       }
 
@@ -1102,6 +1127,11 @@
       dialogBox.classList.remove("show");
       character.classList.add("fade-out");
       sceneFade.classList.add("on");
+
+      // 남아있던 음성 멈추기
+      if("speechSynthesis" in window){
+        window.speechSynthesis.cancel();
+      }
 
       whiteX = 50;
       whiteY = 50;
@@ -1153,7 +1183,6 @@
         ny /= len;
       }
 
-      // 작은 움직임은 0으로
       const dead = 0.25;
       if(Math.hypot(nx,ny) < dead){
         joyDX = 0;
@@ -1162,7 +1191,6 @@
         return;
       }
 
-      // 시각적으로는 손가락 방향과 동일하게, 이동 방향은 위/아래 반전
       joyDX = nx;
       joyDY = -ny; // 위로 밀면 위로 이동
 
@@ -1212,7 +1240,7 @@
       const dt = (ts - lastTime) / 16.67; // 약 60fps 기준
       lastTime = ts;
 
-      const speed = 0.6; // 퍼센트/프레임 기준 속도
+      const speed = 0.6;
 
       const movingMagnitude = Math.hypot(joyDX, joyDY);
       const isMoving = movingMagnitude > 0.25;
@@ -1226,11 +1254,10 @@
         updateCharacter();
       }else if(whiteScene.style.display === "flex"){
         whiteX += joyDX * speed * dt;
-        whiteY -= joyDY * speed * dt; // white는 top 기준
+        whiteY -= joyDY * speed * dt;
         updateWhiteCharacter();
       }
 
-      // 움직일 때 발소리
       if(isMoving && (streetScene.style.display === "flex" || whiteScene.style.display === "flex")){
         if(ts - lastStepTime > stepInterval){
           lastStepTime = ts;
@@ -1250,7 +1277,6 @@
     /* ========= 교감하기 버튼 (자리만) ========= */
     empathyBtn.addEventListener("click", ()=>{
       console.log("교감하기 버튼 클릭");
-      // 나중에 여기서도 playTypeSfx() 써서 같은 시스템 사운드 써도 됨
     });
   </script>
 </body>
