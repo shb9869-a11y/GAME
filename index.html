@@ -122,6 +122,8 @@
       position:relative;
       overflow:visible;
       margin-bottom:0; /* 위치 통일을 위해 margin-bottom 제거 */
+      /* 중앙보다 살짝 위로 올리기 */
+      transform:translateY(-5vh);
     }
 
     /* ========== 공통: 각 씬 레이아웃 ========== */
@@ -131,9 +133,9 @@
       position:absolute;
       inset:0;
       display:flex;
-      align-items:flex-end;       /* 아래에서부터 올라오는 느낌 */
+      align-items:center;       /* 중앙 정렬 */
       justify-content:center;
-      padding-bottom:12vh;        /* 팝업이 화면 아래에서 같은 높이만큼 떠 있도록 */
+      padding-bottom:0;         /* 아래로 밀던 여백 제거 */
     }
     #introScene{ z-index:100; }
     #streetScene{ z-index:110; display:none; }
