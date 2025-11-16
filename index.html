@@ -121,7 +121,7 @@
       justify-content:center;
       position:relative;
       overflow:visible;      /* 아래 대사창이 밖으로 나오도록 */
-      margin-bottom:7vh;     /* 전체를 살짝 위로 */
+      margin-bottom:7vh;     /* 세 씬 모두 동일한 위치 */
     }
 
     /* ========== 씬1: 인트로 ========== */
@@ -170,6 +170,13 @@
     body.lights-off .moon{
       filter:brightness(0.15);
       opacity:0.2;
+    }
+    body.lights-dimming .moon{
+      animation:moonDim 3s forwards;
+    }
+    @keyframes moonDim{
+      0%{filter:brightness(1);opacity:1;}
+      100%{filter:brightness(0.2);opacity:0.25;}
     }
 
     .city-layers{
@@ -266,7 +273,24 @@
       100%{opacity:0.7; transform:scaleY(1.02);}
     }
 
-    /* START 후 불 완전 꺼짐 */
+    /* START 후 불 페이드 아웃 */
+    body.lights-dimming .window{
+      animation:lightsOut 3s forwards;
+    }
+    @keyframes lightsOut{
+      0%{
+        background:var(--window-on);
+        box-shadow:0 0 4px rgba(255,216,0,0.6);
+        opacity:0.9;
+      }
+      100%{
+        background:#000;
+        box-shadow:none;
+        opacity:1;
+      }
+    }
+
+    /* 완전히 꺼진 상태 */
     body.lights-off .window{
       background:#000;
       box-shadow:none;
@@ -322,18 +346,21 @@
       font-size:clamp(12px,2.3vw,22px);
       line-height:1.6;
       text-shadow:0 0 6px rgba(255,255,255,0.3);
-      width:100%;
-      text-align:center;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
     }
     .overlay-line{
       min-height:1.3em;
+      width:auto;
+      text-align:center;
     }
     .overlay-third{
       margin-top:20px;
       font-size:clamp(11px,2vw,20px);
       opacity:0;
       transition:opacity 1.5s linear;
-      width:100%;
+      width:auto;
       text-align:center;
     }
     .overlay-third.show{
@@ -440,25 +467,24 @@
       background:#111;
       box-shadow:7px 0 0 #111;
     }
-    /* 팔 – 길쭉하게 */
+    /* 팔 – 좌우로 길게 뻗기 */
     .character::before{
       content:"";
       position:absolute;
-      top:9px;
-      left:-2px;
-      width:4px;
-      height:12px;
+      top:12px;
+      left:-8px;
+      width:34px;
+      height:6px;
       background:var(--skin);
-      box-shadow:18px 0 0 var(--skin);
     }
-    /* 다리 – 길쭉하게 */
+    /* 다리 – 아래로 두 가닥 길게 */
     .character::after{
       content:"";
       position:absolute;
-      bottom:0;
+      bottom:-4px;
       left:2px;
       width:4px;
-      height:10px;
+      height:14px;
       background:var(--skin);
       box-shadow:8px 0 0 var(--skin);
     }
@@ -589,7 +615,7 @@
       display:none;
       align-items:flex-end;
       justify-content:space-between;
-      padding:4px 6px 0;
+      padding:6px 10px 4px;
       font-family:"Press Start 2P","Courier New",monospace;
       font-size:clamp(9px,1.7vw,13px);
       line-height:1.6;
@@ -702,6 +728,10 @@
     </div>
   </div>
 
+  <!-- 배경음악 & 움직임 사운드 (파일은 직접 넣기) -->
+  <audio id="bgm" src="bgm_sleep_city.mp3" loop></audio>
+  <audio id="stepSfx" src="step_move.wav"></audio>
+
   <script>
     /* ========= 인트로 건물 생성 ========= */
     const palette = [
@@ -767,6 +797,9 @@
     const streetScene   = document.getElementById("streetScene");
     const whiteScene    = document.getElementById("whiteScene");
 
+    const bgm           = document.getElementById("bgm");
+    const stepSfx       = document.getElementById("stepSfx");
+
     let started = false;
 
     function typeLine(text, pauseAfter, cb){
@@ -820,13 +853,22 @@
       if(started) return;
       started = true;
 
-      document.body.classList.add("lights-off"); // 불 즉시 꺼짐
+      // BGM 시작 (어나더코어 느낌의 파일을 bgm_sleep_city.mp3로 넣어두면 됨)
+      if(bgm){
+        bgm.volume = 0.6;
+        bgm.play().catch(()=>{ /* iOS에서 막히면 무시 */ });
+      }
+
+      // 불 서서히 꺼지기
+      document.body.classList.add("lights-dimming");
       startBtn.disabled = true;
 
-      // 불 꺼진 상태 잠깐 보여주고 타이핑 시작
+      // 페이드 끝난 뒤 완전 소등 + 타이핑 시작
       setTimeout(()=>{
+        document.body.classList.remove("lights-dimming");
+        document.body.classList.add("lights-off");
         startOverlaySequence();
-      }, 400);
+      }, 3000);
     });
 
     /* ========= 씬2: 건물들 생성 ========= */
@@ -922,12 +964,11 @@
       }
     }
 
-    function isNearDoor(){
+    function isNearDoorOrBuilding(){
       if(!buildingShown || !redBuilding.classList.contains("show")) return false;
-
-      const nearCenter = Math.abs(charX - 50) < 4;
-      const nearTop    = charY > 80;
-      return nearCenter && nearTop;
+      // 빨간 건물 쪽으로 충분히 올라오면 바로 발동 (문 앞 느낌)
+      const nearTop = charY > 78;
+      return nearTop;
     }
 
     /* ========= 문 앞 대화 ========= */
@@ -949,8 +990,7 @@
 
     function maybeTriggerDialog(){
       if(dialogStarted) return;
-      if(!isNearDoor()) return;
-
+      if(!isNearDoorOrBuilding()) return;
       startDialog();
     }
 
@@ -1062,12 +1102,14 @@
         return;
       }
 
+      // 시각적으로는 손가락 방향과 동일하게 움직이고,
+      // 이동 방향은 화면 좌표를 고려해 위/아래 반전
       joyDX = nx;
-      joyDY = -ny; // 화면 좌표와 반대로 (위로 올라가게)
+      joyDY = -ny; // 위로 밀면 위로 이동
 
       const knobR = max * 0.55;
       const kx = nx * knobR;
-      const ky = -ny * knobR;
+      const ky = ny * knobR; // 손가락 방향과 동일하게
       joyKnob.style.transform = `translate(${kx}px,${ky}px)`;
     }
 
@@ -1101,14 +1143,20 @@
     joyBase.addEventListener("mousedown", joyStart);
     joyBase.addEventListener("touchstart", joyStart, {passive:false});
 
-    /* ========= 메인 루프 (조이스틱 이동) ========= */
+    /* ========= 메인 루프 (조이스틱 이동 + 발소리) ========= */
     let lastTime = null;
+    let lastStepTime = 0;
+    const stepInterval = 220; // ms
+
     function loop(ts){
       if(lastTime === null) lastTime = ts;
       const dt = (ts - lastTime) / 16.67; // 약 60fps 기준
       lastTime = ts;
 
       const speed = 0.6; // 퍼센트/프레임 기준 속도
+
+      const movingMagnitude = Math.hypot(joyDX, joyDY);
+      const isMoving = movingMagnitude > 0.25;
 
       if(streetScene.style.display === "flex"){
         if(!dialogActive){
@@ -1121,6 +1169,19 @@
         whiteX += joyDX * speed * dt;
         whiteY -= joyDY * speed * dt; // white는 top 기준
         updateWhiteCharacter();
+      }
+
+      // 움직일 때 발소리
+      if(isMoving && (streetScene.style.display === "flex" || whiteScene.style.display === "flex")){
+        if(ts - lastStepTime > stepInterval){
+          lastStepTime = ts;
+          if(stepSfx){
+            try{
+              stepSfx.currentTime = 0;
+              stepSfx.play();
+            }catch(e){}
+          }
+        }
       }
 
       requestAnimationFrame(loop);
