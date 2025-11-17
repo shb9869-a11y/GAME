@@ -19,8 +19,6 @@
     }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body { width: 100%; height: 100%; overflow: hidden; background: #000; color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", system-ui, sans-serif; }
-    .rotate-warning { position: fixed; inset: 0; background: #000; color: #fff; display: none; align-items: center; justify-content: center; z-index: 300; text-align: center; padding: 24px; font-size: 14px; line-height: 1.6; }
-    @media (orientation: portrait) { .rotate-warning { display: flex; } }
     body { display: flex; align-items: center; justify-content: center; }
     .app { width: 100%; height: 100%; position: relative; display: flex; align-items: center; justify-content: center; }
     .scene-fade { position: absolute; inset: 0; background: #000; opacity: 0; pointer-events: none; transition: opacity 0.8s linear; z-index: 220; }
@@ -29,11 +27,6 @@
     .fog-play { animation: fogPulse 3.5s ease-in-out 3; }
     @keyframes fogPulse { 0% { opacity: 0; } 20% { opacity: 0.4; } 40% { opacity: 0; } 60% { opacity: 0.45; } 80% { opacity: 0; } 100% { opacity: 0.2; } }
     .popup-frame { width: 70vw; max-width: 820px; height: 55vh; max-height: 420px; border: 1px solid #555; background: #000; box-shadow: 0 0 20px rgba(0, 0, 0, 0.9); display: flex; align-items: center; justify-content: center; position: relative; overflow: visible; margin-bottom: 0; transform: translateY(-5vh); }
-    #introScene, #streetScene, #whiteScene, #buildingInteriorScene { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding-bottom: 0; }
-    #introScene { z-index: 100; }
-    #streetScene { z-index: 110; display: none; }
-    #whiteScene { z-index: 120; display: none; }
-    #buildingInteriorScene { z-index: 130; display: none; }
     .city-window { width: 100%; height: 100%; background: var(--sky); position: relative; overflow: hidden; image-rendering: pixelated; }
     .moon { position: absolute; top: 10px; left: 10px; width: 16px; height: 16px; background: var(--window-on); image-rendering: pixelated; box-shadow: 0 0 4px rgba(255, 216, 0, 0.9), 0 0 8px rgba(255, 216, 0, 0.7); }
     .moon::before { content: ""; position: absolute; left: 6px; top: 2px; width: 10px; height: 12px; background: var(--sky); }
@@ -57,7 +50,7 @@
     @keyframes lightsOut { 0% { background: var(--window-on); box-shadow: 0 0 4px rgba(255, 216, 0, 0.6); opacity: 0.9; } 100% { background: #000; box-shadow: none; opacity: 1; } }
     body.lights-off .window { background: #000; box-shadow: none; opacity: 1; animation: none; }
     .bottom-center { position: absolute; bottom: 5vh; left: 50%; transform: translateX(-50%); }
-    .start-btn { padding: 10px 30px; border: 1px solid #f5f5f5; background: #101010; color: #f5f5f5; font-size: 13px; letter-spacing: 0.18em; text-transform: uppercase; cursor: pointer; outline: none; min-width: 140px; transition: opacity .3s; }
+    .start-btn { padding: 10px 30px; border: 1px solid #f5f5f5; background: #101010; color: #f5f5f5; font-size: 13px; letter-spacing: 0.18em; text-transform: uppercase; cursor: pointer; outline: none; min-width: 140px; }
     .start-btn[disabled] { opacity: 0; cursor: default; }
     .overlay { position: absolute; inset: 10% 8%; display: none; align-items: center; justify-content: center; z-index: 40; pointer-events: none; }
     .overlay.show { display: flex; }
@@ -67,70 +60,25 @@
     .overlay-third { margin-top: 20px; font-size: clamp(11px, 2vw, 20px); opacity: 0; transition: opacity 1.5s linear; width: auto; text-align: center; }
     .overlay-third.show { opacity: 1; }
     .overlay-third.fade-out { opacity: 0; }
-    .game-window { width: 100%; height: 100%; background: #020207; position: relative; display: flex; flex-direction: row; overflow: hidden; }
-    .side-wall { flex: 0 0 26%; background: #11131a; display: flex; flex-direction: column; justify-content: space-between; padding: 6px 4px; }
-    .wall-building { background: #000; border: 1px solid #222; padding: 3px 2px 4px; box-shadow: 0 0 8px rgba(0, 0, 0, 0.9); }
-    .wall-windows { display: grid; grid-template-columns: repeat(3, 1fr); grid-auto-rows: 7px; gap: 2px; }
-    .wall-window { background: #111; opacity: 0.9; }
-    .street-road { flex: 1; background: #050509; position: relative; overflow: hidden; }
-    .street-road-inner { position: absolute; inset: 5% 6%; background: #0b0c11; box-shadow: 0 0 18px rgba(0, 0, 0, 0.95); overflow: hidden; }
-    .street-lane { position: absolute; left: 50%; top: 0; width: 4px; height: 100%; background: repeating-linear-gradient(to bottom, #dcdcdc 0 18px, transparent 18px 36px); transform: translateX(-50%); opacity: 0.12; }
-    .character { position: absolute; width: 20px; height: 40px; background: var(--skin); image-rendering: pixelated; left: 50%; bottom: 15%; transform: translate(-50%, 0); transition: opacity 0.4s ease-out; }
-    .character .eyes { position: absolute; top: 8px; left: 5px; width: 3px; height: 3px; background: #111; box-shadow: 7px 0 0 #111; }
-    .character::before { content: ""; position: absolute; top: 16px; left: -7px; width: 34px; height: 2px; background: var(--skin); }
-    .character::after { content: ""; position: absolute; bottom: -18px; left: 5px; width: 2px; height: 20px; background: var(--skin); box-shadow: 8px 0 0 var(--skin); }
-    .character.fade-out { opacity: 0; }
-    /* 개선된 인간형 캐릭터 */
-    .character.enhanced { width: 18px; height: 35px; }
-    .character.enhanced::before { content: ""; position: absolute; top: -8px; left: 50%; transform: translateX(-50%); width: 12px; height: 12px; background: var(--skin); border-radius: 50%; }
-    .character.enhanced::after { content: ""; position: absolute; bottom: -20px; left: 4px; width: 2px; height: 22px; background: var(--skin); box-shadow: 8px 0 0 var(--skin); }
-    .character.enhanced .torso { position: absolute; top: 4px; left: 4px; width: 10px; height: 14px; background: var(--skin); }
-    .red-building { position: absolute; left: 18%; right: 18%; bottom: 2%; height: 45%; background: #7b1118; border: 1px solid #000; box-shadow: 0 0 20px rgba(0, 0, 0, 0.95); opacity: 0; display: none; transition: opacity 0.4s ease-out; }
-    .red-building.show { display: block; opacity: 1; }
-    .red-building-windows { position: absolute; inset: 8% 12% 40% 12%; display: grid; grid-template-columns: repeat(4, 1fr); grid-auto-rows: 8px; gap: 3px; }
-    .red-window { background: var(--window-on); box-shadow: 0 0 8px rgba(255, 216, 0, 0.8); }
-    .red-door { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 24%; height: 35%; background: #050308; border: 2px solid #000; box-shadow: 0 0 12px rgba(0, 0, 0, 0.9); }
-    .red-door::before { content: ""; position: absolute; right: 18%; top: 46%; width: 4px; height: 4px; border-radius: 50%; background: #f5f5f5; }
-    .white-room { width: 100%; height: 100%; background: #ffffff; display: flex; align-items: center; justify-content: center; position: relative; }
-    .white-room .character { bottom: auto; top: 50%; transform: translate(-50%, -50%); box-shadow: none; }
-    .interior-room { width: 100%; height: 100%; background: #0a0a0a; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; }
-    .interior-room .character { position: absolute; opacity: 0; animation: fadeInChar 0.5s forwards; }
-    @keyframes fadeInChar { to { opacity: 1; } }
-    .joystick { position: fixed; left: 16px; bottom: 10px; width: 96px; height: 96px; z-index: 200; touch-action: none; user-select: none; }
-    .joy-base { position: relative; width: 100%; height: 100%; border-radius: 50%; border: 1px solid #666; background: #050505; opacity: 0.95; display: flex; align-items: center; justify-content: center; }
-    .joy-knob { width: 44px; height: 44px; border-radius: 50%; border: 1px solid #aaa; background: #111; transition: transform 0.08s linear; }
-    .dialog-box { position: absolute; left: -4px; right: -4px; bottom: -22%; display: none; align-items: flex-end; justify-content: space-between; padding: 6px 10px 4px; font-family: "Press Start 2P", "Courier New", monospace; font-size: clamp(9px, 1.7vw, 13px); line-height: 1.6; color: #f5f5f5; pointer-events: auto; }
-    .dialog-box.show { display: flex; }
-    .dialog-text { flex: 1; padding-right: 12px; white-space: pre-line; text-align: left; }
-    .dialog-next { flex: 0 0 auto; padding: 6px 14px; border: 1px solid #f5f5f5; background: #101010; color: #f5f5f5; font-size: inherit; cursor: pointer; }
-    .empathy-btn { position: fixed; right: 16px; bottom: 14px; z-index: 200; padding: 8px 16px; border: 1px solid #f5f5f5; background: #101010; color: #f5f5f5; font-family: "Press Start 2P", "Courier New", monospace; font-size: 10px; letter-spacing: 0.08em; cursor: pointer; }
   </style>
 </head>
 <body>
-  <div class="rotate-warning">
-    화면을 가로 모드로 돌려주세요.<br>
-    Please rotate your device to landscape.
-  </div>
-
   <div class="app">
     <div class="scene-fade" id="sceneFade"></div>
     <div class="fog-layer" id="fogLayer"></div>
 
-    <!-- 씬1: 인트로 -->
-    <div id="introScene">
-      <div class="popup-frame">
-        <div class="city-window">
-          <div class="moon"></div>
-          <div class="city-layers">
-            <div class="layer layer-back" data-count="22"></div>
-            <div class="layer layer-mid" data-count="26"></div>
-            <div class="layer layer-front" data-count="30"></div>
-          </div>
-          <div class="overlay" id="overlay">
-            <div class="overlay-inner">
-              <div class="overlay-lines" id="overlayLines"></div>
-              <div class="overlay-third" id="overlayThird"></div>
-            </div>
+    <div class="popup-frame">
+      <div class="city-window">
+        <div class="moon"></div>
+        <div class="city-layers">
+          <div class="layer layer-back" data-count="22"></div>
+          <div class="layer layer-mid" data-count="26"></div>
+          <div class="layer layer-front" data-count="30"></div>
+        </div>
+        <div class="overlay" id="overlay">
+          <div class="overlay-inner">
+            <div class="overlay-lines" id="overlayLines"></div>
+            <div class="overlay-third" id="overlayThird"></div>
           </div>
         </div>
       </div>
@@ -138,63 +86,7 @@
         <button class="start-btn" id="startBtn">START</button>
       </div>
     </div>
-
-    <!-- 씬2: 좌우 건물 + 길 + 캐릭터 -->
-    <div id="streetScene">
-      <div class="popup-frame">
-        <div class="game-window">
-          <div class="side-wall" id="leftWall"></div>
-          <div class="street-road">
-            <div class="street-road-inner" id="roadInner">
-              <div class="street-lane"></div>
-              <div class="red-building" id="redBuilding">
-                <div class="red-building-windows" id="redWindows"></div>
-                <div class="red-door"></div>
-              </div>
-              <div class="character" id="character"></div>
-            </div>
-          </div>
-          <div class="side-wall" id="rightWall"></div>
-        </div>
-        <div class="dialog-box" id="dialogBox">
-          <div class="dialog-text" id="dialogText"></div>
-          <button class="dialog-next" id="dialogNext">NEXT</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- 씬3: 하얀 방 -->
-    <div id="whiteScene">
-      <div class="popup-frame">
-        <div class="white-room">
-          <div class="character enhanced" id="whiteCharacter">
-            <div class="eyes"></div>
-            <div class="torso"></div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 씬4: 빨간 건물 내부 (많은 사람들) -->
-    <div id="buildingInteriorScene">
-      <div class="popup-frame">
-        <div class="interior-room" id="interiorRoom"></div>
-      </div>
-    </div>
-
-    <!-- 조이스틱 -->
-    <div class="joystick">
-      <div class="joy-base" id="joyBase">
-        <div class="joy-knob" id="joyKnob"></div>
-      </div>
-    </div>
-
-    <!-- 교감하기 버튼 -->
-    <button class="empathy-btn" id="empathyBtn">교감하기</button>
   </div>
-
-  <!-- 움직임 사운드 -->
-  <audio id="stepSfx" src="step_move.wav"></audio>
 
   <script>
     /* ========= 인트로 건물 생성 ========= */
@@ -234,26 +126,16 @@
       for (let i = 0; i < count; i++) layer.appendChild(makeIntroBuilding(name, i));
     });
 
-    /* ========= 공통 사운드 ========= */
-    const stepSfx = document.getElementById("stepSfx");
-
-    /* ========= 인트로 시퀀스 & 공통 요소 ========= */
+    /* ========= 인트로 시퀀스 ========= */
     const startBtn = document.getElementById("startBtn");
     const overlay = document.getElementById("overlay");
     const overlayLines = document.getElementById("overlayLines");
     const overlayThird = document.getElementById("overlayThird");
     const sceneFade = document.getElementById("sceneFade");
     const fogLayer = document.getElementById("fogLayer");
-    const introScene = document.getElementById("introScene");
-    const streetScene = document.getElementById("streetScene");
-    const whiteScene = document.getElementById("whiteScene");
-    const buildingInteriorScene = document.getElementById("buildingInteriorScene");
-    const interiorRoom = document.getElementById("interiorRoom");
-    const empathyBtn = document.getElementById("empathyBtn");
 
     let started = false;
     let audioCtx = null;
-    let bgmStarted = false;
 
     function ensureAudioCtx() {
       const AC = window.AudioContext || window.webkitAudioContext;
@@ -264,10 +146,8 @@
     }
 
     function startBgm() {
-      if (bgmStarted) return;
       const ctx = ensureAudioCtx();
       if (!ctx) return;
-      bgmStarted = true;
       const master = ctx.createGain();
       master.gain.value = 0.18;
       master.connect(ctx.destination);
@@ -343,11 +223,6 @@
               overlayThird.classList.add("fade-out");
               sceneFade.classList.add("on");
               fogLayer.classList.add("fog-play");
-              setTimeout(() => {
-                introScene.style.display = "none";
-                streetScene.style.display = "flex";
-                sceneFade.classList.remove("on");
-              }, 800);
             }, 1400);
           });
         });
@@ -365,302 +240,6 @@
         document.body.classList.add("lights-off");
         startOverlaySequence();
       }, 3000);
-    });
-
-    /* ========= 씬2: 건물들 생성 ========= */
-    const leftWall = document.getElementById("leftWall");
-    const rightWall = document.getElementById("rightWall");
-    const redBuilding = document.getElementById("redBuilding");
-    const redWindows = document.getElementById("redWindows");
-
-    function fillWall(container, count) {
-      for (let i = 0; i < count; i++) {
-        const b = document.createElement("div");
-        b.className = "wall-building";
-        const wWrap = document.createElement("div");
-        wWrap.className = "wall-windows";
-        const floors = 5 + (i % 3);
-        for (let j = 0; j < floors * 3; j++) {
-          const w = document.createElement("div");
-          w.className = "wall-window";
-          wWrap.appendChild(w);
-        }
-        b.appendChild(wWrap);
-        container.appendChild(b);
-      }
-    }
-    fillWall(leftWall, 7);
-    fillWall(rightWall, 7);
-
-    for (let i = 0; i < 4 * 3; i++) {
-      const w = document.createElement("div");
-      w.className = "red-window";
-      redWindows.appendChild(w);
-    }
-
-    /* ========= 캐릭터 & 랩 로직 ========= */
-    const character = document.getElementById("character");
-    const whiteChar = document.getElementById("whiteCharacter");
-    const dialogBox = document.getElementById("dialogBox");
-    const dialogText = document.getElementById("dialogText");
-    const dialogNext = document.getElementById("dialogNext");
-
-    let charX = 50;
-    let charY = 15;
-    let whiteX = 50;
-    let whiteY = 50;
-    let laps = 0;
-    let buildingShown = false;
-    let atDoor = false;
-
-    function clamp(v, min, max) {
-      return v < min ? min : (v > max ? max : v);
-    }
-
-    function updateCharacter() {
-      charX = clamp(charX, 8, 92);
-      charY = clamp(charY, 8, 95);
-      character.style.left = charX + "%";
-      character.style.bottom = charY + "%";
-    }
-
-    function wrapIfNeeded() {
-      if (charY >= 92) {
-        charY = 10;
-        laps++;
-        if (laps >= 3 && !buildingShown) {
-          buildingShown = true;
-          redBuilding.classList.add("show");
-        }
-      }
-      // 빨간 건물 앞 도달 체크 (x좌표 중앙, y좌표 상단)
-      if (buildingShown && !atDoor && charX >= 45 && charX <= 55 && charY >= 85) {
-        atDoor = true;
-        startDialog();
-      }
-    }
-
-    function updateWhiteCharacter() {
-      whiteX = clamp(whiteX, 5, 95);
-      whiteY = clamp(whiteY, 10, 90);
-      whiteChar.style.left = whiteX + "%";
-      whiteChar.style.top = whiteY + "%";
-    }
-
-    /* ========= TTS (대화창 전용) ========= */
-    function speakDialogText(text) {
-      if (!("speechSynthesis" in window)) return;
-      window.speechSynthesis.cancel();
-      const utter = new SpeechSynthesisUtterance(text);
-      utter.lang = "ko-KR";
-      utter.rate = 1.0;
-      utter.pitch = 1.0;
-      const voices = window.speechSynthesis.getVoices();
-      const ko = voices.find(v => v.lang && v.lang.startsWith("ko"));
-      if (ko) utter.voice = ko;
-      window.speechSynthesis.speak(utter);
-    }
-
-    /* ========= 문 앞 대화 ========= */
-    const dialogLines = ["문이다.", "한 번 들어가볼까?", "그래도 무섭잖아", "아니야 들어가보자.", "왜..?", "뭐가 나올지 모르지까.", "가자."];
-    let dialogStarted = false;
-    let dialogActive = false;
-    let dialogIndex = 0;
-    let typing = false;
-    let typingTimer = null;
-
-    function startDialog() {
-      if (dialogStarted) return;
-      dialogStarted = true;
-      dialogActive = true;
-      dialogIndex = 0;
-      dialogBox.classList.add("show");
-      typeDialogLine(dialogLines[0]);
-    }
-
-    function typeDialogLine(text) {
-      if (typingTimer) clearInterval(typingTimer);
-      typing = true;
-      dialogText.textContent = "";
-      let idx = 0;
-      typingTimer = setInterval(() => {
-        dialogText.textContent = text.slice(0, idx + 1);
-        playTypeSfx();
-        idx++;
-        if (idx >= text.length) {
-          clearInterval(typingTimer);
-          typingTimer = null;
-          typing = false;
-          speakDialogText(text);
-        }
-      }, 60);
-    }
-
-    function showNextDialog() {
-      if (!dialogActive) return;
-      if (typing) {
-        clearInterval(typingTimer);
-        typingTimer = null;
-        typing = false;
-        dialogText.textContent = dialogLines[dialogIndex];
-        speakDialogText(dialogLines[dialogIndex]);
-        return;
-      }
-      dialogIndex++;
-      if (dialogIndex < dialogLines.length) {
-        typeDialogLine(dialogLines[dialogIndex]);
-      } else {
-        enterBuildingInterior();
-      }
-    }
-
-    function enterBuildingInterior() {
-      dialogActive = false;
-      dialogBox.classList.remove("show");
-      character.classList.add("fade-out");
-      sceneFade.classList.add("on");
-      if ("speechSynthesis" in window) window.speechSynthesis.cancel();
-      setTimeout(() => {
-        streetScene.style.display = "none";
-        buildingInteriorScene.style.display = "flex";
-        populateInterior();
-        sceneFade.classList.remove("on");
-      }, 800);
-    }
-
-    function populateInterior() {
-      interiorRoom.innerHTML = "";
-      const count = 25; // 많은 사람들
-      for (let i = 0; i < count; i++) {
-        const char = document.createElement("div");
-        char.className = "character enhanced";
-        char.style.left = (10 + Math.random() * 80) + "%";
-        char.style.top = (15 + Math.random() * 70) + "%";
-        char.style.animationDelay = (Math.random() * 1) + "s";
-        char.innerHTML = '<div class="eyes"></div><div class="torso"></div>';
-        interiorRoom.appendChild(char);
-      }
-    }
-
-    dialogNext.addEventListener("click", e => {
-      e.preventDefault();
-      showNextDialog();
-    });
-    dialogNext.addEventListener("touchstart", e => {
-      e.preventDefault();
-      showNextDialog();
-    }, { passive: false });
-
-    updateCharacter();
-    updateWhiteCharacter();
-
-    /* ========= 조이스틱 ========= */
-    const joyBase = document.getElementById("joyBase");
-    const joyKnob = document.getElementById("joyKnob");
-    let joyActive = false;
-    let joyDX = 0;
-    let joyDY = 0;
-
-    function setJoyFromEvent(e) {
-      const rect = joyBase.getBoundingClientRect();
-      const cx = rect.left + rect.width / 2;
-      const cy = rect.top + rect.height / 2;
-      const point = e.touches ? e.touches[0] : e;
-      let dx = point.clientX - cx;
-      let dy = point.clientY - cy;
-      const max = rect.width / 2;
-      let nx = dx / max;
-      let ny = dy / max;
-      const len = Math.hypot(nx, ny);
-      if (len > 1) { nx /= len; ny /= len; }
-      const dead = 0.25;
-      if (Math.hypot(nx, ny) < dead) {
-        joyDX = 0; joyDY = 0;
-        joyKnob.style.transform = "translate(0,0)";
-        return;
-      }
-      joyDX = nx;
-      joyDY = -ny;
-      const knobR = max * 0.55;
-      const kx = nx * knobR;
-      const ky = ny * knobR;
-      joyKnob.style.transform = `translate(${kx}px,${ky}px)`;
-    }
-
-    function joyStart(e) {
-      e.preventDefault();
-      joyActive = true;
-      setJoyFromEvent(e);
-      window.addEventListener("mousemove", joyMove);
-      window.addEventListener("touchmove", joyMove, { passive: false });
-      window.addEventListener("mouseup", joyEnd);
-      window.addEventListener("touchend", joyEnd);
-      window.addEventListener("touchcancel", joyEnd);
-    }
-
-    function joyMove(e) {
-      if (!joyActive) return;
-      e.preventDefault();
-      setJoyFromEvent(e);
-    }
-
-    function joyEnd(e) {
-      joyActive = false;
-      joyDX = 0;
-      joyDY = 0;
-      joyKnob.style.transform = "translate(0,0)";
-      window.removeEventListener("mousemove", joyMove);
-      window.removeEventListener("touchmove", joyMove);
-      window.removeEventListener("mouseup", joyEnd);
-      window.removeEventListener("touchend", joyEnd);
-      window.removeEventListener("touchcancel", joyEnd);
-    }
-
-    joyBase.addEventListener("mousedown", joyStart);
-    joyBase.addEventListener("touchstart", joyStart, { passive: false });
-
-    /* ========= 메인 루프 (조이스틱 이동 + 발소리) ========= */
-    let lastTime = null;
-    let lastStepTime = 0;
-    const stepInterval = 220;
-
-    function loop(ts) {
-      if (lastTime === null) lastTime = ts;
-      const dt = (ts - lastTime) / 16.67;
-      lastTime = ts;
-      const speed = 0.6;
-      const movingMagnitude = Math.hypot(joyDX, joyDY);
-      const isMoving = movingMagnitude > 0.25;
-
-      if (streetScene.style.display === "flex") {
-        if (!dialogActive && !atDoor) {
-          charX += joyDX * speed * dt;
-          charY += joyDY * speed * dt;
-          wrapIfNeeded();
-        }
-        updateCharacter();
-      } else if (whiteScene.style.display === "flex") {
-        whiteX += joyDX * speed * dt;
-        whiteY -= joyDY * speed * dt;
-        updateWhiteCharacter();
-      }
-
-      if (isMoving && (streetScene.style.display === "flex" || whiteScene.style.display === "flex")) {
-        if (ts - lastStepTime > stepInterval) {
-          lastStepTime = ts;
-          if (stepSfx) {
-            try { stepSfx.currentTime = 0; stepSfx.play(); } catch (e) {}
-          }
-        }
-      }
-
-      requestAnimationFrame(loop);
-    }
-    requestAnimationFrame(loop);
-
-    /* ========= 교감하기 버튼 ========= */
-    empathyBtn.addEventListener("click", () => {
-      console.log("교감하기 버튼 클릭");
     });
   </script>
 </body>
