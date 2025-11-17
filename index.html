@@ -60,6 +60,35 @@
     .overlay-third { margin-top: 20px; font-size: clamp(11px, 2vw, 20px); opacity: 0; transition: opacity 1.5s linear; width: auto; text-align: center; }
     .overlay-third.show { opacity: 1; }
     .overlay-third.fade-out { opacity: 0; }
+
+    /* ========= 씬2: 사실적인 인물 ========= */
+    #roomScene { display: none; align-items: center; justify-content: center; position: absolute; inset: 0; z-index: 150; }
+    .room { width: 100%; height: 100%; background: #111; display: flex; align-items: center; justify-content: center; position: relative; }
+    /* 사실적인 인물 (그라데이션으로 입체감) */
+    .human { position: absolute; width: 80px; height: 120px; left: 50%; bottom: 5%; transform: translateX(-50%); pointer-events: none; }
+    .human-head {
+      position: absolute; width: 40px; height: 40px; left: 50%; transform: translateX(-50%);
+      background: radial-gradient(circle at 30% 30%, #f5c7a0, #e6b896);
+      border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
+    .human-body {
+      position: absolute; top: 35px; left: 50%; transform: translateX(-50%);
+      width: 48px; height: 60px;
+      background: linear-gradient(to bottom, #2a2a2a, #1a1a1a);
+      border-radius: 8px 8px 4px 4px; box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+    }
+    /* 걷는 애니메이션 다리 */
+    .human-leg-left, .human-leg-right {
+      position: absolute; top: 90px; width: 16px; height: 30px;
+      background: linear-gradient(to bottom, #1a1a1a, #000);
+      border-radius: 0 0 8px 8px; transform-origin: top center;
+    }
+    .human-leg-left { left: 28px; }
+    .human-leg-right { right: 28px; }
+    .walking .human-leg-left { animation: walkLeft 0.4s infinite alternate; }
+    .walking .human-leg-right { animation: walkRight 0.4s infinite alternate; }
+    @keyframes walkLeft { from { transform: rotate(-5deg); } to { transform: rotate(15deg); } }
+    @keyframes walkRight { from { transform: rotate(15deg); } to { transform: rotate(-5deg); } }
   </style>
 </head>
 <body>
@@ -67,23 +96,47 @@
     <div class="scene-fade" id="sceneFade"></div>
     <div class="fog-layer" id="fogLayer"></div>
 
-    <div class="popup-frame">
-      <div class="city-window">
-        <div class="moon"></div>
-        <div class="city-layers">
-          <div class="layer layer-back" data-count="22"></div>
-          <div class="layer layer-mid" data-count="26"></div>
-          <div class="layer layer-front" data-count="30"></div>
+    <!-- 씬1: 인트로 -->
+    <div id="introScene">
+      <div class="popup-frame">
+        <div class="city-window">
+          <div class="moon"></div>
+          <div class="city-layers">
+            <div class="layer layer-back" data-count="22"></div>
+            <div class="layer layer-mid" data-count="26"></div>
+            <div class="layer layer-front" data-count="30"></div>
+          </div>
+          <div class="overlay" id="overlay">
+            <div class="overlay-inner">
+              <div class="overlay-lines" id="overlayLines"></div>
+              <div class="overlay-third" id="overlayThird"></div>
+            </div>
+          </div>
         </div>
-        <div class="overlay" id="overlay">
-          <div class="overlay-inner">
-            <div class="overlay-lines" id="overlayLines"></div>
-            <div class="overlay-third" id="overlayThird"></div>
+        <div class="bottom-center">
+          <button class="start-btn" id="startBtn">START</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 씬2: 사진같은 인물이 있는 방 -->
+    <div id="roomScene">
+      <div class="popup-frame">
+        <div class="room">
+          <div class="human" id="human">
+            <div class="human-head"></div>
+            <div class="human-body"></div>
+            <div class="human-leg-left"></div>
+            <div class="human-leg-right"></div>
           </div>
         </div>
       </div>
-      <div class="bottom-center">
-        <button class="start-btn" id="startBtn">START</button>
+    </div>
+
+    <!-- 조이스틱 -->
+    <div class="joystick">
+      <div class="joy-base" id="joyBase">
+        <div class="joy-knob" id="joyKnob"></div>
       </div>
     </div>
   </div>
@@ -223,6 +276,11 @@
               overlayThird.classList.add("fade-out");
               sceneFade.classList.add("on");
               fogLayer.classList.add("fog-play");
+              setTimeout(() => {
+                document.getElementById("introScene").style.display = "none";
+                document.getElementById("roomScene").style.display = "flex";
+                sceneFade.classList.remove("on");
+              }, 800);
             }, 1400);
           });
         });
@@ -241,6 +299,103 @@
         startOverlaySequence();
       }, 3000);
     });
+
+    /* ========= 씬2: 조이스틱 컨트롤 ========= */
+    const joyBase = document.getElementById("joyBase");
+    const joyKnob = document.getElementById("joyKnob");
+    const human = document.getElementById("human");
+
+    let joyActive = false;
+    let joyDX = 0;
+    let joyDY = 0;
+
+    function setJoyFromEvent(e) {
+      const rect = joyBase.getBoundingClientRect();
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top + rect.height / 2;
+      const point = e.touches ? e.touches[0] : e;
+      let dx = point.clientX - cx;
+      let dy = point.clientY - cy;
+      const max = rect.width / 2;
+      let nx = dx / max;
+      let ny = dy / max;
+      const len = Math.hypot(nx, ny);
+      if (len > 1) { nx /= len; ny /= len; }
+      const dead = 0.25;
+      if (Math.hypot(nx, ny) < dead) {
+        joyDX = 0; joyDY = 0; joyKnob.style.transform = "translate(0,0)";
+        human.classList.remove("walking");
+        return;
+      }
+      joyDX = nx; joyDY = -ny;
+      const knobR = max * 0.55;
+      const kx = nx * knobR;
+      const ky = ny * knobR;
+      joyKnob.style.transform = `translate(${kx}px,${ky}px)`;
+      human.classList.add("walking");
+    }
+
+    function joyStart(e) {
+      e.preventDefault();
+      joyActive = true;
+      setJoyFromEvent(e);
+      window.addEventListener("mousemove", joyMove);
+      window.addEventListener("touchmove", joyMove, { passive: false });
+      window.addEventListener("mouseup", joyEnd);
+      window.addEventListener("touchend", joyEnd);
+      window.addEventListener("touchcancel", joyEnd);
+    }
+
+    function joyMove(e) {
+      if (!joyActive) return;
+      e.preventDefault();
+      setJoyFromEvent(e);
+    }
+
+    function joyEnd(e) {
+      joyActive = false; joyDX = 0; joyDY = 0;
+      joyKnob.style.transform = "translate(0,0)";
+      human.classList.remove("walking");
+      window.removeEventListener("mousemove", joyMove);
+      window.removeEventListener("touchmove", joyMove);
+      window.removeEventListener("mouseup", joyEnd);
+      window.removeEventListener("touchend", joyEnd);
+      window.removeEventListener("touchcancel", joyEnd);
+    }
+
+    joyBase.addEventListener("mousedown", joyStart);
+    joyBase.addEventListener("touchstart", joyStart, { passive: false });
+
+    /* ========= 인물 이동 루프 ========= */
+    let charX = 50;
+    let charY = 5;
+
+    function clamp(v, min, max) {
+      return v < min ? min : (v > max ? max : v);
+    }
+
+    function updateHuman() {
+      charX = clamp(charX, 8, 92);
+      charY = clamp(charY, 5, 85);
+      human.style.left = charX + "%";
+      human.style.bottom = charY + "%";
+    }
+
+    let lastTime = null;
+    function loop(ts) {
+      if (lastTime === null) lastTime = ts;
+      const dt = (ts - lastTime) / 16.67;
+      lastTime = ts;
+      const speed = 0.6;
+      
+      if (document.getElementById("roomScene").style.display === "flex") {
+        charX += joyDX * speed * dt;
+        charY += joyDY * speed * dt;
+        updateHuman();
+      }
+      requestAnimationFrame(loop);
+    }
+    requestAnimationFrame(loop);
   </script>
 </body>
 </html>
