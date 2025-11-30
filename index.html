@@ -19,20 +19,6 @@
     :root{
       --appH: 100svh;
       --frame: clamp(16px, 4vmin, 40px);
-      --ui-gap: 10px;
-
-      --safe-t: env(safe-area-inset-top, 0px);
-      --safe-b: env(safe-area-inset-bottom, 0px);
-      --safe-l: env(safe-area-inset-left, 0px);
-      --safe-r: env(safe-area-inset-right, 0px);
-
-      --fs-small: clamp(9px, 1.6vmin, 12px);
-
-      --bg-shell: #000000;
-      --border-outer: #444444;
-      --border-inner: #333333;
-      --text-main: #f5f5f5;
-      --text-mid: #bbbbbb;
     }
 
     *{
@@ -45,7 +31,7 @@
       width: 100%;
       height: 100%;
       background: #000;
-      color: var(--text-main);
+      color: #f5f5f5;
       font-family: "Press Start 2P", system-ui, sans-serif;
       overscroll-behavior: none;
       -webkit-font-smoothing: none;
@@ -57,101 +43,30 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: max(8px, var(--safe-t)) max(8px, var(--safe-l))
-               max(8px, var(--safe-b)) max(8px, var(--safe-r));
+      padding: var(--frame);
     }
 
-    /* ===== 플랫 직사각 박스 ===== */
-    #app{
+    /* 화면 중앙의 플랫 직사각 프레임 */
+    #frame{
       width: min(100vw - 2*var(--frame), 1100px);
       height: min(var(--appH) - 2*var(--frame), 700px);
       max-width: 1100px;
       max-height: 700px;
 
+      border: 2px solid #777;
       background: #000;
-      border: 2px solid var(--border-outer);
-      padding: 8px;
-      display: flex;
-      flex-direction: column;
-      gap: var(--ui-gap);
-    }
-
-    @media (max-height: 600px){
-      #app{
-        height: calc(var(--appH) - 2*var(--frame));
-      }
-    }
-
-    .app-shell{
-      flex: 1;
-      background: var(--bg-shell);
-      border: 1px solid var(--border-inner);
-      padding: 8px;
-      display: flex;
-      flex-direction: column;
-      gap: var(--ui-gap);
-    }
-
-    .app-header{
-      display: grid;
-      grid-template-columns: 1fr auto 1fr;
-      align-items: center;
-      gap: 4px;
-      font-size: var(--fs-small);
-      color: var(--text-mid);
-    }
-
-    .header-left{
-      justify-self: flex-start;
-      padding-left: 2px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      max-width: 160px;
-    }
-
-    .header-center{
-      justify-self: center;
-      font-size: clamp(10px, 2.3vmin, 14px);
-      letter-spacing: 1px;
-    }
-
-    .header-right{
-      justify-self: flex-end;
-      display: flex;
-      gap: 4px;
-      align-items: center;
-    }
-
-    .header-btn{
-      font-family: inherit;
-      font-size: var(--fs-small);
-      padding: 2px 6px;
-      border-radius: 0;
-      border: 1px solid #666;
-      background: #050505;
-      color: var(--text-mid);
-      cursor: pointer;
-    }
-    .header-btn:active{
-      transform: translateY(1px);
-      background: #000;
-    }
-
-    .app-main{
-      flex: 1;
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 4px 0;
     }
 
-    .game-viewport{
-      width: 100%;
+    /* 내부 게임 창(네모 박스 안의 네모 박스 느낌) */
+    #game-wrapper{
+      width: 90%;
       max-width: 900px;
       aspect-ratio: 4 / 3;
-      background: #000;
       border: 1px solid #555;
+      background: #000;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -165,50 +80,14 @@
       touch-action: none;
       background: #000;
     }
-
-    .app-footer{
-      display: block;
-    }
-
-    #msg{
-      font-size: var(--fs-small);
-      line-height: 1.4;
-      padding: 6px 8px;
-      background: #050505;
-      border: 1px solid #333;
-      color: var(--text-main);
-      min-height: 2.5em;
-      display: flex;
-      align-items: center;
-    }
   </style>
 </head>
 <body>
-<div id="app">
-  <div class="app-shell">
-    <header class="app-header">
-      <div class="header-left" id="chapter-label">CH1 MAZE</div>
-      <div class="header-center">
-        <span>SLEEEEEEEP</span>
-      </div>
-      <div class="header-right">
-        <button class="header-btn" id="btn-items">ITEM</button>
-      </div>
-    </header>
-
-    <main class="app-main">
-      <div class="game-viewport">
-        <canvas id="game-canvas" width="320" height="240"></canvas>
-      </div>
-    </main>
-
-    <footer class="app-footer">
-      <div id="msg">
-        조작법: 위쪽 탭=위, 아래=아래, 왼쪽=왼쪽, 오른쪽=오른쪽. a,b,c,d,e 방에서 미션 시작.
-      </div>
-    </footer>
+  <div id="frame">
+    <div id="game-wrapper">
+      <canvas id="game-canvas" width="320" height="240"></canvas>
+    </div>
   </div>
-</div>
 
 <script>
 /* =========================
@@ -216,9 +95,6 @@
    ========================= */
 const canvas = document.getElementById('game-canvas');
 const ctx    = canvas.getContext('2d');
-const msgEl  = document.getElementById('msg');
-const chapEl = document.getElementById('chapter-label');
-const btnItems = document.getElementById('btn-items');
 
 const WIDTH  = canvas.width;
 const HEIGHT = canvas.height;
@@ -238,18 +114,17 @@ const STATE = {
 };
 
 /* =========================
-   공통 유틸
+   공통 유틸 (지금은 시각 출력 X)
    ========================= */
 function setMessage(text){
-  msgEl.textContent = text;
+  // 필요하면 콘솔에서만 확인
+  // console.log(text);
 }
-
 function setDefaultControlMessage(){
-  setMessage("조작법: 위쪽 탭=위, 아래=아래, 왼쪽=왼쪽, 오른쪽=오른쪽. a,b,c,d,e 방에 들어가면 미션 시작.");
+  setMessage("조작법: 화면 위/아래/좌/우 영역을 탭해서 이동.");
 }
-
 function setChapterLabel(text){
-  chapEl.textContent = text;
+  // 시각적 챕터 라벨 없음, 내부용
 }
 
 function getCanvasPos(evt){
@@ -1199,19 +1074,6 @@ function drawMaze(){
   const px = offsetX + STATE.player.x*cellSize;
   const py = offsetY + STATE.player.y*cellSize;
   drawRedRabbit(px + cellSize*0.3, py + cellSize*0.3);
-
-  // 화면 안 컨트롤 안내 (UP / DOWN / LEFT / RIGHT)
-  ctx.fillStyle = "#555";
-  ctx.font = "6px 'Press Start 2P'";
-  ctx.textAlign = "center";
-  ctx.fillText("UP", WIDTH/2, offsetY - 6);
-  ctx.fillText("DOWN", WIDTH/2, offsetY + mazeHeightPx + 12);
-
-  ctx.textAlign = "left";
-  ctx.fillText("LEFT", offsetX - 2, offsetY + mazeHeightPx/2 + 2);
-
-  ctx.textAlign = "right";
-  ctx.fillText("RIGHT", offsetX + mazeWidthPx + 2, offsetY + mazeHeightPx/2 + 2);
 }
 
 /* =========================
@@ -1351,17 +1213,6 @@ canvas.addEventListener('touchend', (e)=>{
     STATE.currentGame.pointerUp();
   }
 },{passive:false});
-
-/* 아이템 버튼 */
-btnItems.addEventListener('click', ()=>{
-  const ids = Object.keys(STATE.items);
-  if(ids.length === 0){
-    setMessage("획득한 아이템이 아직 없습니다.");
-    return;
-  }
-  const list = ids.map(id=>STATE.items[id].name).join(" / ");
-  setMessage(`획득한 아이템: ${list}`);
-});
 
 /* =========================
    메인 루프
