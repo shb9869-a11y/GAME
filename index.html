@@ -61,17 +61,16 @@
                max(8px, var(--safe-b)) max(8px, var(--safe-r));
     }
 
+    /* ===== 플랫 직사각 박스 ===== */
     #app{
       width: min(100vw - 2*var(--frame), 1100px);
       height: min(var(--appH) - 2*var(--frame), 700px);
       max-width: 1100px;
       max-height: 700px;
 
-      border-radius: 24px;
       background: #000;
-      border: 3px solid var(--border-outer);
-      box-shadow: 0 0 0 3px #000, 0 18px 40px rgba(0,0,0,0.9);
-      padding: 10px;
+      border: 2px solid var(--border-outer);
+      padding: 8px;
       display: flex;
       flex-direction: column;
       gap: var(--ui-gap);
@@ -85,9 +84,8 @@
 
     .app-shell{
       flex: 1;
-      border-radius: 16px;
       background: var(--bg-shell);
-      border: 2px solid var(--border-inner);
+      border: 1px solid var(--border-inner);
       padding: 8px;
       display: flex;
       flex-direction: column;
@@ -105,7 +103,7 @@
 
     .header-left{
       justify-self: flex-start;
-      padding-left: 4px;
+      padding-left: 2px;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -128,10 +126,10 @@
     .header-btn{
       font-family: inherit;
       font-size: var(--fs-small);
-      padding: 3px 6px;
-      border-radius: 999px;
+      padding: 2px 6px;
+      border-radius: 0;
       border: 1px solid #666;
-      background: #070707;
+      background: #050505;
       color: var(--text-mid);
       cursor: pointer;
     }
@@ -145,17 +143,15 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 4px;
+      padding: 4px 0;
     }
 
     .game-viewport{
       width: 100%;
       max-width: 900px;
       aspect-ratio: 4 / 3;
-      border-radius: 10px;
       background: #000;
-      border: 2px solid #555;
-      box-shadow: inset 0 0 0 2px #000;
+      border: 1px solid #555;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -177,8 +173,7 @@
     #msg{
       font-size: var(--fs-small);
       line-height: 1.4;
-      padding: 8px 10px;
-      border-radius: 8px;
+      padding: 6px 8px;
       background: #050505;
       border: 1px solid #333;
       color: var(--text-main);
@@ -209,7 +204,7 @@
 
     <footer class="app-footer">
       <div id="msg">
-        조작법: 위쪽 영역 탭=위로, 아래=아래로, 왼쪽=왼쪽, 오른쪽=오른쪽. a,b,c,d,e 방에서 미션 시작.
+        조작법: 위쪽 탭=위, 아래=아래, 왼쪽=왼쪽, 오른쪽=오른쪽. a,b,c,d,e 방에서 미션 시작.
       </div>
     </footer>
   </div>
@@ -1077,13 +1072,6 @@ const MISSION_CLASSES = {
    미로 & 엔딩 정의
    ========================= */
 
-/*
-  # = 벽
-  S = 시작
-  공백 = 길
-  a,b,c,d,e = 각 엔딩 방
-*/
-
 const MAZE_RAW = [
   "###############",
   "#S           #",
@@ -1177,9 +1165,9 @@ function drawMaze(){
   const offsetX = (WIDTH - mazeWidthPx)/2;
   const offsetY = (HEIGHT - mazeHeightPx)/2;
 
-  // 바깥 박스 (블랙 박스 느낌)
+  // 바깥 박스
   ctx.strokeStyle = "#999";
-  ctx.lineWidth = 1.5;
+  ctx.lineWidth = 1;
   ctx.strokeRect(offsetX-4, offsetY-4, mazeWidthPx+8, mazeHeightPx+8);
 
   for(let y=0;y<MAZE_H;y++){
@@ -1216,9 +1204,8 @@ function drawMaze(){
   ctx.fillStyle = "#555";
   ctx.font = "6px 'Press Start 2P'";
   ctx.textAlign = "center";
-
-  ctx.fillText("UP", WIDTH/2, offsetY - 8);
-  ctx.fillText("DOWN", WIDTH/2, offsetY + mazeHeightPx + 14);
+  ctx.fillText("UP", WIDTH/2, offsetY - 6);
+  ctx.fillText("DOWN", WIDTH/2, offsetY + mazeHeightPx + 12);
 
   ctx.textAlign = "left";
   ctx.fillText("LEFT", offsetX - 2, offsetY + mazeHeightPx/2 + 2);
@@ -1293,7 +1280,6 @@ function completeCurrentMission(){
   STATE.endingProgress[key] = idx;
 
   if(idx >= cfg.missions.length){
-    // 모든 미션 클리어 → 아이템 지급
     if(!STATE.items[cfg.itemId]){
       STATE.items[cfg.itemId] = {
         name: cfg.itemName,
@@ -1309,7 +1295,6 @@ function completeCurrentMission(){
     updateChapterLabelByPos();
     setMessage(cfg.text);
   }else{
-    // 다음 미션 이어서
     startEndingMission(symbol, cfg);
   }
 }
