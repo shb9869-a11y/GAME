@@ -4,7 +4,7 @@
   <meta charset="utf-8"/>
   <meta name="viewport"
         content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no,interactive-widget=resizes-content">
-  <title>SLEEEEEEEP – PIXEL MAZE</title>
+  <title>SLEEEEEEEP – RED RABBIT LABYRINTH</title>
 
   <!-- 픽셀 게임 폰트 -->
   <link rel="stylesheet"
@@ -18,7 +18,12 @@
   <style>
     :root{
       --appH: 100svh;
-      --frame: clamp(16px, 4vmin, 40px);
+      --frame: clamp(12px, 3vmin, 24px);
+      --ui-gap: 8px;
+
+      --fs-body: clamp(10px, 1.6vmin, 14px);
+      --fs-strong: clamp(11px, 1.8vmin, 16px);
+      --fs-small: clamp(9px, 1.4vmin, 12px);
     }
 
     *{
@@ -32,1650 +37,1025 @@
       height: 100%;
       background: #000;
       color: #f5f5f5;
-      font-family: "Press Start 2P", system-ui, sans-serif;
+      font-family: "Press Start 2P", system-ui, -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
       overscroll-behavior: none;
-      -webkit-font-smoothing: antialiased;
-      image-rendering: pixelated;
-      touch-action: none;
+      touch-action: manipulation;
     }
 
     body{
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: var(--frame);
     }
 
-    /* 화면 중앙의 플랫 직사각 프레임 */
-    #frame{
-      width: min(100vw - 2*var(--frame), 1100px);
-      height: min(var(--appH) - 2*var(--frame), 700px);
-      max-width: 1100px;
-      max-height: 700px;
-
-      border: 2px solid #555;
-      background: radial-gradient(circle at 50% 0%, #111111 0, #020202 60%);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    /* 내부 게임 창(네모 박스 안의 네모 박스 느낌) */
-    #game-wrapper{
-      width: 90%;
-      max-width: 900px;
-      aspect-ratio: 4 / 3;
-      border: 1px solid #444;
+    #game-root{
+      position: relative;
       background: #000;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      overflow: visible;
-      position: relative;
-    }
-
-    #game-inner{
-      position: relative;
-      width: 100%;
-      height: 100%;
+      border: 2px solid #444;
+      border-radius: 8px;
+      overflow: hidden;
+      /* 16:9 비율, 가로모드 기준 */
+      width: min(100vw, 160vh);
+      aspect-ratio: 16 / 9;
     }
 
     #game-canvas{
       width: 100%;
       height: 100%;
       image-rendering: pixelated;
-      touch-action: none;
-      background: #000;
+      image-rendering: crisp-edges;
       display: block;
+      background: #000;
     }
 
-    /* ===== 컨트롤러: 게임 창 바깥에 배치 ===== */
-
-    .controller{
-      position: absolute;
-      touch-action: none;
-      user-select: none;
-    }
-
-    /* 좌측 하단 조이스틱 */
-    #joystick{
-      left: 9%;
-      bottom: -18%;
-      width: 96px;
-      height: 96px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    #joystick-base{
-      position: relative;
-      width: 96px;
-      height: 96px;
-      border-radius: 999px;
-      background: radial-gradient(circle at 30% 25%, #2a2a2a 0, #060606 70%);
-      box-shadow:
-        0 4px 10px rgba(0,0,0,0.8),
-        inset 0 0 0 1px rgba(200,200,200,0.15);
-    }
-
-    #joystick-knob{
-      position: absolute;
-      left: 50%;
-      top: 50%;
-      width: 44px;
-      height: 44px;
-      border-radius: 999px;
-      background: radial-gradient(circle at 30% 20%, #f5f5f5 0, #9f9f9f 40%, #444 100%);
-      box-shadow:
-        0 2px 6px rgba(0,0,0,0.9),
-        inset 0 0 0 1px rgba(0,0,0,0.8);
-      transform: translate(-50%, -50%);
+    .ui-layer{
       pointer-events: none;
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: var(--frame);
     }
 
-    /* 우측 하단 버튼 (흑백 구조에 맞게 무채색 톤) */
-    #btn-action{
-      right: 9%;
-      bottom: -16%;
-      width: 76px;
-      height: 76px;
-      border-radius: 999px;
-      border: none;
-      padding: 0;
-      cursor: pointer;
-      touch-action: none;
-      user-select: none;
-      background: radial-gradient(circle at 30% 20%, #f5f5f5 0, #9b9b9b 40%, #333 100%);
-      box-shadow:
-        0 4px 12px rgba(0,0,0,0.9),
-        inset 0 0 0 1px rgba(250,250,250,0.5);
+    #chapter-title{
+      pointer-events: auto;
+      align-self: flex-start;
+      padding: 4px 8px;
+      border: 1px solid #666;
+      background: rgba(0,0,0,0.8);
+      font-size: var(--fs-small);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    #dialog-box{
+      pointer-events: auto;
+      margin-top: auto;
+      width: 100%;
+      min-height: 80px;
+      max-height: 34%;
+      padding: 8px;
+      background: rgba(0,0,0,0.85);
+      border: 2px solid #777;
+      font-size: var(--fs-body);
+      line-height: 1.5;
+      overflow-y: auto;
+      word-break: keep-all;
+    }
+
+    #dialog-box::-webkit-scrollbar{
+      width: 6px;
+    }
+    #dialog-box::-webkit-scrollbar-thumb{
+      background: #555;
+    }
+
+    #controls{
+      pointer-events: auto;
+      position: absolute;
+      right: var(--frame);
+      bottom: var(--frame);
+      display: flex;
+      flex-direction: row;
+      gap: 16px;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .dpad{
+      display: grid;
+      grid-template-columns: repeat(3, 36px);
+      grid-template-rows: repeat(3, 36px);
+      gap: 4px;
+    }
+
+    .btn-circle{
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: 1px solid #777;
+      background: rgba(15,15,15,0.9);
+      color: #f5f5f5;
+      font-size: 14px;
       display: flex;
       align-items: center;
       justify-content: center;
-      color: #111;
-      font-size: 11px;
-      text-shadow: 0 1px 0 rgba(250,250,250,0.7);
+      box-shadow: 0 0 0 1px #111;
     }
 
-    #btn-action:active{
-      background: radial-gradient(circle at 40% 30%, #d9d9d9 0, #7b7b7b 40%, #222 100%);
-      box-shadow:
-        0 2px 6px rgba(0,0,0,0.9),
-        inset 0 2px 4px rgba(0,0,0,0.8);
+    .btn-circle:active{
       transform: translateY(1px);
+      background: rgba(40,40,40,0.9);
     }
 
-    @media (max-height: 650px){
-      #joystick{ bottom: -8%; }
-      #btn-action{ bottom: -8%; }
+    .btn-ghost{
+      background: transparent;
+      border: none;
+      color: #999;
+      font-size: var(--fs-small);
+      margin-left: 8px;
+    }
+
+    .btn-ghost:active{
+      color: #fff;
+    }
+
+    #note-overlay{
+      pointer-events: auto;
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,0.92);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: var(--frame);
+    }
+
+    #note-overlay.hidden{
+      display: none;
+    }
+
+    .note-card{
+      width: min(640px, 100%);
+      max-height: 100%;
+      border: 2px solid #888;
+      background: #050505;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .note-title{
+      font-size: var(--fs-strong);
+      margin-bottom: 6px;
+    }
+
+    .note-body{
+      font-size: var(--fs-body);
+      line-height: 1.5;
+      overflow-y: auto;
+      padding-right: 4px;
+      word-break: keep-all;
+    }
+
+    .note-body::-webkit-scrollbar{
+      width: 6px;
+    }
+    .note-body::-webkit-scrollbar-thumb{
+      background: #555;
+    }
+
+    .note-footer{
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 4px;
+      font-size: var(--fs-small);
+      color: #bbb;
+    }
+
+    .btn-small{
+      pointer-events: auto;
+      padding: 4px 10px;
+      font-size: var(--fs-small);
+      border-radius: 4px;
+      border: 1px solid #999;
+      background: #111;
+      color: #f5f5f5;
+    }
+
+    .btn-small:active{
+      background: #333;
+    }
+
+    #orientation-warning{
+      position: fixed;
+      inset: 0;
+      background: #000;
+      color: #f5f5f5;
+      z-index: 9999;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 16px;
+      font-size: var(--fs-body);
+    }
+
+    #orientation-warning span{
+      display: block;
+      margin-top: 12px;
+      font-size: var(--fs-small);
+      color: #aaa;
+    }
+
+    #start-overlay{
+      pointer-events: auto;
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at center,#111 0,#000 60%,#000 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    #start-overlay.hidden{
+      display: none;
+    }
+
+    .title-main{
+      font-size: clamp(18px,3vmin,26px);
+      letter-spacing: 2px;
+      text-align: center;
+      text-shadow: 0 0 8px rgba(255,255,255,0.6);
+    }
+
+    .title-sub{
+      font-size: var(--fs-small);
+      color: #ccc;
+      text-align: center;
+      max-width: 560px;
+      line-height: 1.6;
+    }
+
+    .start-hint{
+      font-size: var(--fs-small);
+      color: #999;
+      margin-top: 8px;
+    }
+
+    @media (max-width: 768px){
+      #controls{
+        transform: scale(0.9);
+        transform-origin: bottom right;
+      }
     }
   </style>
 </head>
 <body>
-  <div id="frame">
-    <div id="game-wrapper">
-      <div id="game-inner">
-        <canvas id="game-canvas" width="320" height="240"></canvas>
+<div id="orientation-warning">
+  가로 모드로 돌려주세요.<br/>
+  <span>이 게임은 가로 화면(landscape)에서만 플레이할 수 있습니다.</span>
+</div>
 
-        <!-- 좌측 하단 조이스틱 (게임 창 밖) -->
-        <div id="joystick" class="controller">
-          <div id="joystick-base">
-            <div id="joystick-knob"></div>
-          </div>
-        </div>
+<div id="game-root">
+  <canvas id="game-canvas" width="320" height="180"></canvas>
 
-        <!-- 우측 하단 A 버튼 (아이템 / 액션) -->
-        <button id="btn-action">A</button>
+  <div class="ui-layer">
+    <div id="chapter-title">SLEEP / HUB</div>
+
+    <div id="start-overlay">
+      <div class="title-main">RED RABBIT / FIVE ROADS</div>
+      <div class="title-sub">
+        붉은 토끼는 다섯 갈래의 미로를 지나<br/>
+        산재·난민·표백·쓰레기산·빅이슈의 이야기를 듣습니다.<br/>
+        마지막에는, 기사의 발제문이 쪽지로 남습니다.
+      </div>
+      <div class="start-hint">화면을 터치하거나 아무 키나 눌러 시작</div>
+    </div>
+
+    <div id="dialog-box">
+      붉은 토끼는 아직 잠들지 않았습니다.<br/>
+      화살표 버튼(또는 키보드 방향키)로 움직이고, A 버튼으로 상호작용하세요.
+    </div>
+
+    <div id="controls">
+      <div class="dpad">
+        <div></div>
+        <button class="btn-circle" data-dir="up">▲</button>
+        <div></div>
+        <button class="btn-circle" data-dir="left">◀</button>
+        <div></div>
+        <button class="btn-circle" data-dir="right">▶</button>
+        <div></div>
+        <button class="btn-circle" data-dir="down">▼</button>
+        <div></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;align-items:center;">
+        <button id="btn-action" class="btn-circle">A</button>
+        <button id="btn-note-list" class="btn-ghost">NOTES</button>
       </div>
     </div>
   </div>
 
+  <!-- 쪽지/발제문 -->
+  <div id="note-overlay" class="hidden">
+    <div class="note-card">
+      <div class="note-title" id="note-title">NOTE</div>
+      <div class="note-body" id="note-body"></div>
+      <div class="note-footer">
+        <span id="note-status"></span>
+        <button id="btn-close-note" class="btn-small">닫기</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
-/* =========================
-   기본 상태
-   ========================= */
-const canvas = document.getElementById('game-canvas');
-const ctx    = canvas.getContext('2d');
-
-const WIDTH  = canvas.width;
-const HEIGHT = canvas.height;
-
-let lastTime = 0;
-
-const STATE = {
-  mode: 'maze',        // 'maze' | 'mission'
-  player: {
-    x: 0, y: 0,        // 그리드 좌표
-    prevX: 0, prevY: 0,
-    animT: 0,
-    animDur: 0.14,
-    moving: false
-  },
-  pointer: {x:0,y:0,down:false},
-  currentGame: null,
-  activeEndingKey: null,
-  activeEndingSymbol: null,
-  activeMissionIndex: 0,
-  endingProgress: {},
-  items: {},
-
-  // UI용 상태
-  message: "",
-  chapterLabel: ""
-};
-
-/* =========================
-   조이스틱 상태
-   ========================= */
-const joystickBase = document.getElementById('joystick-base');
-const joystickKnob = document.getElementById('joystick-knob');
-const actionBtn    = document.getElementById('btn-action');
-
-const JOYSTICK = {
-  active: false,
-  vx: 0,
-  vy: 0,
-  lastMoveTime: 0
-};
-
-const JOY_STEP_INTERVAL = 140; // ms
-
-/* =========================
-   공통 유틸
-   ========================= */
-function setMessage(text){
-  STATE.message = text || "";
-}
-
-function setDefaultControlMessage(){
-  setMessage("이동: 좌측 조이스틱 / 화면 탭   |   액션·아이템: 우측 A 버튼");
-}
-
-function setChapterLabel(text){
-  STATE.chapterLabel = text || "";
-}
-
-function getCanvasPos(evt){
-  const rect = canvas.getBoundingClientRect();
-  const cx = (evt.touches ? evt.touches[0].clientX : evt.clientX) - rect.left;
-  const cy = (evt.touches ? evt.touches[0].clientY : evt.clientY) - rect.top;
-  const x = cx * (canvas.width / rect.width);
-  const y = cy * (canvas.height / rect.height);
-  return {x, y};
-}
-
-/* 흑백 플레이어 아이콘 (토끼 대신 작은 인물/핀 느낌) */
-function drawPlayerIcon(x, y){
-  const s = 8;
-  ctx.fillStyle = '#f5f5f5';
-  // 머리
-  ctx.fillRect(x+2, y-2, s*4/8, s*4/8);
-  // 몸통
-  ctx.fillRect(x+3, y+2, s*3/8, s*4/8);
-  // 다리
-  ctx.fillRect(x+2, y+6, s*1/8, s*2/8);
-  ctx.fillRect(x+4, y+6, s*1/8, s*2/8);
-}
-
-/* =========================
-   상단/하단 HUD
-   ========================= */
-function drawHUD(){
-  ctx.save();
-
-  // 상단 챕터 라벨 바
-  if(STATE.chapterLabel){
-    const barH = 18;
-    ctx.globalAlpha = 0.95;
-    const gradTop = ctx.createLinearGradient(0,0,WIDTH,0);
-    gradTop.addColorStop(0,"#050505");
-    gradTop.addColorStop(1,"#111111");
-    ctx.fillStyle = gradTop;
-    ctx.fillRect(0, 0, WIDTH, barH);
-
-    ctx.globalAlpha = 1.0;
-    ctx.fillStyle = "#e5e7eb";
-    ctx.font = "8px 'Press Start 2P'";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText(STATE.chapterLabel, WIDTH/2, barH/2);
+  // ===== ORIENTATION CHECK =====
+  function checkOrientation(){
+    const warn = document.getElementById('orientation-warning');
+    if(window.innerWidth < window.innerHeight){
+      warn.style.display = 'flex';
+    }else{
+      warn.style.display = 'none';
+    }
   }
+  window.addEventListener('resize', checkOrientation);
+  checkOrientation();
 
-  // 하단 메시지 바
-  if(STATE.message){
-    const barH = 46;
-    ctx.globalAlpha = 0.95;
-    const gradBot = ctx.createLinearGradient(0,HEIGHT-barH,WIDTH,HEIGHT);
-    gradBot.addColorStop(0,"#050505");
-    gradBot.addColorStop(1,"#000000");
-    ctx.fillStyle = gradBot;
-    ctx.fillRect(0, HEIGHT - barH, WIDTH, barH);
+  // ===== BASIC GAME CONSTANTS =====
+  const canvas = document.getElementById('game-canvas');
+  const ctx = canvas.getContext('2d');
 
-    ctx.globalAlpha = 1.0;
-    ctx.fillStyle = "#f3f4f6";
-    ctx.font = "8px 'Press Start 2P'";
-    ctx.textAlign = "left";
-    ctx.textBaseline = "top";
+  const TILE_SIZE = 16;
+  const MAP_COLS = 20; // 20 * 16 = 320
+  const MAP_ROWS = 11; // 11 * 16 = 176
 
-    const maxWidth = WIDTH - 8;
-    const words = STATE.message.split(" ");
-    let line = "";
-    let y = HEIGHT - barH + 4;
+  const chapterTitleEl = document.getElementById('chapter-title');
+  const dialogBoxEl = document.getElementById('dialog-box');
+  const startOverlayEl = document.getElementById('start-overlay');
+  const noteOverlayEl = document.getElementById('note-overlay');
+  const noteTitleEl = document.getElementById('note-title');
+  const noteBodyEl = document.getElementById('note-body');
+  const noteStatusEl = document.getElementById('note-status');
 
-    for(let i = 0; i < words.length; i++){
-      const test = line ? line + " " + words[i] : words[i];
-      const w = ctx.measureText(test).width;
-      if(w > maxWidth){
-        ctx.fillText(line, 4, y);
-        y += 10;
-        line = words[i];
-      }else{
-        line = test;
+  const btnAction = document.getElementById('btn-action');
+  const btnNoteList = document.getElementById('btn-note-list');
+  const btnCloseNote = document.getElementById('btn-close-note');
+
+  let gameStarted = false;
+  let currentMapId = 'hub';
+
+  const notesState = {
+    cafeteria: false,
+    cameroon: false,
+    bleach: false,
+    trash: false,
+    bigissue: false
+  };
+
+  let player = {
+    x: 9,   // tile coords
+    y: 9,
+    px: 9 * TILE_SIZE,
+    py: 9 * TILE_SIZE,
+    canMove: true
+  };
+
+  const inputState = {
+    up: false,
+    down: false,
+    left: false,
+    right: false
+  };
+
+  // ===== MAPS =====
+  // '#' = wall, '.' = floor, ' ' = void, '@' = start (hub),
+  // '1'..'5' = chapter portals in hub
+  // 'G' = goal tile in chapter map, 'H' = return to hub
+
+  const maps = {
+    hub: {
+      id: 'hub',
+      name: 'SLEEP / HUB',
+      tiles: [
+        "####################",
+        "#..................#",
+        "#..1.......2.......#",
+        "#..................#",
+        "#..3.......4.......#",
+        "#..................#",
+        "#........5.........#",
+        "#..................#",
+        "#..................#",
+        "#.........@........#",
+        "####################"
+      ],
+      start: {x: 9, y: 9},
+      portals: {
+        // tile coords → map id
+        "3,2": "cafeteria",
+        "11,2": "cameroon",
+        "3,4": "bleach",
+        "11,4": "trash",
+        "9,6": "bigissue"
+      },
+      hotspots: [
+        {
+          x: 9, y: 8,
+          id: "hub_intro",
+          text: "다섯 갈래의 길이 앞에 놓여 있습니다.\n어느 세계의 목소리를 먼저 들으시겠습니까?"
+        }
+      ],
+      goal: null
+    },
+    cafeteria: {
+      id: 'cafeteria',
+      name: '급식실 산재 노동자',
+      tiles: [
+        "####################",
+        "#......#...........#",
+        "#..G...#...........#",
+        "#......#...........#",
+        "#..#######.........#",
+        "#.............#####",
+        "#..######.........#",
+        "#......#.........H#",
+        "#......#..........#",
+        "#......#..........#",
+        "####################"
+      ],
+      start: {x: 2, y: 8},
+      hotspots: [
+        {
+          x: 2, y: 1,
+          id: "caf_1",
+          text: "열판의 열기는 손까지 익히려 들었습니다.\n바람에 불꽃이 흐트러져서는 안 된다고 했습니다."
+        },
+        {
+          x: 4, y: 2,
+          id: "caf_2",
+          text: "코끝에 머무는 식용유 냄새를 지워내고 싶었습니다.\n그즈음, 그는 다시 담배를 물었습니다."
+        }
+      ],
+      goal: {x: 3, y: 2} // 'G'
+    },
+    cameroon: {
+      id: 'cameroon',
+      name: '카메룬 내전 난민',
+      tiles: [
+        "####################",
+        "#.............#####",
+        "#..######....#...H#",
+        "#..#..G.#....#....#",
+        "#..#....#....#....#",
+        "#..#....#....#....#",
+        "#..#....######....#",
+        "#..#..............#",
+        "#..################",
+        "#..................",
+        "####################"
+      ],
+      start: {x: 2, y: 9},
+      hotspots: [
+        {
+          x: 4, y: 3,
+          id: "cam_1",
+          text: "이곳이 나를 원하지 않는다면 어쩔 수 없습니다.\n하지만 저는 선택지가 없습니다."
+        },
+        {
+          x: 6, y: 1,
+          id: "cam_2",
+          text: "경계선은 눈에 보이지 않아도,\n어디에선가 항상 누군가를 잘라냅니다."
+        }
+      ],
+      goal: {x: 5, y: 3}
+    },
+    bleach: {
+      id: 'bleach',
+      name: '인도 표백 노동자',
+      tiles: [
+        "####################",
+        "#..G...............#",
+        "#..#####...........#",
+        "#......#...........#",
+        "#......#.......#####",
+        "#......#.......#..H#",
+        "#..######.......#..#",
+        "#...............#..#",
+        "#...............#..#",
+        "#...............#..#",
+        "####################"
+      ],
+      start: {x: 2, y: 9},
+      hotspots: [
+        {
+          x: 4, y: 1,
+          id: "ble_1",
+          text: "심라구지란 상류에 트럭이 섰습니다.\n잿빛 오염수가 흰 거품을 뒤섞으며 떨어집니다."
+        },
+        {
+          x: 7, y: 7,
+          id: "ble_2",
+          text: "여력이 없는 사람들은 버틸 뿐이라고 말했습니다.\n떠나지 않은 사람들도 곧 아플 것이라고 했습니다."
+        }
+      ],
+      goal: {x: 3, y: 1}
+    },
+    trash: {
+      id: 'trash',
+      name: '태국 쓰레기산',
+      tiles: [
+        "####################",
+        "#..#######.......H#",
+        "#..#.....#........#",
+        "#..#.G...#........#",
+        "#..#.....#####....#",
+        "#..#.........#....#",
+        "#..#######...#....#",
+        "#...........##....#",
+        "#................##",
+        "#..................",
+        "####################"
+      ],
+      start: {x: 2, y: 9},
+      hotspots: [
+        {
+          x: 3, y: 3,
+          id: "tr_1",
+          text: "멀리서 보았을 때 그곳은 언덕처럼 보였습니다.\n가까이 다가갈수록, 냄새와 소리가 쌓여갑니다."
+        },
+        {
+          x: 10, y: 7,
+          id: "tr_2",
+          text: "GPS를 넣은 신발은 도시를 떠나,\n바다를 건너, 3500km 떨어진 시장에서 다시 신호를 보냈습니다."
+        }
+      ],
+      goal: {x: 4, y: 3}
+    },
+    bigissue: {
+      id: 'bigissue',
+      name: '빅이슈 / 거리의 집',
+      tiles: [
+        "####################",
+        "#..................#",
+        "#..######.....#####",
+        "#..#....#.....#..H#",
+        "#..#.G..#.....#...#",
+        "#..#....#.....#...#",
+        "#..######.....#...#",
+        "#.............#...#",
+        "#.............#...#",
+        "#.............#...#",
+        "####################"
+      ],
+      start: {x: 2, y: 9},
+      hotspots: [
+        {
+          x: 4, y: 4,
+          id: "bi_1",
+          text: "매일 아침 왼발 앞쪽에 붕대를 감습니다.\n붕대는 발가락 대신 몸의 균형을 잡아줍니다."
+        },
+        {
+          x: 11, y: 3,
+          id: "bi_2",
+          text: "홈리스는 거리 노숙인만이 아닙니다.\n불안정한 집, 기준에 미치지 못하는 방도 집이라 불립니다."
+        }
+      ],
+      goal: {x: 4, y: 4}
+    }
+  };
+
+  const visitedHotspots = new Set();
+
+  // ===== TEXT HELPERS =====
+  function setDialog(text){
+    dialogBoxEl.textContent = '';
+    const lines = text.split('\n');
+    lines.forEach((line, idx) => {
+      dialogBoxEl.appendChild(document.createTextNode(line));
+      if(idx < lines.length - 1){
+        dialogBoxEl.appendChild(document.createElement('br'));
       }
-    }
-    if(line){
-      ctx.fillText(line, 4, y);
-    }
-  }
-
-  ctx.restore();
-}
-
-/* =========================
-   미니게임 베이스
-   ========================= */
-class MiniGame {
-  constructor(name, description){
-    this.name = name;
-    this.description = description;
-    this.isDone = false;
-    this.timer = 0;
-  }
-  init(){
-    this.isDone = false;
-    this.timer = 0;
-    setMessage(this.description);
-  }
-  update(dt){
-    this.timer += dt;
-  }
-  draw(ctx){}
-  pointerDown(x,y){}
-  pointerUp(x,y){}
-}
-
-/* =========================
-   미니게임들 (전체 흑백/그레이 톤)
-   ========================= */
-
-class WaveGame extends MiniGame {
-  constructor(){
-    super("정지한 파형", "파형이 거의 평평해지는 순간을 탭하거나 A 버튼을 눌러보세요.");
-    this.t = 0;
-  }
-  init(){
-    super.init();
-    this.t = 0;
-  }
-  update(dt){
-    super.update(dt);
-    this.t += dt;
-  }
-  draw(ctx){
-    const grad = ctx.createLinearGradient(0,0,0,HEIGHT);
-    grad.addColorStop(0,"#050505");
-    grad.addColorStop(1,"#000000");
-    ctx.fillStyle = grad;
-    ctx.fillRect(0,0,WIDTH,HEIGHT);
-
-    const midY = HEIGHT/2;
-    ctx.strokeStyle = "#e5e7eb";
-    ctx.lineWidth = 1;
-
-    ctx.beginPath();
-    ctx.moveTo(0, midY);
-    const baseAmp = 20;
-    let amp = baseAmp * (0.3 + 0.7*Math.abs(Math.sin(this.t*0.5)));
-    const phase = this.t * 0.5;
-    if(Math.abs(Math.sin(phase*1.2)) < 0.2){
-      amp = 2;
-    }
-
-    for(let x=0; x<WIDTH; x++){
-      const t = (x/40) + phase;
-      const y = midY + Math.sin(t)*amp;
-      ctx.lineTo(x, y);
-    }
-    ctx.stroke();
-
-    ctx.strokeStyle = "#4b5563";
-    ctx.beginPath();
-    ctx.moveTo(0, midY);
-    ctx.lineTo(WIDTH, midY);
-    ctx.stroke();
-
-    ctx.fillStyle = "#d4d4d4";
-    ctx.font = "8px 'Press Start 2P'";
-    ctx.textAlign = "left";
-    ctx.fillText("TAP WHEN FLAT", 6, 14);
-  }
-  pointerDown(){
-    const phase = this.t * 0.5;
-    const flatScore = Math.abs(Math.sin(phase*1.2));
-    if(flatScore < 0.15){
-      setMessage(`평평한 순간을 포착했습니다. (정확도: ${((1-flatScore)*100).toFixed(1)}%)`);
-      this.isDone = true;
-    }else{
-      setMessage("조금 어긋났습니다. 다시 시도해보세요.");
-    }
-  }
-}
-
-class FadingPixelGame extends MiniGame {
-  constructor(){
-    super("사라지는 픽셀", "서서히 어두워지는 픽셀을 찾아 탭하세요.");
-    this.gridSize = 5;
-    this.specialIndex = 0;
-    this.startTime = 0;
-    this.found = false;
-  }
-  init(){
-    super.init();
-    this.gridSize = Math.random() < 0.5 ? 4 : 5;
-    this.specialIndex = Math.floor(Math.random()*this.gridSize*this.gridSize);
-    this.startTime = performance.now();
-    this.found = false;
-  }
-  draw(ctx){
-    const grad = ctx.createLinearGradient(0,0,WIDTH,HEIGHT);
-    grad.addColorStop(0,"#050505");
-    grad.addColorStop(1,"#000000");
-    ctx.fillStyle = grad;
-    ctx.fillRect(0,0,WIDTH,HEIGHT);
-
-    const padding = 40;
-    const size = Math.min(WIDTH, HEIGHT) - padding*2;
-    const cell = size / this.gridSize;
-    const offsetX = (WIDTH - size)/2;
-    const offsetY = (HEIGHT - size)/2;
-
-    const elapsed = (performance.now() - this.startTime)/1000;
-    const darkFactor = Math.min(elapsed/3, 1);
-
-    for(let i=0;i<this.gridSize*this.gridSize;i++){
-      const gx = i % this.gridSize;
-      const gy = Math.floor(i/this.gridSize);
-      const x = offsetX + gx*cell;
-      const y = offsetY + gy*cell;
-
-      if(i === this.specialIndex){
-        const base = 220;
-        const v = base - darkFactor*140;
-        ctx.fillStyle = `rgb(${v},${v},${v})`;
-      }else{
-        ctx.fillStyle = "#4b4b4b";
-      }
-      ctx.fillRect(x+2,y+2,cell-4,cell-4);
-    }
-
-    ctx.strokeStyle = "#d4d4d4";
-    ctx.lineWidth = 1;
-    ctx.strokeRect(offsetX-4, offsetY-4, size+8, size+8);
-  }
-  pointerDown(x,y){
-    if(this.found) return;
-    const padding = 40;
-    const size = Math.min(WIDTH, HEIGHT) - padding*2;
-    const cell = size / this.gridSize;
-    const offsetX = (WIDTH - size)/2;
-    const offsetY = (HEIGHT - size)/2;
-
-    const gx = Math.floor((x - offsetX) / cell);
-    const gy = Math.floor((y - offsetY) / cell);
-    if(gx<0||gy<0||gx>=this.gridSize||gy>=this.gridSize) return;
-
-    const idx = gy*this.gridSize + gx;
-    const elapsed = (performance.now() - this.startTime)/1000;
-
-    if(idx === this.specialIndex){
-      this.found = true;
-      this.isDone = true;
-      setMessage(`변화를 ${elapsed.toFixed(2)}초 만에 발견했습니다.`);
-    }else{
-      setMessage("다른 픽셀입니다. 다시 시도해보세요.");
-    }
-  }
-}
-
-class OverlapGame extends MiniGame {
-  constructor(){
-    super("겹치는 곳", "두 도형이 정확히 겹쳐질 때를 탭하세요.");
-    this.t = 0;
-  }
-  init(){
-    super.init();
-    this.t = 0;
-  }
-  update(dt){
-    super.update(dt);
-    this.t += dt;
-  }
-  draw(ctx){
-    const grad = ctx.createLinearGradient(0,0,WIDTH,HEIGHT);
-    grad.addColorStop(0,"#050505");
-    grad.addColorStop(1,"#000000");
-    ctx.fillStyle = grad;
-    ctx.fillRect(0,0,WIDTH,HEIGHT);
-
-    const centerY = HEIGHT/2;
-    const size = 40;
-
-    const progress = (Math.sin(this.t*0.3) + 1)/2;
-    const leftX  = WIDTH*0.1 + progress*WIDTH*0.3;
-    const rightX = WIDTH*0.9 - progress*WIDTH*0.3;
-
-    ctx.lineWidth = 2;
-
-    ctx.strokeStyle = "#e5e5e5";
-    ctx.beginPath();
-    ctx.moveTo(leftX, centerY - size/2);
-    ctx.lineTo(leftX - size/2, centerY + size/2);
-    ctx.lineTo(leftX + size/2, centerY + size/2);
-    ctx.closePath();
-    ctx.stroke();
-
-    ctx.fillStyle = "#b3b3b3";
-    ctx.beginPath();
-    ctx.moveTo(rightX, centerY - size/2);
-    ctx.lineTo(rightX - size/2, centerY + size/2);
-    ctx.lineTo(rightX + size/2, centerY + size/2);
-    ctx.closePath();
-    ctx.fill();
-
-    ctx.fillStyle = "#e5e7eb";
-    ctx.font = "8px 'Press Start 2P'";
-    ctx.textAlign = "center";
-    ctx.fillText("TAP WHEN THEY OVERLAP", WIDTH/2, 20);
-  }
-  pointerDown(){
-    const progress = (Math.sin(this.t*0.3) + 1)/2;
-    const leftX  = WIDTH*0.1 + progress*WIDTH*0.3;
-    const rightX = WIDTH*0.9 - progress*WIDTH*0.3;
-    const dist = Math.abs(leftX - rightX);
-    if(dist < 10){
-      this.isDone = true;
-      setMessage("겹치는 순간을 포착했습니다.");
-    }else{
-      setMessage("조금 어긋났습니다. 다시 시도해보세요.");
-    }
-  }
-}
-
-class FallingPixelsGame extends MiniGame {
-  constructor(){
-    super("떨어지는 픽셀", "떨어지는 흰 픽셀만 15개 이상 탭하세요.");
-    this.pixels = [];
-    this.spawnTimer = 0;
-    this.collected = 0;
-  }
-  init(){
-    super.init();
-    this.pixels = [];
-    this.spawnTimer = 0;
-    this.collected = 0;
-  }
-  spawnPixel(){
-    this.pixels.push({
-      x: Math.random()*WIDTH,
-      y: -10,
-      vy: 30 + Math.random()*40,
-      type: Math.random()<0.6 ? "white" : "gray",
-      dead: false
     });
   }
-  update(dt){
-    super.update(dt);
-    this.spawnTimer += dt;
-    if(this.spawnTimer > 0.4){
-      this.spawnTimer = 0;
-      this.spawnPixel();
-    }
-    for(const p of this.pixels){
-      p.y += p.vy*dt;
-      if(p.y > HEIGHT+10) p.dead = true;
-    }
-    this.pixels = this.pixels.filter(p=>!p.dead);
-  }
-  draw(ctx){
-    const grad = ctx.createLinearGradient(0,0,0,HEIGHT);
-    grad.addColorStop(0,"#050505");
-    grad.addColorStop(1,"#000000");
-    ctx.fillStyle = grad;
-    ctx.fillRect(0,0,WIDTH,HEIGHT);
 
-    for(const p of this.pixels){
-      ctx.fillStyle = (p.type==="white") ? "#fafafa" : "#5a5a5a";
-      ctx.fillRect(p.x-3,p.y-3,6,6);
+  function showNoteForMap(mapId){
+    let title = "";
+    let body = "";
+    let key = null;
+
+    if(mapId === 'cafeteria'){
+      title = "NOTE 1 / 급식실 산재 노동자";
+      body =
+        "열판의 열기는 손까지 익히려 들었습니다.\n" +
+        "창문을 열면, 바람에 불꽃이 흐트러져서는 안 된다고 했습니다.\n\n" +
+        "코끝에 머무는 식용유 냄새를 지우고 싶었습니다.\n" +
+        "그즈음 그는 다시 담배를 물었고,\n" +
+        "몇 년 후 조리실을 떠났습니다.\n\n" +
+        "폐암 4기 진단. 그리고, 지난해 7월의 부고.\n" +
+        "일터의 열기는 몸에 먼저 스며들었습니다.";
+      key = 'cafeteria';
+    }else if(mapId === 'cameroon'){
+      title = "NOTE 2 / 카메룬 내전 난민";
+      body =
+        "“이곳이 나를 원하지 않는다면 어쩔 수 없어요.\n" +
+        "하지만 저는 선택지가 없습니다.\n" +
+        "이곳에 머무는 것밖에.”\n\n" +
+        "국경과 난민 캠프, 서류와 바코드,\n" +
+        "눈에 보이지 않는 선들이 사람을 잘라냅니다.\n\n" +
+        "당신과 나를 구분짓는 경계,\n" +
+        "‘너’가 ‘그것’이 되는 순간은 어디에서 시작될까요?";
+      key = 'cameroon';
+    }else if(mapId === 'bleach'){
+      title = "NOTE 3 / 인도 표백 노동자";
+      body =
+        "심라구지란 상류에 선 트럭에서,\n" +
+        "잿빛 오염수가 흰 거품과 뒤섞여 쏟아졌습니다.\n" +
+        "30분 뒤, 똑같은 장면이 반복되었습니다.\n\n" +
+        "표백 공장의 더러운 물은 방류되어\n" +
+        "마을과 강으로 흘러들어갑니다.\n\n" +
+        "떠날 여력이 없는 사람들은 버틸 뿐이라고 말합니다.\n" +
+        "여기 머무는 이들 역시 곧 아플 것이라고 말합니다.";
+      key = 'bleach';
+    }else if(mapId === 'trash'){
+      title = "NOTE 4 / 태국 쓰레기산";
+      body =
+        "멀리서 보았을 때, 쓰레기산은 작은 언덕 같았습니다.\n" +
+        "가까이 다가갈수록, 냄새와 소리가 겹겹이 쌓였습니다.\n\n" +
+        "GPS를 넣은 신발은 도시 외곽으로 나갔다가,\n" +
+        "양주, 인천 항구를 지나,\n" +
+        "4주 뒤, 태국 롱끌르아 시장에서 다시 신호를 보냈습니다.\n\n" +
+        "한 사람의 발자국은,\n" +
+        "거대한 쓰레기의 역사 속 한 좌표가 되었습니다.";
+      key = 'trash';
+    }else if(mapId === 'bigissue'){
+      title = "NOTE 5 / 빅이슈 / 거리의 집";
+      body =
+        "매일 아침, 왼발 앞쪽에 붕대를 감습니다.\n" +
+        "2011년 산재 사고로 왼쪽 발가락 다섯 개를 잃었습니다.\n" +
+        "붕대는 발가락 대신 몸의 균형을 잡아주지만,\n" +
+        "얼마 못 가 모양이 흐트러집니다.\n\n" +
+        "홈리스는 거리 노숙인만을 뜻하지 않습니다.\n" +
+        "불안정한 주거, 기준에 미치지 못하는 집,\n" +
+        "치료시설과 임시 쉼터의 침대들까지 포함됩니다.\n\n" +
+        "우리는 서로에게 기대어 서 있습니다.\n" +
+        "누군가의 붕대 위에서 간신히 버티는 균형처럼.";
+      key = 'bigissue';
+    }else if(mapId === 'all'){
+      title = "FINAL NOTE / 다섯 갈래의 잠";
+      body =
+        "붉은 토끼는 다섯 갈래의 미로를 모두 지나왔습니다.\n\n" +
+        "급식실의 열기, 국경의 경계,\n" +
+        "표백 공장의 물, 쓰레기산 위의 GPS,\n" +
+        "거리의 집과 붕대.\n\n" +
+        "이 이야기들은 서로 다른 곳에서 시작되었지만,\n" +
+        "하나의 세계 안에서 동시에 잠들어 있습니다.\n\n" +
+        "당신은 이제, 기사의 발제문을 들었고,\n" +
+        "누군가의 세계가 ‘그것’이 되기 전의 순간을\n" +
+        "조금 더 오래 바라보게 되었습니다.";
+      key = null;
     }
 
-    ctx.fillStyle = "#f3f4f6";
-    ctx.font = "8px 'Press Start 2P'";
-    ctx.textAlign = "left";
-    ctx.fillText(`WHITE: ${this.collected}/15`, 6, 14);
+    noteTitleEl.textContent = title;
+    noteBodyEl.textContent = '';
+    body.split('\n').forEach((line, idx) => {
+      noteBodyEl.appendChild(document.createTextNode(line));
+      if(idx < body.split('\n').length - 1){
+        noteBodyEl.appendChild(document.createElement('br'));
+      }
+    });
+
+    if(key){
+      notesState[key] = true;
+    }
+
+    const collectedCount = Object.values(notesState).filter(Boolean).length;
+    const total = Object.keys(notesState).length;
+    noteStatusEl.textContent = `수집된 쪽지: ${collectedCount} / ${total}`;
+
+    noteOverlayEl.classList.remove('hidden');
   }
-  pointerDown(x,y){
-    for(const p of this.pixels){
-      const dx = p.x - x;
-      const dy = p.y - y;
-      if(Math.sqrt(dx*dx+dy*dy) < 10){
-        if(p.type==="white"){
-          this.collected++;
-          p.dead = true;
-          setMessage(`흰 픽셀을 포착했습니다. (${this.collected}/15)`);
-          if(this.collected>=15){
-            this.isDone = true;
-            setMessage("충분한 픽셀을 포착했습니다.");
+
+  function showNoteList(){
+    let body = "";
+    body += notesState.cafeteria ? "■ NOTE 1 / 급식실 산재 노동자 (획득)\n" : "□ NOTE 1 / 급식실 산재 노동자\n";
+    body += notesState.cameroon ? "■ NOTE 2 / 카메룬 내전 난민 (획득)\n" : "□ NOTE 2 / 카메룬 내전 난민\n";
+    body += notesState.bleach ? "■ NOTE 3 / 인도 표백 노동자 (획득)\n" : "□ NOTE 3 / 인도 표백 노동자\n";
+    body += notesState.trash ? "■ NOTE 4 / 태국 쓰레기산 (획득)\n" : "□ NOTE 4 / 태국 쓰레기산\n";
+    body += notesState.bigissue ? "■ NOTE 5 / 빅이슈 / 거리의 집 (획득)\n" : "□ NOTE 5 / 빅이슈 / 거리의 집\n";
+
+    noteTitleEl.textContent = "NOTES / 쪽지 목록";
+    noteBodyEl.textContent = '';
+    body.split('\n').forEach((line, idx) => {
+      noteBodyEl.appendChild(document.createTextNode(line));
+      if(idx < body.split('\n').length - 1){
+        noteBodyEl.appendChild(document.createElement('br'));
+      }
+    });
+    const collectedCount = Object.values(notesState).filter(Boolean).length;
+    const total = Object.keys(notesState).length;
+    noteStatusEl.textContent = `수집된 쪽지: ${collectedCount} / ${total}`;
+    noteOverlayEl.classList.remove('hidden');
+  }
+
+  // ===== MAP HELPERS =====
+  function getMap(){
+    return maps[currentMapId];
+  }
+
+  function isWall(x, y){
+    const map = getMap();
+    if(x < 0 || x >= MAP_COLS || y < 0 || y >= MAP_ROWS) return true;
+    const ch = map.tiles[y].charAt(x);
+    if(ch === '#') return true;
+    return false;
+  }
+
+  function getTileChar(x, y){
+    const map = getMap();
+    if(x < 0 || x >= MAP_COLS || y < 0 || y >= MAP_ROWS) return ' ';
+    return map.tiles[y].charAt(x);
+  }
+
+  function warpToMap(mapId, startPos){
+    currentMapId = mapId;
+    chapterTitleEl.textContent = maps[mapId].name;
+    const map = maps[mapId];
+    const sp = startPos || map.start;
+    player.x = sp.x;
+    player.y = sp.y;
+    player.px = player.x * TILE_SIZE;
+    player.py = player.y * TILE_SIZE;
+
+    if(mapId === 'hub'){
+      setDialog("다섯 갈래의 길.\n토끼는 어느 세계부터 들어가 볼까요?");
+    }else{
+      // 각 챕터별 인트로 멘트
+      if(mapId === 'cafeteria'){
+        setDialog("열판의 열기와 식용유 냄새가 남은 조리실.\n지워진 자리를 따라가 봅니다.");
+      }else if(mapId === 'cameroon'){
+        setDialog("보이지 않는 선들이 겹쳐진 국경.\n열려 있으면서 닫힌 문들을 지나갑니다.");
+      }else if(mapId === 'bleach'){
+        setDialog("표백 공장의 물이 흐르는 마을.\n흰색이 아니라, 지워짐으로 물든 세계.");
+      }else if(mapId === 'trash'){
+        setDialog("겹겹이 쌓인 쓰레기산.\n누군가의 발자국이 어디로 옮겨졌는지 따라가 봅니다.");
+      }else if(mapId === 'bigissue'){
+        setDialog("거리의 집, 흔들리는 균형.\n누군가의 붕대 위에서 버티는 밤.");
+      }
+    }
+  }
+
+  // ===== PLAYER MOVEMENT =====
+  function tryMove(dx, dy){
+    if(!gameStarted) return;
+    if(!player.canMove) return;
+
+    const nx = player.x + dx;
+    const ny = player.y + dy;
+    if(isWall(nx, ny)) return;
+
+    player.x = nx;
+    player.y = ny;
+    player.px = player.x * TILE_SIZE;
+    player.py = player.y * TILE_SIZE;
+
+    handleTileStep();
+  }
+
+  function handleTileStep(){
+    const map = getMap();
+    const key = player.x + "," + player.y;
+
+    if(map.id === 'hub'){
+      const portal = map.portals[key];
+      if(portal){
+        warpToMap(portal);
+        return;
+      }
+
+      // 모두 모았으면 중앙으로
+      const collectedAll = Object.values(notesState).every(Boolean);
+      if(collectedAll && player.x === 9 && player.y === 9){
+        showNoteForMap('all');
+      }
+
+      // hub hotspot
+      map.hotspots.forEach(hs => {
+        if(hs.x === player.x && hs.y === player.y){
+          if(!visitedHotspots.has(hs.id)){
+            visitedHotspots.add(hs.id);
           }
-        }else{
-          setMessage("회색 픽셀입니다. 피부가 더 하얘지는 건 아닙니다.");
-          this.collected = Math.max(0, this.collected-1);
+          setDialog(hs.text);
         }
-        break;
-      }
-    }
-  }
-}
-
-class BlinkPixelsGame extends MiniGame {
-  constructor(){
-    super("픽셀 포착", "반짝이는 흰 픽셀을 예측해서 탭하세요.");
-    this.points = [];
-    this.success = 0;
-    this.total = 0;
-  }
-  init(){
-    super.init();
-    this.points = [];
-    this.success = 0;
-    this.total = 0;
-    for(let i=0;i<8;i++){
-      this.points.push({
-        x: 40 + Math.random()*(WIDTH-80),
-        y: 40 + Math.random()*(HEIGHT-80),
-        phase: Math.random()*Math.PI*2
       });
-    }
-  }
-  draw(ctx){
-    const grad = ctx.createRadialGradient(
-      WIDTH/2, HEIGHT/2, 10,
-      WIDTH/2, HEIGHT/2, WIDTH/2
-    );
-    grad.addColorStop(0,"#050505");
-    grad.addColorStop(1,"#000000");
-    ctx.fillStyle = grad;
-    ctx.fillRect(0,0,WIDTH,HEIGHT);
 
-    const t = this.timer;
-
-    for(const p of this.points){
-      const wave = (Math.sin(t*4 + p.phase)+1)/2;
-      const visible = wave>0.7;
-      if(visible){
-        const size = 5 + wave*4;
-        ctx.fillStyle = "#fafafa";
-        ctx.fillRect(p.x-size/2, p.y-size/2, size, size);
-      }else{
-        ctx.fillStyle = "#4b4b4b";
-        ctx.fillRect(p.x-2, p.y-2, 4, 4);
-      }
-    }
-
-    ctx.fillStyle = "#f3f4f6";
-    ctx.font = "8px 'Press Start 2P'";
-    ctx.textAlign = "left";
-    const rate = this.total>0 ? Math.round(this.success/this.total*100) : 0;
-    ctx.fillText(`HIT: ${this.success}/${this.total} (${rate}%)`, 6, 14);
-  }
-  pointerDown(x,y){
-    const t = this.timer;
-    this.total++;
-    let hit = false;
-    for(const p of this.points){
-      const wave = (Math.sin(t*4 + p.phase)+1)/2;
-      const visible = wave>0.7;
-      const dx = p.x - x;
-      const dy = p.y - y;
-      if(visible && Math.sqrt(dx*dx+dy*dy)<10){
-        this.success++;
-        hit = true;
-        break;
-      }
-    }
-    if(hit){
-      setMessage("반짝이는 순간을 포착했습니다.");
     }else{
-      setMessage("픽셀이 이미 사라졌습니다.");
-    }
-    if(this.success>=5){
-      this.isDone = true;
-      setMessage(`예측 성공률 ${(this.success/this.total*100).toFixed(1)}%`);
-    }
-  }
-}
-
-class StackGame extends MiniGame {
-  constructor(){
-    super("픽셀 쌓기", "떨어지는 블록들이 화면 절반 높이까지 쌓이도록 해보세요.");
-    this.cols = 10;
-    this.rows = 16;
-    this.grid = [];
-    this.current = null;
-    this.dropTimer = 0;
-    this.dropInterval = 0.5;
-  }
-  init(){
-    super.init();
-    this.grid = Array(this.rows).fill(0).map(()=>Array(this.cols).fill(0));
-    this.spawnBlock();
-    this.dropTimer = 0;
-  }
-  spawnBlock(){
-    const shapes = [
-      [[1,1,1,1]],
-      [[1,1],[1,1]],
-      [[1,1,0],[0,1,1]]
-    ];
-    const shape = shapes[Math.floor(Math.random()*shapes.length)];
-    this.current = {
-      shape,
-      x: Math.floor(this.cols/2)-1,
-      y: 0
-    };
-  }
-  canMove(dx,dy){
-    const s = this.current.shape;
-    for(let r=0;r<s.length;r++){
-      for(let c=0;c<s[0].length;c++){
-        if(!s[r][c]) continue;
-        const nx = this.current.x + c + dx;
-        const ny = this.current.y + r + dy;
-        if(nx<0||nx>=this.cols||ny<0||ny>=this.rows) return false;
-        if(this.grid[ny][nx]) return false;
-      }
-    }
-    return true;
-  }
-  lockBlock(){
-    const s = this.current.shape;
-    for(let r=0;r<s.length;r++){
-      for(let c=0;c<s[0].length;c++){
-        if(!s[r][c]) continue;
-        const gx = this.current.x + c;
-        const gy = this.current.y + r;
-        if(gy>=0 && gy<this.rows) this.grid[gy][gx] = 1;
-      }
-    }
-    this.current = null;
-    this.spawnBlock();
-  }
-  update(dt){
-    super.update(dt);
-    this.dropTimer += dt;
-    if(this.dropTimer>=this.dropInterval){
-      this.dropTimer = 0;
-      if(this.canMove(0,1)){
-        this.current.y++;
-      }else{
-        this.lockBlock();
-      }
-    }
-
-    let maxRow = 0;
-    for(let r=0;r<this.rows;r++){
-      if(this.grid[r].some(c=>c)) maxRow = this.rows-r;
-    }
-    if(maxRow >= this.rows/2){
-      this.isDone = true;
-      setMessage("충분히 쌓였습니다.");
-    }
-  }
-  draw(ctx){
-    const grad = ctx.createLinearGradient(0,0,WIDTH,HEIGHT);
-    grad.addColorStop(0,"#050505");
-    grad.addColorStop(1,"#000000");
-    ctx.fillStyle = grad;
-    ctx.fillRect(0,0,WIDTH,HEIGHT);
-
-    const cell = 12;
-    const gridWidth = this.cols*cell;
-    const gridHeight = this.rows*cell;
-    const offsetX = (WIDTH - gridWidth)/2;
-    const offsetY = (HEIGHT - gridHeight)/2;
-
-    for(let r=0;r<this.rows;r++){
-      for(let c=0;c<this.cols;c++){
-        if(this.grid[r][c]){
-          ctx.fillStyle = "#6b6b6b";
-          ctx.fillRect(offsetX+c*cell+1, offsetY+r*cell+1, cell-2, cell-2);
-        }
-      }
-    }
-
-    if(this.current){
-      ctx.fillStyle = "#f5f5f5";
-      const s = this.current.shape;
-      for(let r=0;r<s.length;r++){
-        for(let c=0;c<s[0].length;c++){
-          if(!s[r][c]) continue;
-          const gx = this.current.x + c;
-          const gy = this.current.y + r;
-          ctx.fillRect(offsetX+gx*cell+1, offsetY+gy*cell+1, cell-2, cell-2);
-        }
-      }
-    }
-
-    ctx.strokeStyle = "#4b4b4b";
-    ctx.strokeRect(offsetX-1, offsetY-1, gridWidth+2, gridHeight+2);
-  }
-  pointerDown(x,y){
-    const left = x < WIDTH/2;
-    if(left){
-      if(this.canMove(-1,0)) this.current.x--;
-    }else{
-      if(this.canMove(1,0)) this.current.x++;
-    }
-  }
-}
-
-class LinkPixelsGame extends MiniGame {
-  constructor(){
-    super("연결된 픽셀", "같은 리듬으로 깜박이는 픽셀들을 이어보세요.");
-    this.nodes = [];
-    this.selected = null;
-  }
-  init(){
-    super.init();
-    this.nodes = [];
-    const patterns = [0.8, 1.1, 1.5];
-    for(let i=0;i<9;i++){
-      this.nodes.push({
-        x: 40 + Math.random()*(WIDTH-80),
-        y: 40 + Math.random()*(HEIGHT-80),
-        pattern: patterns[i%patterns.length],
-        links: []
-      });
-    }
-    this.selected = null;
-  }
-  draw(ctx){
-    const grad = ctx.createRadialGradient(
-      WIDTH/2, HEIGHT/2, 10,
-      WIDTH/2, HEIGHT/2, WIDTH/2
-    );
-    grad.addColorStop(0,"#050505");
-    grad.addColorStop(1,"#000000");
-    ctx.fillStyle = grad;
-    ctx.fillRect(0,0,WIDTH,HEIGHT);
-
-    const t = this.timer;
-
-    ctx.strokeStyle = "#4b4b4b";
-    ctx.lineWidth = 1;
-    for(const n of this.nodes){
-      for(const other of n.links){
-        ctx.beginPath();
-        ctx.moveTo(n.x, n.y);
-        ctx.lineTo(other.x, other.y);
-        ctx.stroke();
-      }
-    }
-
-    for(const n of this.nodes){
-      const wave = (Math.sin(t*4/n.pattern)+1)/2;
-      const bright = wave>0.7;
-      ctx.fillStyle = bright ? "#f5f5f5" : "#6b6b6b";
-      ctx.beginPath();
-      ctx.arc(n.x,n.y,6,0,Math.PI*2);
-      ctx.fill();
-
-      if(this.selected === n){
-        ctx.strokeStyle = "#f5f5f5";
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.arc(n.x,n.y,9,0,Math.PI*2);
-        ctx.stroke();
-      }
-    }
-
-    ctx.fillStyle = "#f3f4f6";
-    ctx.font = "8px 'Press Start 2P'";
-    ctx.textAlign = "left";
-    ctx.fillText("SAME RHYTHM = LINK", 6, 14);
-  }
-  pointerDown(x,y){
-    let hit = null;
-    for(const n of this.nodes){
-      const dx = n.x - x;
-      const dy = n.y - y;
-      if(Math.sqrt(dx*dx+dy*dy)<8){
-        hit = n;
-        break;
-      }
-    }
-    if(!hit) return;
-
-    if(!this.selected){
-      this.selected = hit;
-      setMessage("같은 리듬의 픽셀을 찾아 이어보세요.");
-    }else{
-      if(this.selected === hit) return;
-      if(this.selected.pattern === hit.pattern){
-        if(!this.selected.links.includes(hit)){
-          this.selected.links.push(hit);
-        }
-        if(!hit.links.includes(this.selected)){
-          hit.links.push(this.selected);
-        }
-        setMessage("연결되었습니다.");
-      }else{
-        setMessage("리듬이 다릅니다.");
-      }
-      this.selected = null;
-    }
-
-    let allLinked = true;
-    for(const p of [0.8,1.1,1.5]){
-      const group = this.nodes.filter(n=>n.pattern===p);
-      const linkedCount = group.filter(n=>n.links.some(o=>o.pattern===p)).length;
-      if(linkedCount < group.length){
-        allLinked = false;
-        break;
-      }
-    }
-    if(allLinked){
-      this.isDone = true;
-      setMessage("연결된 리듬들이 하나의 지형이 되었습니다.");
-    }
-  }
-}
-
-class ClockArrowsGame extends MiniGame {
-  constructor(){
-    super("시계방향 시곗바늘", "모든 시곗바늘을 같은 방향으로 고정해보세요.");
-    this.grid = [];
-  }
-  init(){
-    super.init();
-    this.grid = [];
-    const size = 5;
-    for(let y=0;y<size;y++){
-      for(let x=0;x<size;x++){
-        this.grid.push({
-          x, y,
-          angle: Math.floor(Math.random()*4)*Math.PI/2,
-          locked: false
+      // chapter hotspots
+      if(map.hotspots){
+        map.hotspots.forEach(hs => {
+          if(hs.x === player.x && hs.y === player.y){
+            if(!visitedHotspots.has(hs.id)){
+              visitedHotspots.add(hs.id);
+            }
+            setDialog(hs.text);
+          }
         });
       }
-    }
-  }
-  update(dt){
-    super.update(dt);
-    for(const a of this.grid){
-      if(!a.locked){
-        a.angle += dt*0.5;
+
+      // goal tile → NOTE
+      if(map.goal && map.goal.x === player.x && map.goal.y === player.y){
+        showNoteForMap(map.id);
+      }
+
+      // 'H' 타일 → HUB로 돌아가기
+      const ch = getTileChar(player.x, player.y);
+      if(ch === 'H'){
+        warpToMap('hub');
       }
     }
   }
-  draw(ctx){
-    const grad = ctx.createLinearGradient(0,0,0,HEIGHT);
-    grad.addColorStop(0,"#050505");
-    grad.addColorStop(1,"#000000");
-    ctx.fillStyle = grad;
-    ctx.fillRect(0,0,WIDTH,HEIGHT);
 
-    const size = 5;
-    const cell = 28;
-    const gridWidth = size*cell;
-    const offsetX = (WIDTH-gridWidth)/2;
-    const offsetY = (HEIGHT-gridWidth)/2;
+  // ===== RENDERING =====
+  function draw(){
+    ctx.fillStyle = "#000000";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    for(const a of this.grid){
-      const cx = offsetX + a.x*cell + cell/2;
-      const cy = offsetY + a.y*cell + cell/2;
-      const len = 10;
-      const ax = cx + Math.cos(a.angle)*len;
-      const ay = cy + Math.sin(a.angle)*len;
+    const map = getMap();
 
-      ctx.strokeStyle = a.locked ? "#ffffff" : "#a3a3a3";
-      ctx.lineWidth = a.locked?2:1;
-      ctx.beginPath();
-      ctx.moveTo(cx,cy);
-      ctx.lineTo(ax,ay);
-      ctx.stroke();
+    // 타일 그리기
+    for(let y=0; y<MAP_ROWS; y++){
+      const row = map.tiles[y];
+      for(let x=0; x<MAP_COLS; x++){
+        const ch = row.charAt(x);
+        const sx = x * TILE_SIZE;
+        const sy = y * TILE_SIZE;
 
-      ctx.beginPath();
-      ctx.arc(cx,cy,2,0,Math.PI*2);
-      ctx.stroke();
-    }
+        // 바닥
+        ctx.fillStyle = "#111111";
+        ctx.fillRect(sx, sy, TILE_SIZE, TILE_SIZE);
 
-    ctx.strokeStyle = "#4b4b4b";
-    ctx.strokeRect(offsetX-2,offsetY-2,gridWidth+4,gridWidth+4);
-
-    ctx.fillStyle = "#f3f4f6";
-    ctx.font = "8px 'Press Start 2P'";
-    ctx.textAlign = "center";
-    ctx.fillText("TAP TO LOCK", WIDTH/2, 16);
-  }
-  pointerDown(x,y){
-    const size = 5;
-    const cell = 28;
-    const gridWidth = size*cell;
-    const offsetX = (WIDTH-gridWidth)/2;
-    const offsetY = (HEIGHT-gridWidth)/2;
-
-    for(const a of this.grid){
-      const cx = offsetX + a.x*cell + cell/2;
-      const cy = offsetY + a.y*cell + cell/2;
-      if(Math.abs(x-cx)<cell/2 && Math.abs(y-cy)<cell/2){
-        if(!a.locked){
-          const dir = Math.round(a.angle/(Math.PI/2))%(4);
-          a.angle = dir*(Math.PI/2);
-          a.locked = true;
+        if(ch === '#'){
+          // 벽
+          ctx.fillStyle = "#444444";
+          ctx.fillRect(sx, sy, TILE_SIZE, TILE_SIZE);
+          ctx.fillStyle = "#666666";
+          ctx.fillRect(sx+2, sy+2, TILE_SIZE-4, TILE_SIZE-4);
         }else{
-          a.locked = false;
+          // 바닥 패턴 살짝
+          ctx.fillStyle = "#151515";
+          ctx.fillRect(sx+4, sy+4, 1, 1);
         }
-        break;
-      }
-    }
 
-    const allLocked = this.grid.every(a=>a.locked);
-    if(allLocked){
-      const first = this.grid[0].angle;
-      const allSame = this.grid.every(a=>Math.abs(a.angle-first)<0.01);
-      if(allSame){
-        this.isDone = true;
-        setMessage("모든 시곗바늘이 같은 시간을 가리킵니다.");
-      }else{
-        setMessage("아직 각도가 제각각입니다.");
-      }
-    }
-  }
-}
+        // 허브의 포털 번호
+        if(map.id === 'hub'){
+          if(ch === '1' || ch === '2' || ch === '3' || ch === '4' || ch === '5'){
+            ctx.fillStyle = "#202020";
+            ctx.fillRect(sx, sy, TILE_SIZE, TILE_SIZE);
+            ctx.fillStyle = "#bbbbbb";
+            ctx.fillRect(sx+3, sy+3, TILE_SIZE-6, TILE_SIZE-6);
+            ctx.fillStyle = "#000000";
+            ctx.font = "10px 'Press Start 2P'";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText(ch, sx + TILE_SIZE/2, sy + TILE_SIZE/2 + 1);
+          }
+        }
 
-class PathGame extends MiniGame {
-  constructor(){
-    super("돌아가는 길", "한 번 탭, 두 번 탭, 길게 눌러 다른 점프를 만들어보세요.");
-    this.rabbitX = 40;
-    this.rabbitY = HEIGHT-40;
-    this.vy = 0;
-    this.platforms = [];
-    this.goal = {x: WIDTH-40, y: HEIGHT-80};
-    this.grounded = false;
-    this.lastTapTime = 0;
-    this.holdStart = null;
-  }
-  init(){
-    super.init();
-    this.rabbitX = 40;
-    this.rabbitY = HEIGHT-40;
-    this.vy = 0;
-    this.platforms = [
-      {x:60,y:HEIGHT-40,w:80},
-      {x:160,y:HEIGHT-80,w:80},
-      {x:240,y:HEIGHT-120,w:80},
-    ];
-    this.grounded = true;
-    this.lastTapTime = 0;
-    this.holdStart = null;
-  }
-  update(dt){
-    super.update(dt);
-    this.vy += 200*dt;
-    this.rabbitY += this.vy*dt;
-
-    this.grounded = false;
-    for(const p of this.platforms){
-      if(this.rabbitX>p.x && this.rabbitX<p.x+p.w){
-        if(this.rabbitY>=p.y-8 && this.rabbitY<=p.y+4 && this.vy>0){
-          this.rabbitY = p.y-8;
-          this.vy = 0;
-          this.grounded = true;
+        // 챕터 맵의 GOAL / HUB EXIT 표시
+        if(ch === 'G'){
+          ctx.fillStyle = "#550000";
+          ctx.fillRect(sx, sy, TILE_SIZE, TILE_SIZE);
+          ctx.fillStyle = "#ff4444";
+          ctx.fillRect(sx+3, sy+3, TILE_SIZE-6, TILE_SIZE-6);
+        }
+        if(ch === 'H'){
+          ctx.fillStyle = "#002222";
+          ctx.fillRect(sx, sy, TILE_SIZE, TILE_SIZE);
+          ctx.fillStyle = "#55ffff";
+          ctx.fillRect(sx+3, sy+3, TILE_SIZE-6, TILE_SIZE-6);
         }
       }
     }
-    if(this.rabbitY>HEIGHT-16){
-      this.rabbitY = HEIGHT-16;
-      this.vy = 0;
-      this.grounded = true;
-    }
 
-    const dx = this.rabbitX - this.goal.x;
-    const dy = this.rabbitY - this.goal.y;
-    if(Math.sqrt(dx*dx+dy*dy)<12){
-      this.isDone = true;
-      setMessage("토끼가 구멍 속으로 사라집니다.");
-    }
-  }
-  draw(ctx){
-    const grad = ctx.createLinearGradient(0,0,0,HEIGHT);
-    grad.addColorStop(0,"#050505");
-    grad.addColorStop(1,"#000000");
-    ctx.fillStyle = grad;
-    ctx.fillRect(0,0,WIDTH,HEIGHT);
+    // 플레이어(붉은 토끼)
+    const px = player.px;
+    const py = player.py;
+    ctx.fillStyle = "#990000";
+    ctx.fillRect(px+3, py+2, TILE_SIZE-6, TILE_SIZE-4); // 몸통
 
-    ctx.fillStyle = "#4b4b4b";
-    for(const p of this.platforms){
-      ctx.fillRect(p.x, p.y, p.w, 4);
-    }
+    // 귀
+    ctx.fillRect(px+4, py-2, 3, 6);
+    ctx.fillRect(px+TILE_SIZE-7, py-2, 3, 6);
 
-    ctx.fillStyle = "#020202";
-    ctx.beginPath();
-    ctx.arc(this.goal.x,this.goal.y+4,10,0,Math.PI*2);
-    ctx.fill();
-    ctx.strokeStyle = "#9f9f9f";
-    ctx.stroke();
+    // 눈
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(px+5, py+5, 2, 2);
 
-    // 여기서는 기존 토끼 느낌 유지 (흑백)
-    ctx.fillStyle = "#f5f5f5";
-    ctx.fillRect(this.rabbitX-3, this.rabbitY-7, 6, 5); // 머리
-    ctx.fillRect(this.rabbitX-2, this.rabbitY-2, 4, 6); // 몸통
+    // 꼭짓점 살짝 그림자
+    ctx.fillStyle = "rgba(0,0,0,0.4)";
+    ctx.fillRect(px+2, py+TILE_SIZE-4, TILE_SIZE-4, 2);
 
-    ctx.fillStyle = "#f3f4f6";
-    ctx.font = "8px 'Press Start 2P'";
-    ctx.textAlign = "center";
-    ctx.fillText("TAP / DOUBLE TAP / HOLD", WIDTH/2, 18);
-  }
-  pointerDown(x,y){
-    const now = performance.now();
-    if(now - this.lastTapTime < 250){
-      if(this.grounded){
-        this.vy = -220;
-        setMessage("두 번 점프! 더 멀리 날아갑니다.");
-      }
-    }else{
-      this.holdStart = now;
-      if(this.grounded){
-        this.vy = -150;
-        setMessage("작은 점프.");
-      }
-    }
-    this.lastTapTime = now;
-  }
-  pointerUp(){
-    if(this.holdStart){
-      const dur = performance.now()-this.holdStart;
-      if(dur>400 && this.grounded){
-        this.vy = -280;
-        setMessage("길게 눌러 높은 점프!");
-      }
-      this.holdStart = null;
-    }
-  }
-}
-
-/* =========================
-   미션 클래스 매핑
-   ========================= */
-const MISSION_CLASSES = {
-  WaveGame,
-  FadingPixelGame,
-  OverlapGame,
-  FallingPixelsGame,
-  BlinkPixelsGame,
-  StackGame,
-  LinkPixelsGame,
-  ClockArrowsGame,
-  PathGame,
-};
-
-/* =========================
-   미로 & 엔딩 정의
-   ========================= */
-
-const MAZE_RAW = [
-  "###############",
-  "#S           #",
-  "# # # # # # #",
-  "#           #",
-  "# # # # # # #",
-  "#   a   b   #",
-  "# # # # # # #",
-  "#   c   d   #",
-  "# # # # # # #",
-  "#     e     #",
-  "###############"
-];
-
-const MAZE = (() => {
-  const width = MAZE_RAW[0].length;
-  return MAZE_RAW.map(row => row.padEnd(width, "#"));
-})();
-const MAZE_H = MAZE.length;
-const MAZE_W = MAZE[0].length;
-
-const ENDINGS = {
-  'a': {
-    key: 'A',
-    name: '급식실 산재 노동자',
-    chapter: 'CH1',
-    itemId: 'item_waveRecorder',
-    itemName: '파형 기록기',
-    itemDesc: '정지한 파형의 순간을 기록하는 장치.',
-    missions: ['WaveGame', 'FadingPixelGame'],
-    text: '급식실의 소음 사이, 잠깐 평평해진 순간이 저장되었습니다.'
-  },
-  'b': {
-    key: 'B',
-    name: '카메룬 내전 난민',
-    chapter: 'CH1',
-    itemId: 'item_overlapMap',
-    itemName: '겹치는 지도',
-    itemDesc: '겹쳐진 경계가 드러나는 지도.',
-    missions: ['OverlapGame'],
-    text: '길이 겹칠 때만 보이던 경계선이 손에 쥐어졌습니다.'
-  },
-  'c': {
-    key: 'C',
-    name: '인도 표백 노동자',
-    chapter: 'CH2',
-    itemId: 'item_bleachGloves',
-    itemName: '표백 장갑',
-    itemDesc: '얼룩이 지워지지 않는 하얀 장갑.',
-    missions: ['FallingPixelsGame', 'BlinkPixelsGame'],
-    text: '손에 남은 것은 밝아진 피부가 아니라, 지워지지 않는 얼룩입니다.'
-  },
-  'd': {
-    key: 'D',
-    name: '태국 쓰레기산',
-    chapter: 'CH2',
-    itemId: 'item_heapFragment',
-    itemName: '쓰레기 탑 조각',
-    itemDesc: '압축된 쓰레기 더미의 한 조각.',
-    missions: ['StackGame', 'LinkPixelsGame'],
-    text: '꼭대기에서 본 풍경은 아래에서 올려다본 것과 같은 모양입니다.'
-  },
-  'e': {
-    key: 'E',
-    name: '빅이슈 / 시간',
-    chapter: 'CH3',
-    itemId: 'item_timeZine',
-    itemName: '접힌 시간의 잡지',
-    itemDesc: '시간이 접힌 채 기록된 잡지.',
-    missions: ['ClockArrowsGame', 'PathGame'],
-    text: '여러 장면을 지나온 뒤, 손에 남은 것은 시간을 팔고 산 이들의 기록입니다.'
-  }
-};
-
-/* =========================
-   미로 그리기 (흑백 + 챕터별 톤만 아주 살짝)
-   ========================= */
-function chapterFromRow(y){
-  if(y <= 3) return 'CH1';
-  if(y <= 7) return 'CH2';
-  return 'CH3';
-}
-
-function drawMaze(){
-  const grad = ctx.createLinearGradient(0,0,0,HEIGHT);
-  grad.addColorStop(0,"#050505");
-  grad.addColorStop(1,"#000000");
-  ctx.fillStyle = grad;
-  ctx.fillRect(0,0,WIDTH,HEIGHT);
-
-  const cellSize = Math.min(WIDTH / MAZE_W, HEIGHT / MAZE_H);
-  const mazeWidthPx = MAZE_W*cellSize;
-  const mazeHeightPx = MAZE_H*cellSize;
-  const offsetX = (WIDTH - mazeWidthPx)/2;
-  const offsetY = (HEIGHT - mazeHeightPx)/2;
-
-  // 바깥 박스
-  ctx.strokeStyle = "#4b4b4b";
-  ctx.lineWidth = 1;
-  ctx.strokeRect(offsetX-4, offsetY-4, mazeWidthPx+8, mazeHeightPx+8);
-
-  for(let y=0;y<MAZE_H;y++){
-    const chapter = chapterFromRow(y);
-    let basePathColor;
-    if(chapter === 'CH1'){
-      basePathColor = "#111111";
-    }else if(chapter === 'CH2'){
-      basePathColor = "#171717";
-    }else{
-      basePathColor = "#1f1f1f";
-    }
-
-    for(let x=0;x<MAZE_W;x++){
-      const ch = MAZE[y][x];
-      const sx = offsetX + x*cellSize;
-      const sy = offsetY + y*cellSize;
-
-      if(ch === '#'){
-        ctx.fillStyle = "#020202";
-        ctx.fillRect(sx,sy,cellSize,cellSize);
-        ctx.strokeStyle = "#0a0a0a";
-        ctx.strokeRect(sx,sy,cellSize,cellSize);
-      }else{
-        ctx.fillStyle = basePathColor;
-        ctx.fillRect(sx,sy,cellSize,cellSize);
-
-        // 엔딩 노드 타일
-        if(ch === 'a' || ch === 'b' || ch === 'c' || ch === 'd' || ch === 'e'){
-          ctx.fillStyle = "rgba(0,0,0,0.6)";
-          ctx.fillRect(sx+1,sy+1,cellSize-2,cellSize-2);
-          ctx.strokeStyle = "#f5f5f5";
-          ctx.lineWidth = 1.2;
-          ctx.strokeRect(sx+2,sy+2,cellSize-4,cellSize-4);
-          ctx.fillStyle = "#f5f5f5";
-          ctx.font = `${cellSize*0.42}px 'Press Start 2P'`;
-          ctx.textAlign = "center";
-          ctx.textBaseline = "middle";
-          ctx.fillText(ch.toUpperCase(), sx+cellSize/2, sy+cellSize/2);
-        }
-      }
-    }
+    requestAnimationFrame(draw);
   }
 
-  // 플레이어 위치 (부드러운 보간)
-  const frac = STATE.player.moving ? (STATE.player.animT/STATE.player.animDur) : 1;
-  const gridX = STATE.player.moving
-    ? STATE.player.prevX + (STATE.player.x-STATE.player.prevX)*frac
-    : STATE.player.x;
-  const gridY = STATE.player.moving
-    ? STATE.player.prevY + (STATE.player.y-STATE.player.prevY)*frac
-    : STATE.player.y;
+  requestAnimationFrame(draw);
 
-  const px = offsetX + gridX*cellSize;
-  const py = offsetY + gridY*cellSize;
-  drawPlayerIcon(px + cellSize*0.3, py + cellSize*0.3);
-}
+  // ===== INPUT HANDLERS =====
 
-/* =========================
-   플레이어 이동 & 애니메이션
-   ========================= */
-function canMoveTo(x,y){
-  if(x<0||y<0||x>=MAZE_W||y>=MAZE_H) return false;
-  return MAZE[y][x] !== '#';
-}
-
-function updateChapterLabelByPos(){
-  const ch = chapterFromRow(STATE.player.y);
-  setChapterLabel(`${ch} MAZE`);
-}
-
-function movePlayer(dx,dy){
-  // 이동 중이면 새 입력 무시 (너무 튀지 않게)
-  if(STATE.player.moving) return;
-
-  const nx = STATE.player.x + dx;
-  const ny = STATE.player.y + dy;
-  if(!canMoveTo(nx,ny)) return;
-
-  STATE.player.prevX = STATE.player.x;
-  STATE.player.prevY = STATE.player.y;
-  STATE.player.x = nx;
-  STATE.player.y = ny;
-  STATE.player.animT = 0;
-  STATE.player.moving = true;
-
-  updateChapterLabelByPos();
-
-  const ch = MAZE[ny][nx];
-  if(ch === 'a' || ch === 'b' || ch === 'c' || ch === 'd' || ch === 'e'){
-    const cfg = ENDINGS[ch];
-    const hasItem = !!STATE.items[cfg.itemId];
-    if(hasItem){
-      setMessage(`${cfg.itemName}을 이미 획득했습니다. (A 버튼으로 정보 확인 가능)`);
-    }else{
-      startEndingMission(ch, cfg);
+  // 키보드
+  window.addEventListener('keydown', (e)=>{
+    if(!gameStarted){
+      gameStarted = true;
+      startOverlayEl.classList.add('hidden');
+      setDialog("붉은 토끼가 눈을 떴습니다.\n다섯 갈래의 길 중 하나를 선택해 보세요.");
+      return;
     }
-  }else{
-    setDefaultControlMessage();
-  }
-}
 
-function updatePlayerAnim(dt){
-  if(STATE.player.moving){
-    STATE.player.animT += dt;
-    if(STATE.player.animT >= STATE.player.animDur){
-      STATE.player.animT = STATE.player.animDur;
-      STATE.player.moving = false;
+    if(e.key === 'ArrowUp' || e.key === 'w'){
+      tryMove(0,-1);
+    }else if(e.key === 'ArrowDown' || e.key === 's'){
+      tryMove(0,1);
+    }else if(e.key === 'ArrowLeft' || e.key === 'a'){
+      tryMove(-1,0);
+    }else if(e.key === 'ArrowRight' || e.key === 'd'){
+      tryMove(1,0);
+    }else if(e.key === ' ' || e.key === 'Enter' || e.key === 'z' || e.key === 'x'){
+      // 액션 버튼
+      handleAction();
     }
-  }
-}
+  });
 
-/* =========================
-   엔딩 미션 시작/완료
-   ========================= */
-function startEndingMission(symbol, cfg){
-  const key = cfg.key;
-  const idx = STATE.endingProgress[key] || 0;
-  const missionKey = cfg.missions[idx];
-  const GameClass = MISSION_CLASSES[missionKey];
-  if(!GameClass) return;
-
-  STATE.mode = 'mission';
-  STATE.activeEndingKey = key;
-  STATE.activeEndingSymbol = symbol;
-  STATE.activeMissionIndex = idx;
-
-  const game = new GameClass();
-  STATE.currentGame = game;
-  game.init();
-  setChapterLabel(`${cfg.chapter} ${cfg.name} – ${idx+1}/${cfg.missions.length}`);
-}
-
-function completeCurrentMission(){
-  const symbol = STATE.activeEndingSymbol;
-  const cfg = ENDINGS[symbol];
-  const key = cfg.key;
-
-  let idx = STATE.endingProgress[key] || 0;
-  idx++;
-  STATE.endingProgress[key] = idx;
-
-  if(idx >= cfg.missions.length){
-    if(!STATE.items[cfg.itemId]){
-      STATE.items[cfg.itemId] = {
-        name: cfg.itemName,
-        description: cfg.itemDesc
-      };
-    }
-    STATE.mode = 'maze';
-    STATE.currentGame = null;
-    STATE.activeEndingKey = null;
-    STATE.activeEndingSymbol = null;
-    STATE.activeMissionIndex = 0;
-
-    updateChapterLabelByPos();
-    setMessage(cfg.text + " (A 버튼으로 아이템 정보 확인 가능)");
-  }else{
-    startEndingMission(symbol, cfg);
-  }
-}
-
-/* =========================
-   입력 처리
-   ========================= */
-function handleMazeTap(x,y){
-  const topRegion = (y < HEIGHT*0.25);
-  const bottomRegion = (y > HEIGHT*0.75);
-  const leftRegion = (y >= HEIGHT*0.25 && y <= HEIGHT*0.75 && x < WIDTH*0.33);
-  const rightRegion = (y >= HEIGHT*0.25 && y <= HEIGHT*0.75 && x > WIDTH*0.67);
-
-  if(topRegion){
-    movePlayer(0,-1);
-  }else if(bottomRegion){
-    movePlayer(0,1);
-  }else if(leftRegion){
-    movePlayer(-1,0);
-  }else if(rightRegion){
-    movePlayer(1,0);
-  }
-}
-
-function handleActionButton(){
-  if(STATE.mode === 'maze'){
-    const x = STATE.player.x;
-    const y = STATE.player.y;
-    const ch = MAZE[y][x];
-
-    if(ENDINGS[ch]){
-      const cfg = ENDINGS[ch];
-      const item = STATE.items[cfg.itemId];
-      if(item){
-        setMessage(`${item.name} : ${item.description}`);
+  // 터치/마우스 dpad
+  document.querySelectorAll('.btn-circle[data-dir]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const dir = btn.getAttribute('data-dir');
+      if(!gameStarted){
+        gameStarted = true;
+        startOverlayEl.classList.add('hidden');
+        setDialog("붉은 토끼가 눈을 떴습니다.\n다섯 갈래의 길 중 하나를 선택해 보세요.");
         return;
       }
-    }
+      if(dir === 'up') tryMove(0,-1);
+      else if(dir === 'down') tryMove(0,1);
+      else if(dir === 'left') tryMove(-1,0);
+      else if(dir === 'right') tryMove(1,0);
+    });
+  });
 
-    const keys = Object.keys(STATE.items);
-    if(keys.length === 0){
-      setMessage("아직 획득한 아이템이 없습니다.");
+  // 액션 버튼
+  btnAction.addEventListener('click', ()=>{
+    if(!gameStarted){
+      gameStarted = true;
+      startOverlayEl.classList.add('hidden');
+      setDialog("붉은 토끼가 눈을 떴습니다.\n다섯 갈래의 길 중 하나를 선택해 보세요.");
+      return;
+    }
+    handleAction();
+  });
+
+  function handleAction(){
+    const map = getMap();
+
+    if(map.id === 'hub'){
+      // 중앙에서 A → 아직 노트가 부족하면 힌트
+      const all = Object.values(notesState).every(Boolean);
+      if(player.x === 9 && player.y === 9){
+        if(all){
+          showNoteForMap('all');
+        }else{
+          setDialog("아직 잠들지 않은 이야기가 있습니다.\n다른 길들을 더 걸어가 보세요.");
+        }
+      }else{
+        setDialog("화살표로 움직이고 A 버튼으로 상호작용합니다.\n포털 위에 서면 다른 세계로 이동합니다.");
+      }
     }else{
-      const parts = keys.map(id=>{
-        const it = STATE.items[id];
-        return `[${it.name}] ${it.description}`;
-      });
-      setMessage(parts.join(" / "));
-    }
-  }else if(STATE.mode === 'mission' && STATE.currentGame){
-    const cx = WIDTH/2;
-    const cy = HEIGHT/2;
-    STATE.currentGame.pointerDown(cx,cy);
-    if(typeof STATE.currentGame.pointerUp === "function"){
-      STATE.currentGame.pointerUp(cx,cy);
-    }
-  }
-}
-
-function globalPointerDown(pos){
-  STATE.pointer = {x:pos.x,y:pos.y,down:true};
-
-  if(STATE.mode === 'maze'){
-    handleMazeTap(pos.x,pos.y);
-  }else if(STATE.currentGame){
-    STATE.currentGame.pointerDown(pos.x,pos.y);
-  }
-}
-
-function globalPointerUp(){
-  STATE.pointer.down = false;
-  if(STATE.mode === 'mission' && STATE.currentGame){
-    STATE.currentGame.pointerUp(STATE.pointer.x,STATE.pointer.y);
-  }
-}
-
-/* 캔버스 이벤트 */
-canvas.addEventListener('mousedown', (e)=>{
-  const pos = getCanvasPos(e);
-  globalPointerDown(pos);
-});
-canvas.addEventListener('mouseup', (e)=>{
-  globalPointerUp();
-});
-canvas.addEventListener('touchstart', (e)=>{
-  e.preventDefault();
-  const pos = getCanvasPos(e);
-  globalPointerDown(pos);
-},{passive:false});
-canvas.addEventListener('touchend', (e)=>{
-  e.preventDefault();
-  globalPointerUp();
-},{passive:false});
-
-/* =========================
-   조이스틱 이벤트
-   ========================= */
-function startJoystick(e){
-  e.preventDefault();
-  JOYSTICK.active = true;
-  JOYSTICK.lastMoveTime = 0;
-  updateJoystick(e);
-}
-
-function updateJoystick(e){
-  const rect = joystickBase.getBoundingClientRect();
-  const cx = rect.left + rect.width/2;
-  const cy = rect.top + rect.height/2;
-  const ex = e.clientX;
-  const ey = e.clientY;
-
-  let dx = ex - cx;
-  let dy = ey - cy;
-
-  const maxR = rect.width/2 - 10;
-  const dist = Math.sqrt(dx*dx+dy*dy);
-  if(dist > maxR){
-    dx = dx * (maxR/dist);
-    dy = dy * (maxR/dist);
-  }
-
-  joystickKnob.style.transform =
-    `translate(${dx}px, ${dy}px) translate(-50%, -50%)`;
-
-  JOYSTICK.vx = dx / maxR;
-  JOYSTICK.vy = dy / maxR;
-}
-
-function endJoystick(e){
-  JOYSTICK.active = false;
-  JOYSTICK.vx = 0;
-  JOYSTICK.vy = 0;
-  joystickKnob.style.transform = "translate(-50%, -50%)";
-}
-
-joystickBase.addEventListener('pointerdown', startJoystick);
-window.addEventListener('pointermove', (e)=>{
-  if(JOYSTICK.active) updateJoystick(e);
-});
-window.addEventListener('pointerup', (e)=>{
-  if(JOYSTICK.active) endJoystick(e);
-});
-
-/* A 버튼 */
-actionBtn.addEventListener('pointerdown', (e)=>{
-  e.preventDefault();
-  handleActionButton();
-});
-
-/* 조이스틱에 따른 미로 이동 */
-function updateMazeByJoystick(timestamp){
-  if(!JOYSTICK.active || STATE.mode!=='maze') return;
-  const now = timestamp;
-  if(now - JOYSTICK.lastMoveTime < JOY_STEP_INTERVAL) return;
-
-  const threshold = 0.35;
-  let dx = 0, dy = 0;
-
-  if(Math.abs(JOYSTICK.vx) > Math.abs(JOYSTICK.vy)){
-    if(Math.abs(JOYSTICK.vx) > threshold){
-      dx = JOYSTICK.vx > 0 ? 1 : -1;
-    }
-  }else{
-    if(Math.abs(JOYSTICK.vy) > threshold){
-      dy = JOYSTICK.vy > 0 ? 1 : -1;
-    }
-  }
-
-  if(dx!==0 || dy!==0){
-    movePlayer(dx,dy);
-    JOYSTICK.lastMoveTime = now;
-  }
-}
-
-/* =========================
-   메인 루프
-   ========================= */
-function loop(timestamp){
-  const dt = (timestamp-lastTime)/1000;
-  lastTime = timestamp;
-
-  updatePlayerAnim(dt);
-  updateMazeByJoystick(timestamp);
-
-  if(STATE.mode === 'maze'){
-    drawMaze();
-  }else if(STATE.mode === 'mission' && STATE.currentGame){
-    const g = STATE.currentGame;
-    g.update(dt);
-    g.draw(ctx);
-    if(g.isDone){
-      completeCurrentMission();
-    }
-  }
-
-  drawHUD();
-  requestAnimationFrame(loop);
-}
-
-/* =========================
-   시작 위치 찾기 & 시작
-   ========================= */
-function findStart(){
-  for(let y=0;y<MAZE_H;y++){
-    for(let x=0;x<MAZE_W;x++){
-      if(MAZE[y][x] === 'S'){
-        STATE.player.x = x;
-        STATE.player.y = y;
-        STATE.player.prevX = x;
-        STATE.player.prevY = y;
-        return;
+      // 챕터 안에서 A → 간단한 내레이션
+      if(map.id === 'cafeteria'){
+        setDialog("당신이 걸어가는 길 위에도,\n보이지 않는 열과 기름이 남아 있을지 모릅니다.");
+      }else if(map.id === 'cameroon'){
+        setDialog("발밑의 픽셀들도 보이지 않는 선으로 나뉩니다.\n당신은 어느 쪽에 서 있습니까?");
+      }else if(map.id === 'bleach'){
+        setDialog("흰색은 항상 깨끗함을 의미하지 않습니다.\n무언가가 지워진 자리일 수도 있습니다.");
+      }else if(map.id === 'trash'){
+        setDialog("겹겹이 쌓인 픽셀 더미 속에서,\n당신은 어떤 하나의 점에 시선이 멈추나요?");
+      }else if(map.id === 'bigissue'){
+        setDialog("우리는 서로에게 약간씩 기대며 버팁니다.\n균형을 잃지 않기 위해.");
       }
     }
   }
-  STATE.player = {x:1,y:1,prevX:1,prevY:1,animT:0,animDur:0.14,moving:false};
-}
 
-function start(){
-  findStart();
-  updateChapterLabelByPos();
-  setDefaultControlMessage();
-  requestAnimationFrame(loop);
-}
+  // NOTE 창 닫기
+  btnCloseNote.addEventListener('click', ()=>{
+    noteOverlayEl.classList.add('hidden');
+    // NOTE 닫고 챕터 맵이었으면 허브로 돌려보내기
+    if(currentMapId !== 'hub' && currentMapId !== 'all'){
+      warpToMap('hub');
+    }
+  });
 
-start();
+  btnNoteList.addEventListener('click', ()=>{
+    if(!gameStarted) return;
+    showNoteList();
+  });
+
+  // 시작 오버레이 클릭
+  startOverlayEl.addEventListener('click', ()=>{
+    if(!gameStarted){
+      gameStarted = true;
+      startOverlayEl.classList.add('hidden');
+      setDialog("붉은 토끼가 눈을 떴습니다.\n다섯 갈래의 길 중 하나를 선택해 보세요.");
+    }
+  });
+
+  // 초기 허브 설정
+  warpToMap('hub');
+
 </script>
 </body>
 </html>
