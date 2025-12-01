@@ -398,7 +398,7 @@ input, textarea{
 <div id="rotateOverlay">
   <div>
     <b>Landscape mode required</b><br/>
-    Please rotate your device to landscape to continue.
+    Please rotate your device to continue.
   </div>
 </div>
 
@@ -884,9 +884,14 @@ input, textarea{
   ];
   let blobVisited = [false,false,false,false,false];
 
+  // 미로 시작 위치: 왼쪽 복도( tx=1, ty=8 )
+  const mazeStartTile = {tx:1, ty:8};
+  const mazeStartTargetX = (mazeStartTile.tx + 0.5)*tileSize;
+  const mazeStartY = (mazeStartTile.ty + 0.5)*tileSize;
+
   // 미로에서의 플레이어 좌표 (픽셀)
-  let mazePlayerX = 10 * tileSize + tileSize/2;
-  let mazePlayerY = 8 * tileSize + tileSize/2;
+  let mazePlayerX = mazeStartTargetX;
+  let mazePlayerY = mazeStartY;
   const mazeSpeed = 1.1;
 
   function isWall(px, py){
@@ -900,7 +905,7 @@ input, textarea{
   // 상태
   // 'title', 'introWalk', 'introDialog', 'freeToSofa', 'seatedDialog',
   // 'freeToBlob', 'blobDialog', 'transitionToCosmic', 'cosmic',
-  // 'transitionToMaze', 'maze', 'mazeDialog'
+  // 'transitionToMaze', 'mazeEnter', 'maze', 'mazeDialog'
   let gameState = 'title';
 
   /* 대화 시스템 (공통) */
@@ -912,10 +917,15 @@ input, textarea{
   let dialogMode = 'normal'; // 'normal' | 'blobIntro' | 'blobStory' | 'blobDecision'
   let currentBlobIndex = -1;
 
+  const dialogBar = qs('#dialogBar');
+  const dialogTextElem = qs('#dialogText');
+  const dialogChoices = qs('#dialogChoices');
+  const dialogNextBtnEl = qs('#dialogNext');
+
   function clearChoices(){
     dialogChoices.innerHTML = '';
     dialogChoices.classList.add('hidden');
-    dialogNextBtn.classList.remove('hidden');
+    dialogNextBtnEl.classList.remove('hidden');
   }
 
   function showChoiceButtons(options){
@@ -931,7 +941,7 @@ input, textarea{
       dialogChoices.appendChild(b);
     });
     dialogChoices.classList.remove('hidden');
-    dialogNextBtn.classList.add('hidden');
+    dialogNextBtnEl.classList.add('hidden');
   }
 
   async function showDialog(lines, hint='', cb=null){
@@ -957,33 +967,31 @@ input, textarea{
     const line = currentLines[currentIdx] || '';
     fullLine = line;
     typing = true;
-    await typeText(dialogText, line, 40, false);
+    await typeText(dialogTextElem, line, 40, false);
     typing = false;
   }
 
-  dialogNextBtn.addEventListener('click', async ()=>{
+  dialogNextBtnEl.addEventListener('click', async ()=>{
     await ensureResumed();
 
     // 미로 블랙홀 스토리 모드
     if(dialogMode === 'blobStory'){
       if(typing){
         typing = false;
-        dialogText.textContent = fullLine;
+        dialogTextElem.textContent = fullLine;
         return;
       }
-      // 스토리 끝나면 "흠… 들어가볼까?" + 선택지
       await showBlobDecision(currentBlobIndex);
       return;
     }
 
     if(dialogMode !== 'normal'){
-      // blobIntro / blobDecision 상태에서는 NEXT를 쓸 일이 없음
       return;
     }
 
     if(typing){
       typing = false;
-      dialogText.textContent = fullLine;
+      dialogTextElem.textContent = fullLine;
       return;
     }
 
@@ -996,7 +1004,8 @@ input, textarea{
   });
 
   /* HUD 입력 */
-  const dpad = hudLeft.querySelector('.dpad');
+  const hudLeftEl = qs('#hudLeft');
+  const dpad = hudLeftEl.querySelector('.dpad');
   if(dpad){
     dpad.addEventListener('pointerdown', (e)=>{
       const btn = e.target.closest('button[data-dir]');
@@ -1164,6 +1173,23 @@ input, textarea{
       if(t > 6){
         speechBubble.classList.add('hidden');
         startMazeScene();
+      }
+      return;
+    }
+
+    // 미로 입장: 왼쪽에서 걸어오는 연출
+    if(gameState === 'mazeEnter'){
+      // 목표 x 까지 자동으로 오른쪽으로 이동
+      const targetX = mazeStartTargetX;
+      const dir = targetX > mazePlayerX ? 1 : -1;
+      const step = 0.7;
+      mazePlayerX += dir * step;
+
+      // 살짝 오버해도 괜찮게 범위로 체크
+      if( (dir > 0 && mazePlayerX >= targetX) ||
+          (dir < 0 && mazePlayerX <= targetX) ){
+        mazePlayerX = targetX;
+        gameState = 'maze';   // 여기서부터 플레이어 컨트롤 가능
       }
       return;
     }
@@ -1342,7 +1368,7 @@ input, textarea{
       ctx.stroke();
     });
 
-    // 토끼 (탑다운이지만 귀여우니까 그대로)
+    // 토끼 (탑다운이지만 그대로)
     const rx = mazePlayerX - 6;
     const ry = mazePlayerY - 6;
     drawRedRabbit(ctx, rx, ry, 1.2);
@@ -1353,7 +1379,7 @@ input, textarea{
       drawCosmicView();
       return;
     }
-    if(gameState === 'maze' || gameState === 'mazeDialog'){
+    if(gameState === 'maze' || gameState === 'mazeEnter' || gameState === 'mazeDialog'){
       drawMazeView();
       return;
     }
@@ -1371,7 +1397,7 @@ input, textarea{
   /* ===== 상태 전환 ===== */
   function startGameScene(){
     gameLayout.classList.remove('hidden');
-    hudLeft.classList.remove('hidden');
+    hudLeftEl.classList.remove('hidden');
     hudRight.classList.remove('hidden');
 
     gameStarted = true;
@@ -1488,16 +1514,16 @@ input, textarea{
     startDarkMusic();
 
     setTimeout(()=>{
-      // 미로 초기 위치 설정
-      mazePlayerX = 10 * tileSize + tileSize/2;
-      mazePlayerY = 8 * tileSize + tileSize/2;
+      // 미로 입장: 왼쪽 복도 바깥 쪽에서부터
+      mazePlayerX = (mazeStartTile.tx - 1) * tileSize; // 살짝 왼쪽에서
+      mazePlayerY = mazeStartY;
 
       stageFade.style.opacity = '0';
       setTimeout(()=>{
         stageFade.classList.add('hidden');
       }, 800);
 
-      gameState = 'maze';
+      gameState = 'mazeEnter';    // 여기서 자동으로 걸어 들어옴
       dialogBar.classList.add('hidden');
       hintBar.classList.add('hidden');
     }, 900);
@@ -1533,7 +1559,7 @@ input, textarea{
     const line = "어어엇…? 무슨 소리가 들려온다.";
     typing = true;
     fullLine = line;
-    await typeText(dialogText, line, 40, false);
+    await typeText(dialogTextElem, line, 40, false);
     typing = false;
 
     dialogMode = 'blobIntro';
@@ -1563,9 +1589,9 @@ input, textarea{
     const line = blobStories[index] || "";
     typing = true;
     fullLine = line;
-    await typeText(dialogText, line, 35, false);
+    await typeText(dialogTextElem, line, 35, false);
     typing = false;
-    dialogNextBtn.classList.remove('hidden');
+    dialogNextBtnEl.classList.remove('hidden');
   }
 
   async function showBlobDecision(index){
@@ -1573,7 +1599,7 @@ input, textarea{
     const line = "흠… 들어가볼까?";
     typing = true;
     fullLine = line;
-    await typeText(dialogText, line, 40, false);
+    await typeText(dialogTextElem, line, 40, false);
     typing = false;
 
     showChoiceButtons([
