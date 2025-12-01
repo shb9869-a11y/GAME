@@ -151,12 +151,18 @@ input, textarea{
   justify-content:center;
   pointer-events:none;
 }
+#titleLines{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:8px;
+}
 .sleepLine{
   font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
   letter-spacing:.16em;
   font-size:clamp(26px, 6.2vmin, 80px);
   text-transform:uppercase;
-  white-space:pre;
+  white-space:nowrap;
   text-align:center;
   text-shadow:0 0 8px rgba(0,0,0,0.85);
 }
@@ -173,7 +179,7 @@ input, textarea{
   display:flex;
   align-items:center;           /* 중앙 정렬 */
   justify-content:center;
-  pointer-events:none;          /* 실제 입력은 캔버스, HUD에만 */
+  pointer-events:none;          /* 실제 입력은 캔버스, HUD, 대화창에서 */
   transform: translateY(-4vh);  /* 게임 화면을 전체적으로 살짝 위로 */
 }
 #gameCard{
@@ -192,7 +198,7 @@ input, textarea{
   width:100%;
   max-width:720px;
   aspect-ratio:16/9;
-  background:#050505;
+  background:#001307;
   border:1px solid rgba(245,245,245,0.4);
   box-shadow:0 0 0 2px rgba(0,0,0,0.85), 0 0 30px rgba(0,0,0,0.9);
   overflow:hidden;
@@ -233,6 +239,7 @@ input, textarea{
   left:auto;
   bottom:auto;
   transform:none;
+  pointer-events:auto;          /* NEXT 버튼 클릭 가능하게 */
 }
 #dialogTextWrap{
   flex:1;
@@ -244,12 +251,26 @@ input, textarea{
   white-space:pre-wrap;
 }
 #dialogHint{
-  margin-top:4px;
-  font-size:clamp(10px,1.8vmin,13px);
-  opacity:0.7;
+  display:none; /* 예전 힌트 영역은 숨김 */
 }
 #dialogNext{
   flex:0 0 auto;
+}
+
+/* 안내 바 – 게임 창 밖, 검붉은 글자 */
+#hintBar{
+  position:fixed;
+  left:50%;
+  transform:translateX(-50%);
+  bottom:calc(var(--frame) + var(--safe-b) + 4px);
+  max-width:720px;
+  width:calc(100vw - 2*(var(--frame) + var(--safe-l)));
+  padding:6px 10px;
+  font-family:"Courier New",ui-monospace,monospace;
+  font-size:clamp(10px,1.9vmin,13px);
+  text-align:center;
+  color:#7b1f2a; /* 검붉은 색 */
+  pointer-events:none;
 }
 
 /* HUD – 방향키 & 액션 버튼 (프레임 밖) */
@@ -359,7 +380,11 @@ input, textarea{
 
 <!-- 2장 타이틀 -->
 <div id="titleOverlay" class="fade-hidden">
-  <div id="titleText" class="sleepLine"></div>
+  <div id="titleLines">
+    <div id="titleLine1" class="sleepLine"></div>
+    <div id="titleLine2" class="sleepLine"></div>
+    <div id="titleLine3" class="sleepLine"></div>
+  </div>
 </div>
 
 <!-- 게임 레이아웃 : 중앙 팝업 카드 -->
@@ -393,6 +418,9 @@ input, textarea{
 <div id="hudRight" class="hidden">
   <button id="actionBtn">A</button>
 </div>
+
+<!-- 안내 바 -->
+<div id="hintBar" class="hidden"></div>
 
 <!-- 스테이지 전환 페이드 -->
 <div id="stageFade" class="hidden"></div>
@@ -662,12 +690,18 @@ input, textarea{
 
   /* ===== 2장 타이틀 연출 (3줄 타이핑) ===== */
   const titleOverlay = qs('#titleOverlay');
-  const titleText = qs('#titleText');
+  const titleLine1 = qs('#titleLine1');
+  const titleLine2 = qs('#titleLine2');
+  const titleLine3 = qs('#titleLine3');
 
   async function showTitleSequence(){
     titleOverlay.classList.remove('fade-show');
     titleOverlay.classList.add('fade-hidden');
     titleOverlay.style.display = 'flex';
+
+    titleLine1.textContent = '';
+    titleLine2.textContent = '';
+    titleLine3.textContent = '';
 
     await sleep(50);
 
@@ -675,15 +709,13 @@ input, textarea{
     titleOverlay.classList.add('fade-show');
 
     // 첫 줄
-    await typeText(titleText, 'SLEEEEEEEEP', 55, false);
+    await typeText(titleLine1, 'SLEEEEEEEEP', 55, false);
     await sleep(250);
-    titleText.textContent += '\n';
     // 둘째 줄
-    await typeText(titleText, 'SLEEEEEEEEP', 55, true);
+    await typeText(titleLine2, 'SLEEEEEEEEP', 55, false);
     await sleep(250);
-    titleText.textContent += '\n';
     // 셋째 줄
-    await typeText(titleText, 'THE SECOND SLEEP', 55, true);
+    await typeText(titleLine3, 'THE SECOND SLEEP', 55, false);
 
     await sleep(900);
 
@@ -707,23 +739,36 @@ input, textarea{
   const nameTag         = qs('#nameTag');
   const dialogBar       = qs('#dialogBar');
   const dialogText      = qs('#dialogText');
-  const dialogHint      = qs('#dialogHint');
   const dialogNextBtn   = qs('#dialogNext');
   const hudLeft         = qs('#hudLeft');
   const hudRight        = qs('#hudRight');
   const startOverlay    = qs('#startOverlay');
   const startBtn        = qs('#startBtn');
   const stageFade       = qs('#stageFade');
+  const hintBar         = qs('#hintBar');
 
   // 닉네임 (SLEEP 본편에서 localStorage.sleepNick 사용했다고 가정)
-  const nick = (()=>{
+  const nickRaw = (()=> {
     try{
       const v = localStorage.getItem('sleepNick');
       if(v && v.trim().length>0) return v.trim();
     }catch(e){}
-    return 'YOU';
+    return '';
   })();
-  nameTag.textContent = nick;
+
+  // 기본 'YOU'는 라벨에 표시하지 않고, 대사에는 '토끼'로 대체
+  const nick =
+    nickRaw && nickRaw.toUpperCase() !== 'YOU'
+      ? nickRaw
+      : '';
+
+  const nickForText = nick || '토끼';
+
+  if(nick){
+    nameTag.textContent = nick;
+  }else{
+    nameTag.style.display = 'none';
+  }
 
   /* 픽셀 토끼 */
   function drawRedRabbit(ctx, x, y, scale=1){
@@ -772,7 +817,15 @@ input, textarea{
     currentLines = lines;
     currentIdx = 0;
     onDialogDone = cb;
-    dialogHint.textContent = hint || '';
+
+    if(hint && hint.trim().length){
+      hintBar.textContent = hint;
+      hintBar.classList.remove('hidden');
+    }else{
+      hintBar.textContent = '';
+      hintBar.classList.add('hidden');
+    }
+
     dialogBar.classList.remove('hidden');
     await typeCurrentLine();
   }
@@ -871,8 +924,8 @@ input, textarea{
       if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
     }
     ctx.closePath();
-    ctx.fillStyle = '#000000';
-    ctx.strokeStyle = 'rgba(245,245,245,0.4)';
+    ctx.fillStyle = '#001307';
+    ctx.strokeStyle = 'rgba(190,230,190,0.4)';
     ctx.lineWidth = 1.5;
     ctx.fill();
     ctx.stroke();
@@ -897,7 +950,7 @@ input, textarea{
       return;
     }
 
-    // 소파까지 이동할 수 있는 구간
+    // 소파까지 / 꿀렁이까지 이동할 수 있는 구간
     if(gameState === 'freeToSofa' || gameState === 'freeToBlob'){
       let ax = 0;
       if(moveLeft)  ax -= speed;
@@ -948,27 +1001,27 @@ input, textarea{
     const ctx = gctx;
     ctx.clearRect(0,0,W,H);
 
-    // 배경
-    ctx.fillStyle = '#050505';
+    // 배경 (초록 계열)
+    ctx.fillStyle = '#05210f';
     ctx.fillRect(0,0,W,H);
 
     // 안쪽 꿀렁이 (게임 화면 안)
     drawInnerBlob(ctx);
 
-    // 바닥
-    ctx.fillStyle = '#141414';
+    // 바닥 (녹색 톤)
+    ctx.fillStyle = '#0b2f18';
     ctx.fillRect(0, groundY, W, H-groundY);
-    ctx.strokeStyle = '#333';
+    ctx.strokeStyle = '#193d23';
     ctx.beginPath();
     ctx.moveTo(0,groundY);
     ctx.lineTo(W,groundY);
     ctx.stroke();
 
-    // 왼쪽 단
-    ctx.fillStyle = '#202020';
+    // 왼쪽 단 (녹색 블럭)
+    ctx.fillStyle = '#164524';
     ctx.fillRect(8, groundY-10, 32, 10);
 
-    // 쇼파 (오른쪽)
+    // 쇼파 (오른쪽, 노란색 유지)
     ctx.save();
     ctx.translate(sofaX, groundY - sofaHeight);
     ctx.fillStyle = '#e8c93b';
@@ -998,7 +1051,6 @@ input, textarea{
     gameLayout.classList.remove('hidden');
     hudLeft.classList.remove('hidden');
     hudRight.classList.remove('hidden');
-    dialogBar.classList.remove('hidden');
 
     gameStarted = true;
 
@@ -1012,7 +1064,7 @@ input, textarea{
   async function startIntroDialog(){
     const lines = [
       "안녕?",
-      `나는 ${nick}이야.`,
+      `나는 ${nickForText}이야.`,
       "어때, 그래도 한 8분 걸어온 것 같은데, 어디 편한 곳에 앉아볼까?",
       "아아앗? 저기 소파가 있다! 저기에 앉아보자!!"
     ];
@@ -1047,12 +1099,14 @@ input, textarea{
     showDialog(lines, '', ()=>{
       // 토끼는 쇼파에서 일어나 바닥으로
       playerY = groundY - 16;
-      // 약간 왼쪽으로 내려와서 중앙으로 갈 준비
+      // 조금 왼쪽으로 내려와서 중앙으로 갈 준비
       playerX = sofaX + sofaWidth*0.2;
       gameState = 'freeToBlob';
-      dialogHint.textContent =
+      const hint =
         "안내 : 캐릭터를 화면 중앙의 꿀렁이 가까이 이동시킨 뒤, A 버튼을 눌러주세요.\n" +
         "당신은 그대로 편하게 앉아, 방금 들었던 것들을 한 번 더 떠올려 보세요.";
+      hintBar.textContent = hint;
+      hintBar.classList.remove('hidden');
     });
   }
 
@@ -1070,7 +1124,8 @@ input, textarea{
       "준비가 되면 버튼을 눌러줘.",
       "함께 그것의 속으로 들어가보자."
     ];
-    dialogHint.textContent = '';
+    hintBar.textContent = '';
+    hintBar.classList.add('hidden');
     showDialog(lines, '', ()=>{
       endSecondStage();
     });
@@ -1099,6 +1154,7 @@ input, textarea{
         hudLeft.classList.add('hidden');
         hudRight.classList.add('hidden');
         dialogBar.classList.add('hidden');
+        hintBar.classList.add('hidden');
       }
     }, 1300);
   }
