@@ -34,7 +34,7 @@
       color: #f5f5f5;
       font-family: "Press Start 2P", system-ui, sans-serif;
       overscroll-behavior: none;
-      -webkit-font-smoothing: none;
+      -webkit-font-smoothing: antialiased;
       image-rendering: pixelated;
       touch-action: none;
     }
@@ -54,7 +54,7 @@
       max-height: 700px;
 
       border: 2px solid #555;
-      background: radial-gradient(circle at 50% 0%, #111827 0, #02040a 60%);
+      background: radial-gradient(circle at 50% 0%, #111111 0, #020202 60%);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -97,96 +97,77 @@
       user-select: none;
     }
 
-    /* 좌측 하단 컨트롤러 (D-Pad) */
-    #dpad{
-      left: 10%;
-      bottom: -18%; /* 게임 캔버스 밖으로 살짝 나가게 */
-      width: 84px;
-      height: 84px;
-      border-radius: 999px;
-      background: radial-gradient(circle at 30% 20%, #111827 0, #020617 55%, #02040a 100%);
-      box-shadow:
-        0 4px 10px rgba(0,0,0,0.7),
-        inset 0 0 0 1px rgba(148,163,184,0.3);
+    /* 좌측 하단 조이스틱 */
+    #joystick{
+      left: 9%;
+      bottom: -18%;
+      width: 96px;
+      height: 96px;
       display: flex;
       align-items: center;
       justify-content: center;
     }
 
-    #dpad-inner{
+    #joystick-base{
       position: relative;
-      width: 60px;
-      height: 60px;
+      width: 96px;
+      height: 96px;
+      border-radius: 999px;
+      background: radial-gradient(circle at 30% 25%, #2a2a2a 0, #060606 70%);
+      box-shadow:
+        0 4px 10px rgba(0,0,0,0.8),
+        inset 0 0 0 1px rgba(200,200,200,0.15);
     }
 
-    .dpad-btn{
+    #joystick-knob{
       position: absolute;
-      width: 26px;
-      height: 26px;
-      border-radius: 6px;
-      background: linear-gradient(to bottom, #141820, #020617);
+      left: 50%;
+      top: 50%;
+      width: 44px;
+      height: 44px;
+      border-radius: 999px;
+      background: radial-gradient(circle at 30% 20%, #f5f5f5 0, #9f9f9f 40%, #444 100%);
       box-shadow:
-        0 2px 4px rgba(0,0,0,0.6),
-        inset 0 0 0 1px rgba(55,65,81,0.8);
-      border: none;
-      padding: 0;
-      outline: none;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #9ca3af;
-      font-size: 8px;
-      cursor: pointer;
+        0 2px 6px rgba(0,0,0,0.9),
+        inset 0 0 0 1px rgba(0,0,0,0.8);
+      transform: translate(-50%, -50%);
+      pointer-events: none;
     }
 
-    .dpad-btn:active{
-      background: linear-gradient(to bottom, #020617, #02030a);
-      box-shadow:
-        inset 0 2px 4px rgba(0,0,0,0.8),
-        0 0 0 1px rgba(209,213,219,0.3);
-      transform: translateY(1px);
-    }
-
-    .dpad-up   { top: 0; left: 50%; transform: translateX(-50%); }
-    .dpad-down { bottom: 0; left: 50%; transform: translateX(-50%); }
-    .dpad-left { left: 0; top: 50%; transform: translateY(-50%); }
-    .dpad-right{ right: 0; top: 50%; transform: translateY(-50%); }
-
-    /* 우측 하단 붉은 버튼 */
+    /* 우측 하단 버튼 (흑백 구조에 맞게 무채색 톤) */
     #btn-action{
-      right: 10%;
-      bottom: -16%; /* 게임 캔버스 밖으로 살짝 나가게 */
-      width: 72px;
-      height: 72px;
+      right: 9%;
+      bottom: -16%;
+      width: 76px;
+      height: 76px;
       border-radius: 999px;
       border: none;
       padding: 0;
       cursor: pointer;
       touch-action: none;
       user-select: none;
-      background: radial-gradient(circle at 30% 20%, #fecaca 0, #b91c1c 40%, #450a0a 100%);
+      background: radial-gradient(circle at 30% 20%, #f5f5f5 0, #9b9b9b 40%, #333 100%);
       box-shadow:
-        0 4px 12px rgba(0,0,0,0.85),
-        inset 0 0 0 1px rgba(248,250,252,0.4);
+        0 4px 12px rgba(0,0,0,0.9),
+        inset 0 0 0 1px rgba(250,250,250,0.5);
       display: flex;
       align-items: center;
       justify-content: center;
-      color: #111827;
+      color: #111;
       font-size: 11px;
-      text-shadow: 0 1px 0 rgba(248,250,252,0.6);
+      text-shadow: 0 1px 0 rgba(250,250,250,0.7);
     }
 
     #btn-action:active{
-      background: radial-gradient(circle at 40% 30%, #fecaca 0, #991b1b 40%, #220404 100%);
+      background: radial-gradient(circle at 40% 30%, #d9d9d9 0, #7b7b7b 40%, #222 100%);
       box-shadow:
         0 2px 6px rgba(0,0,0,0.9),
         inset 0 2px 4px rgba(0,0,0,0.8);
       transform: translateY(1px);
     }
 
-    /* 태블릿 세로 비율에서 컨트롤러 조금 위로 */
     @media (max-height: 650px){
-      #dpad{ bottom: -8%; }
+      #joystick{ bottom: -8%; }
       #btn-action{ bottom: -8%; }
     }
   </style>
@@ -197,17 +178,14 @@
       <div id="game-inner">
         <canvas id="game-canvas" width="320" height="240"></canvas>
 
-        <!-- 좌측 하단 컨트롤러 (게임 창 밖) -->
-        <div id="dpad">
-          <div id="dpad-inner">
-            <button class="dpad-btn dpad-up"   data-dir="up">↑</button>
-            <button class="dpad-btn dpad-down" data-dir="down">↓</button>
-            <button class="dpad-btn dpad-left" data-dir="left">←</button>
-            <button class="dpad-btn dpad-right"data-dir="right">→</button>
+        <!-- 좌측 하단 조이스틱 (게임 창 밖) -->
+        <div id="joystick" class="controller">
+          <div id="joystick-base">
+            <div id="joystick-knob"></div>
           </div>
         </div>
 
-        <!-- 우측 하단 붉은 버튼 (게임 창 밖) -->
+        <!-- 우측 하단 A 버튼 (아이템 / 액션) -->
         <button id="btn-action">A</button>
       </div>
     </div>
@@ -227,14 +205,20 @@ let lastTime = 0;
 
 const STATE = {
   mode: 'maze',        // 'maze' | 'mission'
-  player: {x: 0, y: 0},
+  player: {
+    x: 0, y: 0,        // 그리드 좌표
+    prevX: 0, prevY: 0,
+    animT: 0,
+    animDur: 0.14,
+    moving: false
+  },
   pointer: {x:0,y:0,down:false},
   currentGame: null,
-  activeEndingKey: null,   // 'A','B',...
-  activeEndingSymbol: null,// 'a','b',...
+  activeEndingKey: null,
+  activeEndingSymbol: null,
   activeMissionIndex: 0,
-  endingProgress: {},      // 'A' -> index
-  items: {},               // itemId -> {name, description}
+  endingProgress: {},
+  items: {},
 
   // UI용 상태
   message: "",
@@ -242,20 +226,30 @@ const STATE = {
 };
 
 /* =========================
-   DOM 컨트롤러 참조
+   조이스틱 상태
    ========================= */
-const dpadEl    = document.getElementById('dpad');
-const actionBtn = document.getElementById('btn-action');
+const joystickBase = document.getElementById('joystick-base');
+const joystickKnob = document.getElementById('joystick-knob');
+const actionBtn    = document.getElementById('btn-action');
+
+const JOYSTICK = {
+  active: false,
+  vx: 0,
+  vy: 0,
+  lastMoveTime: 0
+};
+
+const JOY_STEP_INTERVAL = 140; // ms
 
 /* =========================
-   공통 유틸 (화면에 표시)
+   공통 유틸
    ========================= */
 function setMessage(text){
   STATE.message = text || "";
 }
 
 function setDefaultControlMessage(){
-  setMessage("이동: 좌측 하단 컨트롤러 / 화면 탭  |  액션·아이템: 우측 하단 A 버튼");
+  setMessage("이동: 좌측 조이스틱 / 화면 탭   |   액션·아이템: 우측 A 버튼");
 }
 
 function setChapterLabel(text){
@@ -271,18 +265,21 @@ function getCanvasPos(evt){
   return {x, y};
 }
 
-function drawRedRabbit(x, y){
+/* 흑백 플레이어 아이콘 (토끼 대신 작은 인물/핀 느낌) */
+function drawPlayerIcon(x, y){
   const s = 8;
-  ctx.fillStyle = '#ff4c4c';
-  ctx.fillRect(x+2, y+1, s*4/8, s*3/8);
-  ctx.fillRect(x+1, y-1, s*1/8, s*3/8);
-  ctx.fillRect(x+4, y-1, s*1/8, s*3/8);
-  ctx.fillRect(x+2, y+4, s*4/8, s*3/8);
-  ctx.fillRect(x+6, y+4, s*2/8, s*2/8);
+  ctx.fillStyle = '#f5f5f5';
+  // 머리
+  ctx.fillRect(x+2, y-2, s*4/8, s*4/8);
+  // 몸통
+  ctx.fillRect(x+3, y+2, s*3/8, s*4/8);
+  // 다리
+  ctx.fillRect(x+2, y+6, s*1/8, s*2/8);
+  ctx.fillRect(x+4, y+6, s*1/8, s*2/8);
 }
 
 /* =========================
-   상단/하단 HUD (매트한 어두운 톤)
+   상단/하단 HUD
    ========================= */
 function drawHUD(){
   ctx.save();
@@ -292,14 +289,14 @@ function drawHUD(){
     const barH = 18;
     ctx.globalAlpha = 0.95;
     const gradTop = ctx.createLinearGradient(0,0,WIDTH,0);
-    gradTop.addColorStop(0,"#02030a");
-    gradTop.addColorStop(1,"#050816");
+    gradTop.addColorStop(0,"#050505");
+    gradTop.addColorStop(1,"#111111");
     ctx.fillStyle = gradTop;
     ctx.fillRect(0, 0, WIDTH, barH);
 
     ctx.globalAlpha = 1.0;
     ctx.fillStyle = "#e5e7eb";
-    ctx.font = "6px 'Press Start 2P'";
+    ctx.font = "8px 'Press Start 2P'";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText(STATE.chapterLabel, WIDTH/2, barH/2);
@@ -307,17 +304,17 @@ function drawHUD(){
 
   // 하단 메시지 바
   if(STATE.message){
-    const barH = 42;
+    const barH = 46;
     ctx.globalAlpha = 0.95;
     const gradBot = ctx.createLinearGradient(0,HEIGHT-barH,WIDTH,HEIGHT);
-    gradBot.addColorStop(0,"#020308");
-    gradBot.addColorStop(1,"#050815");
+    gradBot.addColorStop(0,"#050505");
+    gradBot.addColorStop(1,"#000000");
     ctx.fillStyle = gradBot;
     ctx.fillRect(0, HEIGHT - barH, WIDTH, barH);
 
     ctx.globalAlpha = 1.0;
-    ctx.fillStyle = "#e5e7eb";
-    ctx.font = "6px 'Press Start 2P'";
+    ctx.fillStyle = "#f3f4f6";
+    ctx.font = "8px 'Press Start 2P'";
     ctx.textAlign = "left";
     ctx.textBaseline = "top";
 
@@ -331,7 +328,7 @@ function drawHUD(){
       const w = ctx.measureText(test).width;
       if(w > maxWidth){
         ctx.fillText(line, 4, y);
-        y += 8;
+        y += 10;
         line = words[i];
       }else{
         line = test;
@@ -369,7 +366,7 @@ class MiniGame {
 }
 
 /* =========================
-   미니게임 구현들 (어둡고 매트한 색감)
+   미니게임들 (전체 흑백/그레이 톤)
    ========================= */
 
 class WaveGame extends MiniGame {
@@ -387,13 +384,13 @@ class WaveGame extends MiniGame {
   }
   draw(ctx){
     const grad = ctx.createLinearGradient(0,0,0,HEIGHT);
-    grad.addColorStop(0,"#020617");
-    grad.addColorStop(1,"#020b26");
+    grad.addColorStop(0,"#050505");
+    grad.addColorStop(1,"#000000");
     ctx.fillStyle = grad;
     ctx.fillRect(0,0,WIDTH,HEIGHT);
 
     const midY = HEIGHT/2;
-    ctx.strokeStyle = "#38bdf8";
+    ctx.strokeStyle = "#e5e7eb";
     ctx.lineWidth = 1;
 
     ctx.beginPath();
@@ -412,16 +409,16 @@ class WaveGame extends MiniGame {
     }
     ctx.stroke();
 
-    ctx.strokeStyle = "#1f2937";
+    ctx.strokeStyle = "#4b5563";
     ctx.beginPath();
     ctx.moveTo(0, midY);
     ctx.lineTo(WIDTH, midY);
     ctx.stroke();
 
-    ctx.fillStyle = "#9ca3af";
-    ctx.font = "6px 'Press Start 2P'";
+    ctx.fillStyle = "#d4d4d4";
+    ctx.font = "8px 'Press Start 2P'";
     ctx.textAlign = "left";
-    ctx.fillText("TAP WHEN FLAT", 6, 12);
+    ctx.fillText("TAP WHEN FLAT", 6, 14);
   }
   pointerDown(){
     const phase = this.t * 0.5;
@@ -452,8 +449,8 @@ class FadingPixelGame extends MiniGame {
   }
   draw(ctx){
     const grad = ctx.createLinearGradient(0,0,WIDTH,HEIGHT);
-    grad.addColorStop(0,"#020617");
-    grad.addColorStop(1,"#020617");
+    grad.addColorStop(0,"#050505");
+    grad.addColorStop(1,"#000000");
     ctx.fillStyle = grad;
     ctx.fillRect(0,0,WIDTH,HEIGHT);
 
@@ -473,16 +470,16 @@ class FadingPixelGame extends MiniGame {
       const y = offsetY + gy*cell;
 
       if(i === this.specialIndex){
-        const base = 210;
+        const base = 220;
         const v = base - darkFactor*140;
-        ctx.fillStyle = `rgb(${v},${v*0.86},${v})`; // 살짝 보라빛 나는 회색
+        ctx.fillStyle = `rgb(${v},${v},${v})`;
       }else{
-        ctx.fillStyle = "#4b5563";
+        ctx.fillStyle = "#4b4b4b";
       }
       ctx.fillRect(x+2,y+2,cell-4,cell-4);
     }
 
-    ctx.strokeStyle = "#9ca3af";
+    ctx.strokeStyle = "#d4d4d4";
     ctx.lineWidth = 1;
     ctx.strokeRect(offsetX-4, offsetY-4, size+8, size+8);
   }
@@ -526,8 +523,8 @@ class OverlapGame extends MiniGame {
   }
   draw(ctx){
     const grad = ctx.createLinearGradient(0,0,WIDTH,HEIGHT);
-    grad.addColorStop(0,"#020617");
-    grad.addColorStop(1,"#0f172a");
+    grad.addColorStop(0,"#050505");
+    grad.addColorStop(1,"#000000");
     ctx.fillStyle = grad;
     ctx.fillRect(0,0,WIDTH,HEIGHT);
 
@@ -540,8 +537,7 @@ class OverlapGame extends MiniGame {
 
     ctx.lineWidth = 2;
 
-    // 왼쪽 실선 삼각형
-    ctx.strokeStyle = "#9ca3af";
+    ctx.strokeStyle = "#e5e5e5";
     ctx.beginPath();
     ctx.moveTo(leftX, centerY - size/2);
     ctx.lineTo(leftX - size/2, centerY + size/2);
@@ -549,8 +545,7 @@ class OverlapGame extends MiniGame {
     ctx.closePath();
     ctx.stroke();
 
-    // 오른쪽 채워진 삼각형
-    ctx.fillStyle = "#f97316";
+    ctx.fillStyle = "#b3b3b3";
     ctx.beginPath();
     ctx.moveTo(rightX, centerY - size/2);
     ctx.lineTo(rightX - size/2, centerY + size/2);
@@ -559,7 +554,7 @@ class OverlapGame extends MiniGame {
     ctx.fill();
 
     ctx.fillStyle = "#e5e7eb";
-    ctx.font = "6px 'Press Start 2P'";
+    ctx.font = "8px 'Press Start 2P'";
     ctx.textAlign = "center";
     ctx.fillText("TAP WHEN THEY OVERLAP", WIDTH/2, 20);
   }
@@ -614,22 +609,18 @@ class FallingPixelsGame extends MiniGame {
   }
   draw(ctx){
     const grad = ctx.createLinearGradient(0,0,0,HEIGHT);
-    grad.addColorStop(0,"#020617");
-    grad.addColorStop(1,"#020617");
+    grad.addColorStop(0,"#050505");
+    grad.addColorStop(1,"#000000");
     ctx.fillStyle = grad;
     ctx.fillRect(0,0,WIDTH,HEIGHT);
 
     for(const p of this.pixels){
-      if(p.type==="white"){
-        ctx.fillStyle = "#f9fafb";
-      }else{
-        ctx.fillStyle = "#4b5563";
-      }
+      ctx.fillStyle = (p.type==="white") ? "#fafafa" : "#5a5a5a";
       ctx.fillRect(p.x-3,p.y-3,6,6);
     }
 
-    ctx.fillStyle = "#e5e7eb";
-    ctx.font = "6px 'Press Start 2P'";
+    ctx.fillStyle = "#f3f4f6";
+    ctx.font = "8px 'Press Start 2P'";
     ctx.textAlign = "left";
     ctx.fillText(`WHITE: ${this.collected}/15`, 6, 14);
   }
@@ -681,8 +672,8 @@ class BlinkPixelsGame extends MiniGame {
       WIDTH/2, HEIGHT/2, 10,
       WIDTH/2, HEIGHT/2, WIDTH/2
     );
-    grad.addColorStop(0,"#020617");
-    grad.addColorStop(1,"#020617");
+    grad.addColorStop(0,"#050505");
+    grad.addColorStop(1,"#000000");
     ctx.fillStyle = grad;
     ctx.fillRect(0,0,WIDTH,HEIGHT);
 
@@ -693,16 +684,16 @@ class BlinkPixelsGame extends MiniGame {
       const visible = wave>0.7;
       if(visible){
         const size = 5 + wave*4;
-        ctx.fillStyle = "#f9fafb";
+        ctx.fillStyle = "#fafafa";
         ctx.fillRect(p.x-size/2, p.y-size/2, size, size);
       }else{
-        ctx.fillStyle = "#4b5563";
+        ctx.fillStyle = "#4b4b4b";
         ctx.fillRect(p.x-2, p.y-2, 4, 4);
       }
     }
 
-    ctx.fillStyle = "#e5e7eb";
-    ctx.font = "6px 'Press Start 2P'";
+    ctx.fillStyle = "#f3f4f6";
+    ctx.font = "8px 'Press Start 2P'";
     ctx.textAlign = "left";
     const rate = this.total>0 ? Math.round(this.success/this.total*100) : 0;
     ctx.fillText(`HIT: ${this.success}/${this.total} (${rate}%)`, 6, 14);
@@ -812,8 +803,8 @@ class StackGame extends MiniGame {
   }
   draw(ctx){
     const grad = ctx.createLinearGradient(0,0,WIDTH,HEIGHT);
-    grad.addColorStop(0,"#020617");
-    grad.addColorStop(1,"#020617");
+    grad.addColorStop(0,"#050505");
+    grad.addColorStop(1,"#000000");
     ctx.fillStyle = grad;
     ctx.fillRect(0,0,WIDTH,HEIGHT);
 
@@ -826,14 +817,14 @@ class StackGame extends MiniGame {
     for(let r=0;r<this.rows;r++){
       for(let c=0;c<this.cols;c++){
         if(this.grid[r][c]){
-          ctx.fillStyle = "#4b5563";
+          ctx.fillStyle = "#6b6b6b";
           ctx.fillRect(offsetX+c*cell+1, offsetY+r*cell+1, cell-2, cell-2);
         }
       }
     }
 
     if(this.current){
-      ctx.fillStyle = "#e5e7eb";
+      ctx.fillStyle = "#f5f5f5";
       const s = this.current.shape;
       for(let r=0;r<s.length;r++){
         for(let c=0;c<s[0].length;c++){
@@ -845,7 +836,7 @@ class StackGame extends MiniGame {
       }
     }
 
-    ctx.strokeStyle = "#4b5563";
+    ctx.strokeStyle = "#4b4b4b";
     ctx.strokeRect(offsetX-1, offsetY-1, gridWidth+2, gridHeight+2);
   }
   pointerDown(x,y){
@@ -883,14 +874,14 @@ class LinkPixelsGame extends MiniGame {
       WIDTH/2, HEIGHT/2, 10,
       WIDTH/2, HEIGHT/2, WIDTH/2
     );
-    grad.addColorStop(0,"#020617");
-    grad.addColorStop(1,"#020617");
+    grad.addColorStop(0,"#050505");
+    grad.addColorStop(1,"#000000");
     ctx.fillStyle = grad;
     ctx.fillRect(0,0,WIDTH,HEIGHT);
 
     const t = this.timer;
 
-    ctx.strokeStyle = "#4b5563";
+    ctx.strokeStyle = "#4b4b4b";
     ctx.lineWidth = 1;
     for(const n of this.nodes){
       for(const other of n.links){
@@ -904,13 +895,13 @@ class LinkPixelsGame extends MiniGame {
     for(const n of this.nodes){
       const wave = (Math.sin(t*4/n.pattern)+1)/2;
       const bright = wave>0.7;
-      ctx.fillStyle = bright ? "#a3e635" : "#6b7280";
+      ctx.fillStyle = bright ? "#f5f5f5" : "#6b6b6b";
       ctx.beginPath();
       ctx.arc(n.x,n.y,6,0,Math.PI*2);
       ctx.fill();
 
       if(this.selected === n){
-        ctx.strokeStyle = "#f97316";
+        ctx.strokeStyle = "#f5f5f5";
         ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.arc(n.x,n.y,9,0,Math.PI*2);
@@ -918,8 +909,8 @@ class LinkPixelsGame extends MiniGame {
       }
     }
 
-    ctx.fillStyle = "#e5e7eb";
-    ctx.font = "6px 'Press Start 2P'";
+    ctx.fillStyle = "#f3f4f6";
+    ctx.font = "8px 'Press Start 2P'";
     ctx.textAlign = "left";
     ctx.fillText("SAME RHYTHM = LINK", 6, 14);
   }
@@ -999,8 +990,8 @@ class ClockArrowsGame extends MiniGame {
   }
   draw(ctx){
     const grad = ctx.createLinearGradient(0,0,0,HEIGHT);
-    grad.addColorStop(0,"#020617");
-    grad.addColorStop(1,"#020617");
+    grad.addColorStop(0,"#050505");
+    grad.addColorStop(1,"#000000");
     ctx.fillStyle = grad;
     ctx.fillRect(0,0,WIDTH,HEIGHT);
 
@@ -1017,7 +1008,7 @@ class ClockArrowsGame extends MiniGame {
       const ax = cx + Math.cos(a.angle)*len;
       const ay = cy + Math.sin(a.angle)*len;
 
-      ctx.strokeStyle = a.locked ? "#facc15" : "#9ca3af";
+      ctx.strokeStyle = a.locked ? "#ffffff" : "#a3a3a3";
       ctx.lineWidth = a.locked?2:1;
       ctx.beginPath();
       ctx.moveTo(cx,cy);
@@ -1029,11 +1020,11 @@ class ClockArrowsGame extends MiniGame {
       ctx.stroke();
     }
 
-    ctx.strokeStyle = "#4b5563";
+    ctx.strokeStyle = "#4b4b4b";
     ctx.strokeRect(offsetX-2,offsetY-2,gridWidth+4,gridWidth+4);
 
-    ctx.fillStyle = "#e5e7eb";
-    ctx.font = "6px 'Press Start 2P'";
+    ctx.fillStyle = "#f3f4f6";
+    ctx.font = "8px 'Press Start 2P'";
     ctx.textAlign = "center";
     ctx.fillText("TAP TO LOCK", WIDTH/2, 16);
   }
@@ -1129,29 +1120,32 @@ class PathGame extends MiniGame {
   }
   draw(ctx){
     const grad = ctx.createLinearGradient(0,0,0,HEIGHT);
-    grad.addColorStop(0,"#020617");
-    grad.addColorStop(1,"#020617");
+    grad.addColorStop(0,"#050505");
+    grad.addColorStop(1,"#000000");
     ctx.fillStyle = grad;
     ctx.fillRect(0,0,WIDTH,HEIGHT);
 
-    ctx.fillStyle = "#374151";
+    ctx.fillStyle = "#4b4b4b";
     for(const p of this.platforms){
       ctx.fillRect(p.x, p.y, p.w, 4);
     }
 
-    ctx.fillStyle = "#020617";
+    ctx.fillStyle = "#020202";
     ctx.beginPath();
     ctx.arc(this.goal.x,this.goal.y+4,10,0,Math.PI*2);
     ctx.fill();
-    ctx.strokeStyle = "#9ca3af";
+    ctx.strokeStyle = "#9f9f9f";
     ctx.stroke();
 
-    drawRedRabbit(this.rabbitX-4, this.rabbitY-8);
+    // 여기서는 기존 토끼 느낌 유지 (흑백)
+    ctx.fillStyle = "#f5f5f5";
+    ctx.fillRect(this.rabbitX-3, this.rabbitY-7, 6, 5); // 머리
+    ctx.fillRect(this.rabbitX-2, this.rabbitY-2, 4, 6); // 몸통
 
-    ctx.fillStyle = "#e5e7eb";
-    ctx.font = "6px 'Press Start 2P'";
+    ctx.fillStyle = "#f3f4f6";
+    ctx.font = "8px 'Press Start 2P'";
     ctx.textAlign = "center";
-    ctx.fillText("TAP / DOUBLE TAP / HOLD", WIDTH/2, 16);
+    ctx.fillText("TAP / DOUBLE TAP / HOLD", WIDTH/2, 18);
   }
   pointerDown(x,y){
     const now = performance.now();
@@ -1274,16 +1268,8 @@ const ENDINGS = {
   }
 };
 
-const ENDING_COLORS = {
-  a: "#38bdf8",
-  b: "#fb923c",
-  c: "#f973b4",
-  d: "#4ade80",
-  e: "#eab308"
-};
-
 /* =========================
-   미로 그리기 (어둡지만 또렷하게 구분)
+   미로 그리기 (흑백 + 챕터별 톤만 아주 살짝)
    ========================= */
 function chapterFromRow(y){
   if(y <= 3) return 'CH1';
@@ -1293,7 +1279,7 @@ function chapterFromRow(y){
 
 function drawMaze(){
   const grad = ctx.createLinearGradient(0,0,0,HEIGHT);
-  grad.addColorStop(0,"#020617");
+  grad.addColorStop(0,"#050505");
   grad.addColorStop(1,"#000000");
   ctx.fillStyle = grad;
   ctx.fillRect(0,0,WIDTH,HEIGHT);
@@ -1305,7 +1291,7 @@ function drawMaze(){
   const offsetY = (HEIGHT - mazeHeightPx)/2;
 
   // 바깥 박스
-  ctx.strokeStyle = "#4b5563";
+  ctx.strokeStyle = "#4b4b4b";
   ctx.lineWidth = 1;
   ctx.strokeRect(offsetX-4, offsetY-4, mazeWidthPx+8, mazeHeightPx+8);
 
@@ -1313,11 +1299,11 @@ function drawMaze(){
     const chapter = chapterFromRow(y);
     let basePathColor;
     if(chapter === 'CH1'){
-      basePathColor = "#050816"; // 아주 어두운 남색
+      basePathColor = "#111111";
     }else if(chapter === 'CH2'){
-      basePathColor = "#04120b"; // 어두운 녹색
+      basePathColor = "#171717";
     }else{
-      basePathColor = "#120414"; // 어두운 자주색
+      basePathColor = "#1f1f1f";
     }
 
     for(let x=0;x<MAZE_W;x++){
@@ -1326,23 +1312,22 @@ function drawMaze(){
       const sy = offsetY + y*cellSize;
 
       if(ch === '#'){
-        ctx.fillStyle = "#02040a"; // 거의 검정
+        ctx.fillStyle = "#020202";
         ctx.fillRect(sx,sy,cellSize,cellSize);
-        ctx.strokeStyle = "#111827";
+        ctx.strokeStyle = "#0a0a0a";
         ctx.strokeRect(sx,sy,cellSize,cellSize);
       }else{
         ctx.fillStyle = basePathColor;
         ctx.fillRect(sx,sy,cellSize,cellSize);
 
-        // 엔딩 타일
+        // 엔딩 노드 타일
         if(ch === 'a' || ch === 'b' || ch === 'c' || ch === 'd' || ch === 'e'){
-          const color = ENDING_COLORS[ch] || "#e5e7eb";
-          ctx.fillStyle = "rgba(0,0,0,0.7)";
+          ctx.fillStyle = "rgba(0,0,0,0.6)";
           ctx.fillRect(sx+1,sy+1,cellSize-2,cellSize-2);
-          ctx.strokeStyle = color;
+          ctx.strokeStyle = "#f5f5f5";
           ctx.lineWidth = 1.2;
           ctx.strokeRect(sx+2,sy+2,cellSize-4,cellSize-4);
-          ctx.fillStyle = color;
+          ctx.fillStyle = "#f5f5f5";
           ctx.font = `${cellSize*0.42}px 'Press Start 2P'`;
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
@@ -1352,14 +1337,22 @@ function drawMaze(){
     }
   }
 
-  // 플레이어
-  const px = offsetX + STATE.player.x*cellSize;
-  const py = offsetY + STATE.player.y*cellSize;
-  drawRedRabbit(px + cellSize*0.3, py + cellSize*0.3);
+  // 플레이어 위치 (부드러운 보간)
+  const frac = STATE.player.moving ? (STATE.player.animT/STATE.player.animDur) : 1;
+  const gridX = STATE.player.moving
+    ? STATE.player.prevX + (STATE.player.x-STATE.player.prevX)*frac
+    : STATE.player.x;
+  const gridY = STATE.player.moving
+    ? STATE.player.prevY + (STATE.player.y-STATE.player.prevY)*frac
+    : STATE.player.y;
+
+  const px = offsetX + gridX*cellSize;
+  const py = offsetY + gridY*cellSize;
+  drawPlayerIcon(px + cellSize*0.3, py + cellSize*0.3);
 }
 
 /* =========================
-   미로 이동 & 엔딩 진입
+   플레이어 이동 & 애니메이션
    ========================= */
 function canMoveTo(x,y){
   if(x<0||y<0||x>=MAZE_W||y>=MAZE_H) return false;
@@ -1372,11 +1365,20 @@ function updateChapterLabelByPos(){
 }
 
 function movePlayer(dx,dy){
+  // 이동 중이면 새 입력 무시 (너무 튀지 않게)
+  if(STATE.player.moving) return;
+
   const nx = STATE.player.x + dx;
   const ny = STATE.player.y + dy;
   if(!canMoveTo(nx,ny)) return;
+
+  STATE.player.prevX = STATE.player.x;
+  STATE.player.prevY = STATE.player.y;
   STATE.player.x = nx;
   STATE.player.y = ny;
+  STATE.player.animT = 0;
+  STATE.player.moving = true;
+
   updateChapterLabelByPos();
 
   const ch = MAZE[ny][nx];
@@ -1390,6 +1392,16 @@ function movePlayer(dx,dy){
     }
   }else{
     setDefaultControlMessage();
+  }
+}
+
+function updatePlayerAnim(dt){
+  if(STATE.player.moving){
+    STATE.player.animT += dt;
+    if(STATE.player.animT >= STATE.player.animDur){
+      STATE.player.animT = STATE.player.animDur;
+      STATE.player.moving = false;
+    }
   }
 }
 
@@ -1444,7 +1456,7 @@ function completeCurrentMission(){
 }
 
 /* =========================
-   입력 처리: 캔버스 탭 + A 버튼 + D패드
+   입력 처리
    ========================= */
 function handleMazeTap(x,y){
   const topRegion = (y < HEIGHT*0.25);
@@ -1469,7 +1481,6 @@ function handleActionButton(){
     const y = STATE.player.y;
     const ch = MAZE[y][x];
 
-    // 현재 서있는 엔딩 타일의 아이템 정보 우선
     if(ENDINGS[ch]){
       const cfg = ENDINGS[ch];
       const item = STATE.items[cfg.itemId];
@@ -1490,7 +1501,6 @@ function handleActionButton(){
       setMessage(parts.join(" / "));
     }
   }else if(STATE.mode === 'mission' && STATE.currentGame){
-    // 미션 모드에서는 화면 중앙을 탭한 효과
     const cx = WIDTH/2;
     const cy = HEIGHT/2;
     STATE.currentGame.pointerDown(cx,cy);
@@ -1535,23 +1545,85 @@ canvas.addEventListener('touchend', (e)=>{
   globalPointerUp();
 },{passive:false});
 
-/* D-Pad 이벤트 */
-dpadEl.addEventListener('pointerdown', (e)=>{
+/* =========================
+   조이스틱 이벤트
+   ========================= */
+function startJoystick(e){
   e.preventDefault();
-  const dir = e.target.dataset.dir;
-  if(!dir) return;
-  if(STATE.mode !== 'maze') return;
-  if(dir === 'up') movePlayer(0,-1);
-  else if(dir === 'down') movePlayer(0,1);
-  else if(dir === 'left') movePlayer(-1,0);
-  else if(dir === 'right') movePlayer(1,0);
+  JOYSTICK.active = true;
+  JOYSTICK.lastMoveTime = 0;
+  updateJoystick(e);
+}
+
+function updateJoystick(e){
+  const rect = joystickBase.getBoundingClientRect();
+  const cx = rect.left + rect.width/2;
+  const cy = rect.top + rect.height/2;
+  const ex = e.clientX;
+  const ey = e.clientY;
+
+  let dx = ex - cx;
+  let dy = ey - cy;
+
+  const maxR = rect.width/2 - 10;
+  const dist = Math.sqrt(dx*dx+dy*dy);
+  if(dist > maxR){
+    dx = dx * (maxR/dist);
+    dy = dy * (maxR/dist);
+  }
+
+  joystickKnob.style.transform =
+    `translate(${dx}px, ${dy}px) translate(-50%, -50%)`;
+
+  JOYSTICK.vx = dx / maxR;
+  JOYSTICK.vy = dy / maxR;
+}
+
+function endJoystick(e){
+  JOYSTICK.active = false;
+  JOYSTICK.vx = 0;
+  JOYSTICK.vy = 0;
+  joystickKnob.style.transform = "translate(-50%, -50%)";
+}
+
+joystickBase.addEventListener('pointerdown', startJoystick);
+window.addEventListener('pointermove', (e)=>{
+  if(JOYSTICK.active) updateJoystick(e);
+});
+window.addEventListener('pointerup', (e)=>{
+  if(JOYSTICK.active) endJoystick(e);
 });
 
-/* A 버튼 이벤트 */
+/* A 버튼 */
 actionBtn.addEventListener('pointerdown', (e)=>{
   e.preventDefault();
   handleActionButton();
 });
+
+/* 조이스틱에 따른 미로 이동 */
+function updateMazeByJoystick(timestamp){
+  if(!JOYSTICK.active || STATE.mode!=='maze') return;
+  const now = timestamp;
+  if(now - JOYSTICK.lastMoveTime < JOY_STEP_INTERVAL) return;
+
+  const threshold = 0.35;
+  let dx = 0, dy = 0;
+
+  if(Math.abs(JOYSTICK.vx) > Math.abs(JOYSTICK.vy)){
+    if(Math.abs(JOYSTICK.vx) > threshold){
+      dx = JOYSTICK.vx > 0 ? 1 : -1;
+    }
+  }else{
+    if(Math.abs(JOYSTICK.vy) > threshold){
+      dy = JOYSTICK.vy > 0 ? 1 : -1;
+    }
+  }
+
+  if(dx!==0 || dy!==0){
+    movePlayer(dx,dy);
+    JOYSTICK.lastMoveTime = now;
+  }
+}
 
 /* =========================
    메인 루프
@@ -1559,6 +1631,9 @@ actionBtn.addEventListener('pointerdown', (e)=>{
 function loop(timestamp){
   const dt = (timestamp-lastTime)/1000;
   lastTime = timestamp;
+
+  updatePlayerAnim(dt);
+  updateMazeByJoystick(timestamp);
 
   if(STATE.mode === 'maze'){
     drawMaze();
@@ -1571,9 +1646,7 @@ function loop(timestamp){
     }
   }
 
-  // 공통 HUD (챕터/메시지)
   drawHUD();
-
   requestAnimationFrame(loop);
 }
 
@@ -1586,11 +1659,13 @@ function findStart(){
       if(MAZE[y][x] === 'S'){
         STATE.player.x = x;
         STATE.player.y = y;
+        STATE.player.prevX = x;
+        STATE.player.prevY = y;
         return;
       }
     }
   }
-  STATE.player = {x:1,y:1};
+  STATE.player = {x:1,y:1,prevX:1,prevY:1,animT:0,animDur:0.14,moving:false};
 }
 
 function start(){
