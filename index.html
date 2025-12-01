@@ -53,8 +53,8 @@
       max-width: 1100px;
       max-height: 700px;
 
-      border: 2px solid #777;
-      background: #000;
+      border: 2px solid #555;
+      background: radial-gradient(circle at 50% 0%, #111827 0, #02040a 60%);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -65,12 +65,19 @@
       width: 90%;
       max-width: 900px;
       aspect-ratio: 4 / 3;
-      border: 1px solid #555;
+      border: 1px solid #444;
       background: #000;
       display: flex;
       align-items: center;
       justify-content: center;
-      overflow: hidden;
+      overflow: visible;
+      position: relative;
+    }
+
+    #game-inner{
+      position: relative;
+      width: 100%;
+      height: 100%;
     }
 
     #game-canvas{
@@ -79,13 +86,130 @@
       image-rendering: pixelated;
       touch-action: none;
       background: #000;
+      display: block;
+    }
+
+    /* ===== 컨트롤러: 게임 창 바깥에 배치 ===== */
+
+    .controller{
+      position: absolute;
+      touch-action: none;
+      user-select: none;
+    }
+
+    /* 좌측 하단 컨트롤러 (D-Pad) */
+    #dpad{
+      left: 10%;
+      bottom: -18%; /* 게임 캔버스 밖으로 살짝 나가게 */
+      width: 84px;
+      height: 84px;
+      border-radius: 999px;
+      background: radial-gradient(circle at 30% 20%, #111827 0, #020617 55%, #02040a 100%);
+      box-shadow:
+        0 4px 10px rgba(0,0,0,0.7),
+        inset 0 0 0 1px rgba(148,163,184,0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #dpad-inner{
+      position: relative;
+      width: 60px;
+      height: 60px;
+    }
+
+    .dpad-btn{
+      position: absolute;
+      width: 26px;
+      height: 26px;
+      border-radius: 6px;
+      background: linear-gradient(to bottom, #141820, #020617);
+      box-shadow:
+        0 2px 4px rgba(0,0,0,0.6),
+        inset 0 0 0 1px rgba(55,65,81,0.8);
+      border: none;
+      padding: 0;
+      outline: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #9ca3af;
+      font-size: 8px;
+      cursor: pointer;
+    }
+
+    .dpad-btn:active{
+      background: linear-gradient(to bottom, #020617, #02030a);
+      box-shadow:
+        inset 0 2px 4px rgba(0,0,0,0.8),
+        0 0 0 1px rgba(209,213,219,0.3);
+      transform: translateY(1px);
+    }
+
+    .dpad-up   { top: 0; left: 50%; transform: translateX(-50%); }
+    .dpad-down { bottom: 0; left: 50%; transform: translateX(-50%); }
+    .dpad-left { left: 0; top: 50%; transform: translateY(-50%); }
+    .dpad-right{ right: 0; top: 50%; transform: translateY(-50%); }
+
+    /* 우측 하단 붉은 버튼 */
+    #btn-action{
+      right: 10%;
+      bottom: -16%; /* 게임 캔버스 밖으로 살짝 나가게 */
+      width: 72px;
+      height: 72px;
+      border-radius: 999px;
+      border: none;
+      padding: 0;
+      cursor: pointer;
+      touch-action: none;
+      user-select: none;
+      background: radial-gradient(circle at 30% 20%, #fecaca 0, #b91c1c 40%, #450a0a 100%);
+      box-shadow:
+        0 4px 12px rgba(0,0,0,0.85),
+        inset 0 0 0 1px rgba(248,250,252,0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #111827;
+      font-size: 11px;
+      text-shadow: 0 1px 0 rgba(248,250,252,0.6);
+    }
+
+    #btn-action:active{
+      background: radial-gradient(circle at 40% 30%, #fecaca 0, #991b1b 40%, #220404 100%);
+      box-shadow:
+        0 2px 6px rgba(0,0,0,0.9),
+        inset 0 2px 4px rgba(0,0,0,0.8);
+      transform: translateY(1px);
+    }
+
+    /* 태블릿 세로 비율에서 컨트롤러 조금 위로 */
+    @media (max-height: 650px){
+      #dpad{ bottom: -8%; }
+      #btn-action{ bottom: -8%; }
     }
   </style>
 </head>
 <body>
   <div id="frame">
     <div id="game-wrapper">
-      <canvas id="game-canvas" width="320" height="240"></canvas>
+      <div id="game-inner">
+        <canvas id="game-canvas" width="320" height="240"></canvas>
+
+        <!-- 좌측 하단 컨트롤러 (게임 창 밖) -->
+        <div id="dpad">
+          <div id="dpad-inner">
+            <button class="dpad-btn dpad-up"   data-dir="up">↑</button>
+            <button class="dpad-btn dpad-down" data-dir="down">↓</button>
+            <button class="dpad-btn dpad-left" data-dir="left">←</button>
+            <button class="dpad-btn dpad-right"data-dir="right">→</button>
+          </div>
+        </div>
+
+        <!-- 우측 하단 붉은 버튼 (게임 창 밖) -->
+        <button id="btn-action">A</button>
+      </div>
     </div>
   </div>
 
@@ -118,20 +242,10 @@ const STATE = {
 };
 
 /* =========================
-   컨트롤러 레이아웃
+   DOM 컨트롤러 참조
    ========================= */
-const UI_LAYOUT = {
-  dpad: {
-    cx: 40,
-    cy: HEIGHT - 40,
-    radius: 26
-  },
-  action: {
-    cx: WIDTH - 40,
-    cy: HEIGHT - 40,
-    r: 18
-  }
-};
+const dpadEl    = document.getElementById('dpad');
+const actionBtn = document.getElementById('btn-action');
 
 /* =========================
    공통 유틸 (화면에 표시)
@@ -141,7 +255,7 @@ function setMessage(text){
 }
 
 function setDefaultControlMessage(){
-  setMessage("이동: 좌측 하단 십자키 / 화면 탭 | 액션: 우측 하단 붉은 버튼");
+  setMessage("이동: 좌측 하단 컨트롤러 / 화면 탭  |  액션·아이템: 우측 하단 A 버튼");
 }
 
 function setChapterLabel(text){
@@ -168,30 +282,7 @@ function drawRedRabbit(x, y){
 }
 
 /* =========================
-   컨트롤러 hit 테스트
-   ========================= */
-function isInActionButton(x,y){
-  const dx = x - UI_LAYOUT.action.cx;
-  const dy = y - UI_LAYOUT.action.cy;
-  return Math.sqrt(dx*dx+dy*dy) <= UI_LAYOUT.action.r;
-}
-
-function getDpadDirection(x,y){
-  const {cx, cy, radius} = UI_LAYOUT.dpad;
-  const dx = x - cx;
-  const dy = y - cy;
-  const dist = Math.sqrt(dx*dx+dy*dy);
-  if(dist > radius) return null;
-
-  if(Math.abs(dx) > Math.abs(dy)){
-    return dx < 0 ? 'left' : 'right';
-  }else{
-    return dy < 0 ? 'up' : 'down';
-  }
-}
-
-/* =========================
-   하단/상단 UI 오버레이 + 컨트롤러
+   상단/하단 HUD (매트한 어두운 톤)
    ========================= */
 function drawHUD(){
   ctx.save();
@@ -199,15 +290,15 @@ function drawHUD(){
   // 상단 챕터 라벨 바
   if(STATE.chapterLabel){
     const barH = 18;
-    ctx.globalAlpha = 0.9;
+    ctx.globalAlpha = 0.95;
     const gradTop = ctx.createLinearGradient(0,0,WIDTH,0);
-    gradTop.addColorStop(0,"#060814");
-    gradTop.addColorStop(1,"#101828");
+    gradTop.addColorStop(0,"#02030a");
+    gradTop.addColorStop(1,"#050816");
     ctx.fillStyle = gradTop;
     ctx.fillRect(0, 0, WIDTH, barH);
 
     ctx.globalAlpha = 1.0;
-    ctx.fillStyle = "#f5f5f5";
+    ctx.fillStyle = "#e5e7eb";
     ctx.font = "6px 'Press Start 2P'";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
@@ -216,21 +307,20 @@ function drawHUD(){
 
   // 하단 메시지 바
   if(STATE.message){
-    const barH = 40;
-    ctx.globalAlpha = 0.9;
+    const barH = 42;
+    ctx.globalAlpha = 0.95;
     const gradBot = ctx.createLinearGradient(0,HEIGHT-barH,WIDTH,HEIGHT);
-    gradBot.addColorStop(0,"#02060c");
-    gradBot.addColorStop(1,"#050a12");
+    gradBot.addColorStop(0,"#020308");
+    gradBot.addColorStop(1,"#050815");
     ctx.fillStyle = gradBot;
     ctx.fillRect(0, HEIGHT - barH, WIDTH, barH);
 
     ctx.globalAlpha = 1.0;
-    ctx.fillStyle = "#e0e0e0";
+    ctx.fillStyle = "#e5e7eb";
     ctx.font = "6px 'Press Start 2P'";
     ctx.textAlign = "left";
     ctx.textBaseline = "top";
 
-    // 아주 단순한 줄바꿈 (폭에 맞춰 공백 단위로 나누기)
     const maxWidth = WIDTH - 8;
     const words = STATE.message.split(" ");
     let line = "";
@@ -251,66 +341,6 @@ function drawHUD(){
       ctx.fillText(line, 4, y);
     }
   }
-
-  // === 좌측 하단 D-Pad ===
-  const d = UI_LAYOUT.dpad;
-  ctx.globalAlpha = 0.9;
-  ctx.fillStyle = "#05070d";
-  ctx.beginPath();
-  ctx.arc(d.cx, d.cy, d.radius+4, 0, Math.PI*2);
-  ctx.fill();
-
-  ctx.globalAlpha = 1.0;
-  ctx.strokeStyle = "#7f8cff";
-  ctx.lineWidth = 1.2;
-  ctx.beginPath();
-  ctx.arc(d.cx, d.cy, d.radius+4, 0, Math.PI*2);
-  ctx.stroke();
-
-  ctx.fillStyle = "#111827";
-  const arm = 10;
-  const thickness = 7;
-  // up
-  ctx.fillRect(d.cx - thickness/2, d.cy - arm - thickness, thickness, arm+thickness);
-  // down
-  ctx.fillRect(d.cx - thickness/2, d.cy, thickness, arm+thickness);
-  // left
-  ctx.fillRect(d.cx - arm - thickness, d.cy - thickness/2, arm+thickness, thickness);
-  // right
-  ctx.fillRect(d.cx, d.cy - thickness/2, arm+thickness, thickness);
-
-  ctx.fillStyle = "#9ca3af";
-  ctx.font = "5px 'Press Start 2P'";
-  ctx.textAlign = "center";
-  ctx.fillText("↑", d.cx, d.cy - arm - 2);
-  ctx.fillText("↓", d.cx, d.cy + arm + 3);
-  ctx.fillText("←", d.cx - arm - 3, d.cy + 1);
-  ctx.fillText("→", d.cx + arm + 3, d.cy + 1);
-
-  // === 우측 하단 붉은 버튼 ===
-  const a = UI_LAYOUT.action;
-  ctx.globalAlpha = 0.95;
-  const gradBtn = ctx.createRadialGradient(a.cx-3,a.cy-4,2,a.cx,a.cy,18);
-  gradBtn.addColorStop(0,"#ff9f9f");
-  gradBtn.addColorStop(0.4,"#ff4c4c");
-  gradBtn.addColorStop(1,"#5a0404");
-  ctx.fillStyle = gradBtn;
-  ctx.beginPath();
-  ctx.arc(a.cx, a.cy, a.r, 0, Math.PI*2);
-  ctx.fill();
-
-  ctx.globalAlpha = 1.0;
-  ctx.strokeStyle = "#fecaca";
-  ctx.lineWidth = 1.4;
-  ctx.beginPath();
-  ctx.arc(a.cx, a.cy, a.r, 0, Math.PI*2);
-  ctx.stroke();
-
-  ctx.fillStyle = "#111111";
-  ctx.font = "7px 'Press Start 2P'";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillText("A", a.cx, a.cy+1);
 
   ctx.restore();
 }
@@ -339,12 +369,12 @@ class MiniGame {
 }
 
 /* =========================
-   미니게임 구현들 (색감 추가)
+   미니게임 구현들 (어둡고 매트한 색감)
    ========================= */
 
 class WaveGame extends MiniGame {
   constructor(){
-    super("정지한 파형", "파형이 거의 평평해지는 순간을 탭하세요. (A 버튼도 사용 가능)");
+    super("정지한 파형", "파형이 거의 평평해지는 순간을 탭하거나 A 버튼을 눌러보세요.");
     this.t = 0;
   }
   init(){
@@ -356,7 +386,6 @@ class WaveGame extends MiniGame {
     this.t += dt;
   }
   draw(ctx){
-    // 딥 블루 배경
     const grad = ctx.createLinearGradient(0,0,0,HEIGHT);
     grad.addColorStop(0,"#020617");
     grad.addColorStop(1,"#020b26");
@@ -364,7 +393,7 @@ class WaveGame extends MiniGame {
     ctx.fillRect(0,0,WIDTH,HEIGHT);
 
     const midY = HEIGHT/2;
-    ctx.strokeStyle = "#22c9c9";
+    ctx.strokeStyle = "#38bdf8";
     ctx.lineWidth = 1;
 
     ctx.beginPath();
@@ -383,13 +412,13 @@ class WaveGame extends MiniGame {
     }
     ctx.stroke();
 
-    ctx.strokeStyle = "#334155";
+    ctx.strokeStyle = "#1f2937";
     ctx.beginPath();
     ctx.moveTo(0, midY);
     ctx.lineTo(WIDTH, midY);
     ctx.stroke();
 
-    ctx.fillStyle = "#a5b4fc";
+    ctx.fillStyle = "#9ca3af";
     ctx.font = "6px 'Press Start 2P'";
     ctx.textAlign = "left";
     ctx.fillText("TAP WHEN FLAT", 6, 12);
@@ -424,7 +453,7 @@ class FadingPixelGame extends MiniGame {
   draw(ctx){
     const grad = ctx.createLinearGradient(0,0,WIDTH,HEIGHT);
     grad.addColorStop(0,"#020617");
-    grad.addColorStop(1,"#0b1120");
+    grad.addColorStop(1,"#020617");
     ctx.fillStyle = grad;
     ctx.fillRect(0,0,WIDTH,HEIGHT);
 
@@ -444,15 +473,16 @@ class FadingPixelGame extends MiniGame {
       const y = offsetY + gy*cell;
 
       if(i === this.specialIndex){
-        const v = 220 - darkFactor*120;
-        ctx.fillStyle = `rgb(${v},${v*0.8},${255 - darkFactor*80})`;
+        const base = 210;
+        const v = base - darkFactor*140;
+        ctx.fillStyle = `rgb(${v},${v*0.86},${v})`; // 살짝 보라빛 나는 회색
       }else{
-        ctx.fillStyle = "#93c5fd";
+        ctx.fillStyle = "#4b5563";
       }
       ctx.fillRect(x+2,y+2,cell-4,cell-4);
     }
 
-    ctx.strokeStyle = "#1d4ed8";
+    ctx.strokeStyle = "#9ca3af";
     ctx.lineWidth = 1;
     ctx.strokeRect(offsetX-4, offsetY-4, size+8, size+8);
   }
@@ -497,7 +527,7 @@ class OverlapGame extends MiniGame {
   draw(ctx){
     const grad = ctx.createLinearGradient(0,0,WIDTH,HEIGHT);
     grad.addColorStop(0,"#020617");
-    grad.addColorStop(1,"#1e1b4b");
+    grad.addColorStop(1,"#0f172a");
     ctx.fillStyle = grad;
     ctx.fillRect(0,0,WIDTH,HEIGHT);
 
@@ -511,7 +541,7 @@ class OverlapGame extends MiniGame {
     ctx.lineWidth = 2;
 
     // 왼쪽 실선 삼각형
-    ctx.strokeStyle = "#7dd3fc";
+    ctx.strokeStyle = "#9ca3af";
     ctx.beginPath();
     ctx.moveTo(leftX, centerY - size/2);
     ctx.lineTo(leftX - size/2, centerY + size/2);
@@ -520,7 +550,7 @@ class OverlapGame extends MiniGame {
     ctx.stroke();
 
     // 오른쪽 채워진 삼각형
-    ctx.fillStyle = "#fb923c";
+    ctx.fillStyle = "#f97316";
     ctx.beginPath();
     ctx.moveTo(rightX, centerY - size/2);
     ctx.lineTo(rightX - size/2, centerY + size/2);
@@ -585,7 +615,7 @@ class FallingPixelsGame extends MiniGame {
   draw(ctx){
     const grad = ctx.createLinearGradient(0,0,0,HEIGHT);
     grad.addColorStop(0,"#020617");
-    grad.addColorStop(1,"#111827");
+    grad.addColorStop(1,"#020617");
     ctx.fillStyle = grad;
     ctx.fillRect(0,0,WIDTH,HEIGHT);
 
@@ -629,6 +659,9 @@ class FallingPixelsGame extends MiniGame {
 class BlinkPixelsGame extends MiniGame {
   constructor(){
     super("픽셀 포착", "반짝이는 흰 픽셀을 예측해서 탭하세요.");
+    this.points = [];
+    this.success = 0;
+    this.total = 0;
   }
   init(){
     super.init();
@@ -649,7 +682,7 @@ class BlinkPixelsGame extends MiniGame {
       WIDTH/2, HEIGHT/2, WIDTH/2
     );
     grad.addColorStop(0,"#020617");
-    grad.addColorStop(1,"#0b1120");
+    grad.addColorStop(1,"#020617");
     ctx.fillStyle = grad;
     ctx.fillRect(0,0,WIDTH,HEIGHT);
 
@@ -780,7 +813,7 @@ class StackGame extends MiniGame {
   draw(ctx){
     const grad = ctx.createLinearGradient(0,0,WIDTH,HEIGHT);
     grad.addColorStop(0,"#020617");
-    grad.addColorStop(1,"#111827");
+    grad.addColorStop(1,"#020617");
     ctx.fillStyle = grad;
     ctx.fillRect(0,0,WIDTH,HEIGHT);
 
@@ -793,14 +826,14 @@ class StackGame extends MiniGame {
     for(let r=0;r<this.rows;r++){
       for(let c=0;c<this.cols;c++){
         if(this.grid[r][c]){
-          ctx.fillStyle = "#38bdf8";
+          ctx.fillStyle = "#4b5563";
           ctx.fillRect(offsetX+c*cell+1, offsetY+r*cell+1, cell-2, cell-2);
         }
       }
     }
 
     if(this.current){
-      ctx.fillStyle = "#f97316";
+      ctx.fillStyle = "#e5e7eb";
       const s = this.current.shape;
       for(let r=0;r<s.length;r++){
         for(let c=0;c<s[0].length;c++){
@@ -851,14 +884,13 @@ class LinkPixelsGame extends MiniGame {
       WIDTH/2, HEIGHT/2, WIDTH/2
     );
     grad.addColorStop(0,"#020617");
-    grad.addColorStop(1,"#0f172a");
+    grad.addColorStop(1,"#020617");
     ctx.fillStyle = grad;
     ctx.fillRect(0,0,WIDTH,HEIGHT);
 
     const t = this.timer;
 
-    // 링크 라인
-    ctx.strokeStyle = "#64748b";
+    ctx.strokeStyle = "#4b5563";
     ctx.lineWidth = 1;
     for(const n of this.nodes){
       for(const other of n.links){
@@ -869,11 +901,10 @@ class LinkPixelsGame extends MiniGame {
       }
     }
 
-    // 노드
     for(const n of this.nodes){
       const wave = (Math.sin(t*4/n.pattern)+1)/2;
       const bright = wave>0.7;
-      ctx.fillStyle = bright ? "#22c55e" : "#6b7280";
+      ctx.fillStyle = bright ? "#a3e635" : "#6b7280";
       ctx.beginPath();
       ctx.arc(n.x,n.y,6,0,Math.PI*2);
       ctx.fill();
@@ -969,7 +1000,7 @@ class ClockArrowsGame extends MiniGame {
   draw(ctx){
     const grad = ctx.createLinearGradient(0,0,0,HEIGHT);
     grad.addColorStop(0,"#020617");
-    grad.addColorStop(1,"#111827");
+    grad.addColorStop(1,"#020617");
     ctx.fillStyle = grad;
     ctx.fillRect(0,0,WIDTH,HEIGHT);
 
@@ -1099,11 +1130,11 @@ class PathGame extends MiniGame {
   draw(ctx){
     const grad = ctx.createLinearGradient(0,0,0,HEIGHT);
     grad.addColorStop(0,"#020617");
-    grad.addColorStop(1,"#0f172a");
+    grad.addColorStop(1,"#020617");
     ctx.fillStyle = grad;
     ctx.fillRect(0,0,WIDTH,HEIGHT);
 
-    ctx.fillStyle = "#4b5563";
+    ctx.fillStyle = "#374151";
     for(const p of this.platforms){
       ctx.fillRect(p.x, p.y, p.w, 4);
     }
@@ -1112,7 +1143,7 @@ class PathGame extends MiniGame {
     ctx.beginPath();
     ctx.arc(this.goal.x,this.goal.y+4,10,0,Math.PI*2);
     ctx.fill();
-    ctx.strokeStyle = "#38bdf8";
+    ctx.strokeStyle = "#9ca3af";
     ctx.stroke();
 
     drawRedRabbit(this.rabbitX-4, this.rabbitY-8);
@@ -1244,7 +1275,7 @@ const ENDINGS = {
 };
 
 const ENDING_COLORS = {
-  a: "#22c9c9",
+  a: "#38bdf8",
   b: "#fb923c",
   c: "#f973b4",
   d: "#4ade80",
@@ -1252,7 +1283,7 @@ const ENDING_COLORS = {
 };
 
 /* =========================
-   미로 그리기
+   미로 그리기 (어둡지만 또렷하게 구분)
    ========================= */
 function chapterFromRow(y){
   if(y <= 3) return 'CH1';
@@ -1263,8 +1294,7 @@ function chapterFromRow(y){
 function drawMaze(){
   const grad = ctx.createLinearGradient(0,0,0,HEIGHT);
   grad.addColorStop(0,"#020617");
-  grad.addColorStop(0.5,"#020617");
-  grad.addColorStop(1,"#020617");
+  grad.addColorStop(1,"#000000");
   ctx.fillStyle = grad;
   ctx.fillRect(0,0,WIDTH,HEIGHT);
 
@@ -1275,30 +1305,45 @@ function drawMaze(){
   const offsetY = (HEIGHT - mazeHeightPx)/2;
 
   // 바깥 박스
-  ctx.strokeStyle = "#6b7280";
+  ctx.strokeStyle = "#4b5563";
   ctx.lineWidth = 1;
   ctx.strokeRect(offsetX-4, offsetY-4, mazeWidthPx+8, mazeHeightPx+8);
 
   for(let y=0;y<MAZE_H;y++){
+    const chapter = chapterFromRow(y);
+    let basePathColor;
+    if(chapter === 'CH1'){
+      basePathColor = "#050816"; // 아주 어두운 남색
+    }else if(chapter === 'CH2'){
+      basePathColor = "#04120b"; // 어두운 녹색
+    }else{
+      basePathColor = "#120414"; // 어두운 자주색
+    }
+
     for(let x=0;x<MAZE_W;x++){
       const ch = MAZE[y][x];
       const sx = offsetX + x*cellSize;
       const sy = offsetY + y*cellSize;
+
       if(ch === '#'){
-        ctx.fillStyle = "#020617";
+        ctx.fillStyle = "#02040a"; // 거의 검정
         ctx.fillRect(sx,sy,cellSize,cellSize);
+        ctx.strokeStyle = "#111827";
+        ctx.strokeRect(sx,sy,cellSize,cellSize);
       }else{
-        ctx.fillStyle = "#020b1b";
+        ctx.fillStyle = basePathColor;
         ctx.fillRect(sx,sy,cellSize,cellSize);
+
+        // 엔딩 타일
         if(ch === 'a' || ch === 'b' || ch === 'c' || ch === 'd' || ch === 'e'){
           const color = ENDING_COLORS[ch] || "#e5e7eb";
-          ctx.fillStyle = "rgba(15,23,42,0.9)";
+          ctx.fillStyle = "rgba(0,0,0,0.7)";
           ctx.fillRect(sx+1,sy+1,cellSize-2,cellSize-2);
           ctx.strokeStyle = color;
-          ctx.lineWidth = 1;
+          ctx.lineWidth = 1.2;
           ctx.strokeRect(sx+2,sy+2,cellSize-4,cellSize-4);
           ctx.fillStyle = color;
-          ctx.font = `${cellSize*0.4}px 'Press Start 2P'`;
+          ctx.font = `${cellSize*0.42}px 'Press Start 2P'`;
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
           ctx.fillText(ch.toUpperCase(), sx+cellSize/2, sy+cellSize/2);
@@ -1399,7 +1444,7 @@ function completeCurrentMission(){
 }
 
 /* =========================
-   입력 처리: 액션 버튼 + D패드
+   입력 처리: 캔버스 탭 + A 버튼 + D패드
    ========================= */
 function handleMazeTap(x,y){
   const topRegion = (y < HEIGHT*0.25);
@@ -1458,23 +1503,6 @@ function handleActionButton(){
 function globalPointerDown(pos){
   STATE.pointer = {x:pos.x,y:pos.y,down:true};
 
-  // 1) 액션 버튼 먼저 체크
-  if(isInActionButton(pos.x,pos.y)){
-    handleActionButton();
-    return;
-  }
-
-  // 2) D패드
-  const dir = getDpadDirection(pos.x,pos.y);
-  if(dir && STATE.mode === 'maze'){
-    if(dir === 'up') movePlayer(0,-1);
-    else if(dir === 'down') movePlayer(0,1);
-    else if(dir === 'left') movePlayer(-1,0);
-    else if(dir === 'right') movePlayer(1,0);
-    return;
-  }
-
-  // 3) 나머지 영역
   if(STATE.mode === 'maze'){
     handleMazeTap(pos.x,pos.y);
   }else if(STATE.currentGame){
@@ -1489,7 +1517,7 @@ function globalPointerUp(){
   }
 }
 
-/* 실제 이벤트 바인딩 */
+/* 캔버스 이벤트 */
 canvas.addEventListener('mousedown', (e)=>{
   const pos = getCanvasPos(e);
   globalPointerDown(pos);
@@ -1506,6 +1534,24 @@ canvas.addEventListener('touchend', (e)=>{
   e.preventDefault();
   globalPointerUp();
 },{passive:false});
+
+/* D-Pad 이벤트 */
+dpadEl.addEventListener('pointerdown', (e)=>{
+  e.preventDefault();
+  const dir = e.target.dataset.dir;
+  if(!dir) return;
+  if(STATE.mode !== 'maze') return;
+  if(dir === 'up') movePlayer(0,-1);
+  else if(dir === 'down') movePlayer(0,1);
+  else if(dir === 'left') movePlayer(-1,0);
+  else if(dir === 'right') movePlayer(1,0);
+});
+
+/* A 버튼 이벤트 */
+actionBtn.addEventListener('pointerdown', (e)=>{
+  e.preventDefault();
+  handleActionButton();
+});
 
 /* =========================
    메인 루프
@@ -1525,7 +1571,7 @@ function loop(timestamp){
     }
   }
 
-  // 공통 UI 오버레이 (챕터/메시지/컨트롤러/버튼)
+  // 공통 HUD (챕터/메시지)
   drawHUD();
 
   requestAnimationFrame(loop);
