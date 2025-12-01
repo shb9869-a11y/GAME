@@ -385,13 +385,12 @@
   window.addEventListener('resize', checkOrientation);
   checkOrientation();
 
-  // ===== BASIC GAME CONSTANTS =====
   const canvas = document.getElementById('game-canvas');
   const ctx = canvas.getContext('2d');
 
   const TILE_SIZE = 16;
-  const MAP_COLS = 20; // 20 * 16 = 320
-  const MAP_ROWS = 11; // 11 * 16 = 176
+  const MAP_COLS = 20;
+  const MAP_ROWS = 11;
 
   const chapterTitleEl = document.getElementById('chapter-title');
   const dialogBoxEl = document.getElementById('dialog-box');
@@ -416,7 +415,7 @@
     dirX: 0,
     dirY: 0,
     lastMoveTime: 0,
-    moveInterval: 160 // ms per tile step
+    moveInterval: 160
   };
 
   let gameStarted = false;
@@ -431,7 +430,7 @@
   };
 
   let player = {
-    x: 9,   // tile coords
+    x: 9,
     y: 9,
     px: 9 * TILE_SIZE,
     py: 9 * TILE_SIZE,
@@ -442,7 +441,7 @@
 
   const visitedHotspots = new Set();
 
-  // ===== AUDIO (BGM + SFX) =====
+  // ===== AUDIO =====
   let audioCtx = null;
   let masterGain = null;
   let bgmGain = null;
@@ -453,13 +452,11 @@
     if(audioCtx) return;
     const AC = window.AudioContext || window.webkitAudioContext;
     if(!AC) return;
-
     audioCtx = new AC();
     masterGain = audioCtx.createGain();
     masterGain.gain.value = 0.65;
     masterGain.connect(audioCtx.destination);
 
-    // BGM용 버스
     bgmGain = audioCtx.createGain();
     bgmGain.gain.value = 0.3;
     bgmFilter = audioCtx.createBiquadFilter();
@@ -468,15 +465,12 @@
     bgmFilter.Q.value = 0.7;
     bgmGain.connect(bgmFilter);
     bgmFilter.connect(masterGain);
-
     startBGM();
   }
 
   function startBGM(){
     if(!audioCtx || bgmStarted) return;
     bgmStarted = true;
-
-    // 간단한 앰비언트 드론 (3개의 옥타브 다른 사인파 + 살짝의 디튠)
     const baseFreqs = [110, 220, 330];
     baseFreqs.forEach((f, i)=>{
       const osc = audioCtx.createOscillator();
@@ -485,11 +479,10 @@
       osc.frequency.value = f;
       osc.detune.value = i === 1 ? 12 : (i === 2 ? -8 : 0);
 
-      // 아주 느린 진폭 변조
       const lfo = audioCtx.createOscillator();
       const lfoGain = audioCtx.createGain();
       lfo.type = "sine";
-      lfo.frequency.value = 0.05 + 0.03*i; // 각기 다른 속도
+      lfo.frequency.value = 0.05 + 0.03*i;
       lfoGain.gain.value = 0.12;
       lfo.connect(lfoGain);
       lfoGain.connect(gain.gain);
@@ -556,10 +549,6 @@
   }
 
   // ===== MAPS =====
-  // '#' = wall, '.' = floor, ' ' = void, '@' = hub mark,
-  // '1'..'5' = chapter portals in hub
-  // 'G' = goal tile in chapter map, 'H' = return to hub
-
   const maps = {
     hub: {
       id: 'hub',
@@ -885,7 +874,6 @@
     playNoteSound();
   }
 
-  // ===== MAP HELPERS =====
   function getMap(){
     return maps[currentMapId];
   }
@@ -934,7 +922,6 @@
     }
   }
 
-  // ===== PLAYER MOVEMENT (부드러운 보간) =====
   function tryMove(dx, dy){
     if(!gameStarted) return;
     if(player.isMoving) return;
@@ -950,7 +937,7 @@
     player.ty = player.y * TILE_SIZE;
     player.isMoving = true;
 
-    handleTileStepPending = true; // 이동 완료 후 처리
+    handleTileStepPending = true;
     playStepSound();
   }
 
@@ -1004,6 +991,27 @@
     }
   }
 
+  // ===== 픽셀 토끼 그리기 =====
+  // ctx: 2D context
+  // x, y: 토끼 기준 위치 (왼쪽 위 느낌)
+  // scale: 크기 배율 (기본 1)
+  function drawRedRabbit(ctx, x, y, scale = 1){
+    ctx.fillStyle = '#ff3333';
+
+    // 머리
+    ctx.fillRect(x + 2*scale, y + 1*scale, 4*scale, 3*scale);
+
+    // 귀 2개
+    ctx.fillRect(x + 1*scale, y - 1*scale, 1*scale, 3*scale);
+    ctx.fillRect(x + 4*scale, y - 1*scale, 1*scale, 3*scale);
+
+    // 몸통
+    ctx.fillRect(x + 2*scale, y + 4*scale, 4*scale, 3*scale);
+
+    // 꼬리
+    ctx.fillRect(x + 6*scale, y + 4*scale, 2*scale, 2*scale);
+  }
+
   // ===== RENDERING =====
   function draw(){
     ctx.fillStyle = "#000000";
@@ -1011,7 +1019,6 @@
 
     const map = getMap();
 
-    // 맵별 팔레트
     let floor = "#111111";
     let floorDetail = "#151515";
     let wallDark = "#444444";
@@ -1048,7 +1055,6 @@
       wallLight = "#777799";
     }
 
-    // 타일 그리기
     for(let y=0; y<MAP_ROWS; y++){
       const row = map.tiles[y];
       for(let x=0; x<MAP_COLS; x++){
@@ -1056,18 +1062,15 @@
         const sx = x * TILE_SIZE;
         const sy = y * TILE_SIZE;
 
-        // 바닥
         ctx.fillStyle = floor;
         ctx.fillRect(sx, sy, TILE_SIZE, TILE_SIZE);
 
         if(ch === '#'){
-          // 벽
           ctx.fillStyle = wallDark;
           ctx.fillRect(sx, sy, TILE_SIZE, TILE_SIZE);
           ctx.fillStyle = wallLight;
           ctx.fillRect(sx+2, sy+2, TILE_SIZE-4, TILE_SIZE-6);
         }else{
-          // 바닥 텍스처
           ctx.fillStyle = floorDetail;
           ctx.fillRect(sx + (x%2===0?4:9), sy + (y%2===0?4:9), 1, 1);
         }
@@ -1107,9 +1110,8 @@
       }
     }
 
-    // 플레이어 위치 보간
     if(player.isMoving){
-      const speed = 0.28; // 0~1 사이 (1이면 순간이동)
+      const speed = 0.28;
       const dx = player.tx - player.px;
       const dy = player.ty - player.py;
       player.px += dx * speed;
@@ -1126,30 +1128,13 @@
       }
     }
 
-    // 붉은 토끼
-    const px = player.px;
-    const py = player.py;
-    ctx.fillStyle = "#990000";
-    ctx.fillRect(px+3, py+3, TILE_SIZE-6, TILE_SIZE-5); // 몸통
-
-    // 귀
-    ctx.fillRect(px+4, py-2, 3, 6);
-    ctx.fillRect(px+TILE_SIZE-7, py-2, 3, 6);
-
-    // 눈
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(px+5, py+5, 2, 2);
-
-    // 그림자
-    ctx.fillStyle = "rgba(0,0,0,0.4)";
-    ctx.fillRect(px+2, py+TILE_SIZE-4, TILE_SIZE-4, 2);
+    // 🔴 여기서 네가 준 픽셀 토끼로 그리기
+    drawRedRabbit(ctx, player.px, player.py, 2);
 
     requestAnimationFrame(draw);
   }
 
   requestAnimationFrame(draw);
-
-  // ===== INPUT HANDLERS =====
 
   function startGameIfNeeded(){
     if(!gameStarted){
@@ -1160,7 +1145,6 @@
     initAudio();
   }
 
-  // 키보드
   window.addEventListener('keydown', (e)=>{
     startGameIfNeeded();
     if(noteOverlayEl && !noteOverlayEl.classList.contains('hidden')){
@@ -1182,7 +1166,6 @@
     }
   });
 
-  // 액션 버튼
   btnAction.addEventListener('click', ()=>{
     startGameIfNeeded();
     handleAction();
@@ -1217,7 +1200,6 @@
     }
   }
 
-  // NOTE 창 닫기
   btnCloseNote.addEventListener('click', ()=>{
     noteOverlayEl.classList.add('hidden');
     if(currentMapId !== 'hub' && currentMapId !== 'all'){
@@ -1234,7 +1216,6 @@
     startGameIfNeeded();
   });
 
-  // ===== JOYSTICK HANDLING =====
   const joystickRect = ()=> joystick.el.getBoundingClientRect();
 
   function joystickSetStick(dx, dy){
@@ -1243,7 +1224,7 @@
     const r = Math.min(len, maxR);
     const nx = len ? dx / len : 0;
     const ny = len ? dy / len : 0;
-    const cx = 48; // center (96/2)
+    const cx = 48;
     const cy = 48;
     joystick.stick.style.left = (cx + nx * r - 22) + "px";
     joystick.stick.style.top = (cy + ny * r - 22) + "px";
@@ -1293,7 +1274,6 @@
       return;
     }
 
-    // 어느 축으로 움직일지 결정
     if(Math.abs(dx) > Math.abs(dy)){
       joystick.dirX = dx > 0 ? 1 : -1;
       joystick.dirY = 0;
@@ -1323,7 +1303,10 @@
   window.addEventListener('touchend', joystickPointerUp, {passive:false});
   window.addEventListener('touchcancel', joystickPointerUp, {passive:false});
 
-  // 초기 허브 설정
+  function startGameIfNeededWrapper(){
+    startGameIfNeeded();
+  }
+
   warpToMap('hub');
 </script>
 </body>
