@@ -154,9 +154,10 @@ input, textarea{
 .sleepLine{
   font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
   letter-spacing:.16em;
-  font-size:clamp(32px, 9vmin, 110px);
+  font-size:clamp(26px, 6.2vmin, 80px);
   text-transform:uppercase;
-  white-space:nowrap;
+  white-space:pre;
+  text-align:center;
   text-shadow:0 0 8px rgba(0,0,0,0.85);
 }
 
@@ -314,6 +315,17 @@ input, textarea{
 .fade-hidden{ opacity:0; transition:opacity 1800ms ease; }
 .fade-show{ opacity:1; }
 
+/* 스테이지 전환 페이드 */
+#stageFade{
+  position:fixed;
+  inset:0;
+  background:#000;
+  z-index:50;
+  opacity:0;
+  pointer-events:none;
+  transition:opacity 1200ms ease;
+}
+
 /* 가시성 제어 */
 .hidden{ display:none !important; }
 
@@ -381,6 +393,9 @@ input, textarea{
 <div id="hudRight" class="hidden">
   <button id="actionBtn">A</button>
 </div>
+
+<!-- 스테이지 전환 페이드 -->
+<div id="stageFade" class="hidden"></div>
 
 <script>
 (() => {
@@ -480,8 +495,9 @@ input, textarea{
     }catch(e){}
   }
 
-  async function typeText(el, text, speed=40){
-    el.textContent = '';
+  // append 모드 지원
+  async function typeText(el, text, speed=40, append=false){
+    if(!append) el.textContent = '';
     for(let i=0;i<text.length;i++){
       el.textContent += text[i];
       playTypeTick();
@@ -511,8 +527,9 @@ input, textarea{
     }catch(e){}
   }
 
-  /* ===== 게임풍 OST : 좀 더 빠르고 귀엽게 ===== */
+  /* ===== 게임풍 OST ===== */
   let musicRunning = false;
+
   function playNote(freq, dur=0.16, vol=0.38){
     try{
       ensureAudio();
@@ -531,10 +548,9 @@ input, textarea{
     }catch(e){}
   }
 
-  function startGameMusic(){
+  function startBrightMusic(){
     if(musicRunning) return;
     musicRunning = true;
-    // 밝고 튀는 패턴
     const base = 523.25; // C5
     const pattern = [
       0, 4, 7, 12,
@@ -556,7 +572,33 @@ input, textarea{
     step();
   }
 
-  /* ===== 중앙 꿀렁이 (전체 배경) ===== */
+  function startDarkMusic(){
+    // 밝은 음악 정지 후 어두운 음악 시작
+    musicRunning = false;
+    setTimeout(()=>{
+      if(musicRunning) return;
+      musicRunning = true;
+      const base = 440; // A4
+      const pattern = [
+        0, 3, 7, 10,
+        3, 7, 0,  -2
+      ];
+      let idx = 0;
+      const stepDur = 230;
+
+      function step(){
+        if(!musicRunning) return;
+        const semi = pattern[idx % pattern.length];
+        const f = base * Math.pow(2, semi/12);
+        playNote(f, 0.2, 0.25);
+        idx++;
+        setTimeout(step, stepDur);
+      }
+      step();
+    }, 400);
+  }
+
+  /* ===== 중앙 꿀렁이 (전체 배경, 더 크게) ===== */
   const blobCanvas = qs('#blobCanvas');
   const blobCtx = blobCanvas.getContext('2d');
   let blobAlpha = 0;
@@ -581,18 +623,18 @@ input, textarea{
     const t = (performance.now() - blobStartTime) * 0.001;
     const cx = w/2;
     const cy = h/2;
-    const baseR = Math.min(w,h)*0.32;
-    const N = 40;
+    const baseR = Math.min(w,h)*0.45; // 더 크게
+    const N = 48;
 
     blobCtx.save();
     blobCtx.globalAlpha = blobAlpha;
     blobCtx.beginPath();
     for(let i=0;i<N;i++){
       const ang = (i/N)*Math.PI*2;
-      const wob = 0.2*Math.sin(t*2 + i*0.7);
+      const wob = 0.24*Math.sin(t*2 + i*0.7);
       const rr = baseR * (0.8 + wob);
       const x = cx + Math.cos(ang)*rr;
-      const y = cy + Math.sin(ang)*rr*0.55;
+      const y = cy + Math.sin(ang)*rr*0.6;
       if(i===0) blobCtx.moveTo(x,y); else blobCtx.lineTo(x,y);
     }
     blobCtx.closePath();
@@ -618,7 +660,7 @@ input, textarea{
   }
   blobLoop();
 
-  /* ===== 2장 타이틀 연출 ===== */
+  /* ===== 2장 타이틀 연출 (3줄 타이핑) ===== */
   const titleOverlay = qs('#titleOverlay');
   const titleText = qs('#titleText');
 
@@ -632,8 +674,18 @@ input, textarea{
     titleOverlay.classList.remove('fade-hidden');
     titleOverlay.classList.add('fade-show');
 
-    await typeText(titleText, 'THE SECOND SLEEP', 55);
-    await sleep(1000);
+    // 첫 줄
+    await typeText(titleText, 'SLEEEEEEEEP', 55, false);
+    await sleep(250);
+    titleText.textContent += '\n';
+    // 둘째 줄
+    await typeText(titleText, 'SLEEEEEEEEP', 55, true);
+    await sleep(250);
+    titleText.textContent += '\n';
+    // 셋째 줄
+    await typeText(titleText, 'THE SECOND SLEEP', 55, true);
+
+    await sleep(900);
 
     // 페이드 아웃
     titleOverlay.classList.remove('fade-show');
@@ -644,7 +696,7 @@ input, textarea{
     // 타이틀 사라진 뒤 OST 시작 & 게임 UI 등장
     await ensureResumed();
     await playDing();
-    startGameMusic();
+    startBrightMusic();
     startGameScene();
   }
 
@@ -661,6 +713,7 @@ input, textarea{
   const hudRight        = qs('#hudRight');
   const startOverlay    = qs('#startOverlay');
   const startBtn        = qs('#startBtn');
+  const stageFade       = qs('#stageFade');
 
   // 닉네임 (SLEEP 본편에서 localStorage.sleepNick 사용했다고 가정)
   const nick = (()=>{
@@ -690,7 +743,6 @@ input, textarea{
   const W = gameCanvas.width;
   const H = gameCanvas.height;
   const groundY = 145;
-  const floorY = groundY;
   const sofaX = 210;
   const sofaWidth = 70;
   const sofaHeight = 26;
@@ -700,14 +752,14 @@ input, textarea{
   let playerVX = 0;
   let playerVY = 0;
   const speed = 0.14;
-  const gravity = 0.18;
   const maxVX = 1.4;
 
   let moveLeft=false, moveRight=false, moveUp=false, moveDown=false, actionPressed=false;
   let gameStarted = false;
   let introWalkStartTime = 0;
 
-  let gameState = 'title'; // 'introWalk', 'introDialog', 'free', 'seated', 'done'
+  // 상태: 타이틀, 인트로 걷기, 인트로 대화, 소파까지 자유, 소파에서 대화, 꿀렁이까지 자유, 꿀렁이 대화, 종료
+  let gameState = 'title';
 
   /* 대화 시스템 */
   let currentLines = [];
@@ -729,7 +781,7 @@ input, textarea{
     const line = currentLines[currentIdx] || '';
     fullLine = line;
     typing = true;
-    await typeText(dialogText, line, 40);
+    await typeText(dialogText, line, 40, false);
     typing = false;
   }
 
@@ -845,7 +897,8 @@ input, textarea{
       return;
     }
 
-    if(gameState === 'free'){
+    // 소파까지 이동할 수 있는 구간
+    if(gameState === 'freeToSofa' || gameState === 'freeToBlob'){
       let ax = 0;
       if(moveLeft)  ax -= speed;
       if(moveRight) ax += speed;
@@ -853,10 +906,7 @@ input, textarea{
       playerVX *= 0.82;
       playerVX = clamp(playerVX, -maxVX, maxVX);
 
-      // 수평 이동만 (점프/위아래는 사용 안 함)
       playerX += playerVX;
-
-      // 바닥 고정
       playerY = groundY - 16;
 
       // 화면 밖 제한
@@ -869,11 +919,28 @@ input, textarea{
         playerVX = 0;
       }
 
-      // 쇼파 근처에서 A 버튼 → 앉기
-      const nearSofa = (playerX > sofaX - 12);
-      if(nearSofa && actionPressed){
-        sitOnSofa();
+      // 소파에 앉기 (첫 번째 구간에서만)
+      if(gameState === 'freeToSofa'){
+        const nearSofa = (playerX > sofaX - 12);
+        if(nearSofa && actionPressed){
+          sitOnSofa();
+        }
       }
+
+      // 중앙 꿀렁이로 가기 (두 번째 구간에서)
+      if(gameState === 'freeToBlob'){
+        const centerX = W/2;
+        const nearBlob = (Math.abs(playerX - centerX) < 20);
+        if(nearBlob && actionPressed){
+          startBlobDialog();
+        }
+      }
+    }
+
+    // 소파에 앉아 있는 동안은 위치 고정
+    if(gameState === 'seatedDialog'){
+      playerVX = 0;
+      playerVY = 0;
     }
   }
 
@@ -901,7 +968,7 @@ input, textarea{
     ctx.fillStyle = '#202020';
     ctx.fillRect(8, groundY-10, 32, 10);
 
-    // 쇼파
+    // 쇼파 (오른쪽)
     ctx.save();
     ctx.translate(sofaX, groundY - sofaHeight);
     ctx.fillStyle = '#e8c93b';
@@ -946,20 +1013,20 @@ input, textarea{
     const lines = [
       "안녕?",
       `나는 ${nick}이야.`,
-      "꽤 오래 걸어온 것 같지?\n이제 어디 편한 곳에 좀 앉아볼까?",
-      "어라? 저기 노란 소파가 있다.\n저기에 앉아보자!"
+      "어때, 그래도 한 8분 걸어온 것 같은데, 어디 편한 곳에 앉아볼까?",
+      "아아앗? 저기 소파가 있다! 저기에 앉아보자!!"
     ];
     const hint =
-      "안내 : 캐릭터를 오른쪽으로 이동시켜 A 버튼을 눌러 쇼파에 앉으세요.\n" +
-      "당신도 이 공간에서 편한 자리를 찾아 앉아보세요.";
+      "안내 : 캐릭터를 우측으로 이동시켜 버튼(A)을 눌러 쇼파에 앉으세요.\n" +
+      "당신도 어디 좋은 자리를 잡아 앉아보세요.";
     showDialog(lines, hint, ()=>{
-      gameState = 'free';
+      gameState = 'freeToSofa';
     });
   }
 
   function sitOnSofa(){
-    if(gameState !== 'free') return;
-    gameState = 'seated';
+    if(gameState !== 'freeToSofa') return;
+    gameState = 'seatedDialog';
 
     // 쇼파 위 위치로 스냅
     playerX = sofaX + sofaWidth*0.4;
@@ -969,16 +1036,71 @@ input, textarea{
 
     const lines = [
       "앉았어?",
-      "그래. 좋아.",
-      "이제 진짜로, 두 번째 낮잠이 시작될 거야.",
-      "THE SECOND SLEEP."
+      "그래. 어때?",
+      "짧은 시간의 여정은 조금 괜찮아?",
+      "지금부터는 제 2장. 그러니까 THE SECOND SLEEP이야!",
+      "THE FIRST SLEEP가 눈과 귀로 타자를 인식해나가는 순간이었다면, 지금은 어쩌면…",
+      "머리로?",
+      "그러니까 그냥 인식되어버렸던 그것들을 한 번 더 생각해보는 시간이지!",
+      "너는 편하게 앉아있어. 이제 내가 한 번 움직여볼게."
+    ];
+    showDialog(lines, '', ()=>{
+      // 토끼는 쇼파에서 일어나 바닥으로
+      playerY = groundY - 16;
+      // 약간 왼쪽으로 내려와서 중앙으로 갈 준비
+      playerX = sofaX + sofaWidth*0.2;
+      gameState = 'freeToBlob';
+      dialogHint.textContent =
+        "안내 : 캐릭터를 화면 중앙의 꿀렁이 가까이 이동시킨 뒤, A 버튼을 눌러주세요.\n" +
+        "당신은 그대로 편하게 앉아, 방금 들었던 것들을 한 번 더 떠올려 보세요.";
+    });
+  }
+
+  function startBlobDialog(){
+    if(gameState !== 'freeToBlob') return;
+    gameState = 'blobDialog';
+
+    // 중앙 쪽으로 스냅
+    playerX = W/2 - 8;
+    playerY = groundY - 16;
+
+    const lines = [
+      "우리는 지금부터 이 꿀렁꿀렁 거리는 물질 속으로 들어갈거야.",
+      "이건 언제부터 존재했는지는 모르지만, 어느 순간부터 생겨난 응축된 응어리 같은 거거든.",
+      "준비가 되면 버튼을 눌러줘.",
+      "함께 그것의 속으로 들어가보자."
     ];
     dialogHint.textContent = '';
     showDialog(lines, '', ()=>{
-      gameState = 'done';
-      dialogNextBtn.disabled = true;
-      dialogHint.textContent = "메인 프로그램으로 돌아가 두 번째 잠을 계속 이어가주세요.";
+      endSecondStage();
     });
+  }
+
+  function endSecondStage(){
+    gameState = 'finished';
+    dialogNextBtn.disabled = true;
+
+    // 페이드 인
+    stageFade.classList.remove('hidden');
+    requestAnimationFrame(()=>{
+      stageFade.style.opacity = '1';
+    });
+
+    // 음악은 조금 어두운 느낌으로 변화
+    startDarkMusic();
+
+    // 다음 스테이지로 넘길 수 있는 훅
+    setTimeout(()=>{
+      if(typeof window.sleepSecondStageDone === 'function'){
+        window.sleepSecondStageDone();
+      } else {
+        // 임시로 검은 화면만 남겨둔다
+        gameLayout.classList.add('hidden');
+        hudLeft.classList.add('hidden');
+        hudRight.classList.add('hidden');
+        dialogBar.classList.add('hidden');
+      }
+    }, 1300);
   }
 
   /* ===== 시작 오버레이 ===== */
