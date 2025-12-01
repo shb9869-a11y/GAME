@@ -4,12 +4,34 @@
   <meta charset="utf-8"/>
   <meta name="viewport"
         content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no,interactive-widget=resizes-content">
-  <title>PIXEL RABBIT TEST</title>
+  <title>SLEEEEEEEP – THE SECOND SLEEP</title>
 
+  <!-- 픽셀 게임 느낌 폰트 (1장과 통일용) -->
   <link rel="stylesheet"
         href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap">
 
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="SLEEP">
+  <meta name="theme-color" content="#000000">
+
   <style>
+    :root{
+      --appH: 100svh;
+      --frame: clamp(16px, 4vmin, 40px);
+      --ui-gap: 10px;
+
+      --fs-body: clamp(12px, 2.2vmin, 16px);
+      --fs-small: clamp(11px, 1.8vmin, 14px);
+
+      --bg-main: #050509;
+      --bg-frame: #151519;
+      --bg-dialog: #101015;
+      --accent: #f5f5f5;
+      --accent-soft: #d8c8a8;
+      --accent-strong: #ffd35a;
+    }
+
     *{
       box-sizing: border-box;
       margin: 0;
@@ -20,268 +42,802 @@
       width: 100%;
       height: 100%;
       background: #000;
-      color: #f5f5f5;
-      font-family: "Press Start 2P", system-ui, sans-serif;
-      overscroll-behavior: none;
-      -webkit-font-smoothing: antialiased;
-      image-rendering: pixelated;
+      color: var(--accent);
+      font-family: "Press Start 2P", system-ui, -apple-system, BlinkMacSystemFont,
+                   "Segoe UI", sans-serif;
     }
 
     body{
       display: flex;
-      align-items: center;
+      align-items: stretch;
       justify-content: center;
-    }
-
-    #frame{
-      width: min(100vw - 32px, 640px);
-      height: min(100vh - 32px, 360px);
-      border: 2px solid #555;
-      background: radial-gradient(circle at 50% 0%, #111 0, #020202 60%);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    #game-wrapper{
-      width: 90%;
-      aspect-ratio: 16 / 9;
-      border: 1px solid #444;
-      background: #000;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      position: relative;
       overflow: hidden;
     }
 
-    #game-canvas{
+    #app{
+      position: relative;
       width: 100%;
-      height: 100%;
-      image-rendering: pixelated;
-      background: #000;
-      display: block;
+      height: var(--appH);
+      padding: var(--frame);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at 50% 20%, #202030 0, #050509 55%, #000 100%);
+      overflow: hidden;
     }
 
-    #label{
-      position: absolute;
-      left: 8px;
-      top: 8px;
-      font-size: 8px;
-      color: #e5e7eb;
-      text-shadow: 0 1px 0 #000;
+    /* 가로 모드 안내 오버레이 */
+    #orientationOverlay{
+      position: fixed;
+      inset: 0;
+      background: #000c;
+      color: #fff;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 24px;
+      z-index: 50;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    #orientationOverlay.show{
+      display: flex;
     }
 
-    #help{
+    /* 전체 화면 버튼 */
+    #fsBtn{
       position: absolute;
-      left: 8px;
-      bottom: 8px;
-      font-size: 8px;
-      color: #d4d4d4;
-      text-shadow: 0 1px 0 #000;
-    }
-
-    #toggle{
-      position: absolute;
-      right: 8px;
-      top: 8px;
-      font-size: 8px;
-      padding: 4px 8px;
+      top: 10px;
+      right: 10px;
+      z-index: 40;
+      padding: 6px 10px;
+      font-size: 9px;
       border-radius: 999px;
       border: 1px solid #555;
       background: #111;
-      color: #e5e7eb;
+      color: #eee;
+      letter-spacing: 1px;
       cursor: pointer;
     }
-    #toggle:active{
-      background: #222;
+    #fsBtn:active{
+      transform: translateY(1px);
+    }
+
+    /* 가운데 프레임 영역 */
+    .frame{
+      position: relative;
+      width: min(100%, 960px);
+      aspect-ratio: 16 / 9;
+      border-radius: 18px;
+      border: 2px solid #47404a;
+      background: radial-gradient(circle at 50% 20%, #302838 0, #151019 55%, #050509 100%);
+      box-shadow: 0 0 40px #000;
+      overflow: hidden;
+    }
+
+    /* 중앙 꿀렁이 (2장 내내 유지) */
+    .center-blob{
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 140px;
+      height: 140px;
+      transform: translate(-50%, -50%) scale(0.7);
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 25%, #fefefe 0, #b9f3ff 18%, #377ea0 55%, #071726 100%);
+      box-shadow:
+        0 0 32px rgba(150, 220, 255, 0.7),
+        0 0 80px rgba(0, 80, 160, 0.6);
+      opacity: 0;
+      animation:
+        blobFloat 5s ease-in-out infinite,
+        blobPulse 3.4s ease-in-out infinite;
+      pointer-events: none;
+      z-index: 2;
+    }
+
+    /* 타이틀 텍스트 */
+    .chapter-title{
+      position: absolute;
+      inset: 25% 8% auto 8%;
+      text-align: center;
+      font-size: clamp(10px, 2.4vmin, 18px);
+      letter-spacing: 2px;
+      color: #f7f7ff;
+      text-shadow:
+        0 0 4px #000,
+        0 0 16px rgba(200, 240, 255, 0.9);
+      z-index: 3;
+      opacity: 0;
+    }
+
+    .chapter-title.fade-out{
+      opacity: 0;
+      transition: opacity 900ms ease;
+    }
+
+    /* 게임 레이어 */
+    .game-layer{
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-end;
+      padding: 12px var(--ui-gap) 14px;
+      z-index: 4;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 900ms ease;
+    }
+    .game-layer.show{
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    /* 게임 창 (픽셀 게임 화면) */
+    .game-window{
+      width: 88%;
+      max-width: 780px;
+      aspect-ratio: 16 / 9;
+      border-radius: 12px;
+      border: 3px solid #3a303c;
+      box-shadow:
+        0 0 0 2px #000,
+        0 0 28px #000;
+      background:
+        linear-gradient(to bottom, #3c2b28 0, #2a1915 45%, #160c09 100%);
+      overflow: hidden;
+    }
+    #gameCanvas{
+      width: 100%;
+      height: 100%;
+      image-rendering: pixelated;
+      display: block;
+      background: #201417;
+    }
+
+    /* 하단 대화창 */
+    .dialogue-bar{
+      margin-top: 8px;
+      width: 88%;
+      max-width: 780px;
+      min-height: 70px;
+      border-radius: 10px;
+      border: 2px solid #444;
+      background: linear-gradient(to bottom, #12131a 0, #050509 100%);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 10px 10px;
+      gap: 10px;
+      font-size: var(--fs-body);
+    }
+
+    .dialogue-text{
+      flex: 1;
+      line-height: 1.5;
+      word-break: keep-all;
+      white-space: pre-line;
+    }
+
+    #nextBtn{
+      flex-shrink: 0;
+      padding: 6px 10px;
+      font-size: 9px;
+      letter-spacing: 1px;
+      border-radius: 6px;
+      border: 1px solid #777;
+      background: #1a1a25;
+      color: #fefefe;
+      cursor: pointer;
+    }
+    #nextBtn:active{
+      transform: translateY(1px);
+    }
+
+    .hint{
+      margin-top: 6px;
+      width: 88%;
+      max-width: 780px;
+      font-size: var(--fs-small);
+      color: #babbd5;
+      min-height: 1.5em;
+    }
+
+    /* 하단 컨트롤 (프레임 밖) */
+    .controls{
+      position: absolute;
+      inset: auto 0 6px 0;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      padding: 0 18px;
+      pointer-events: none; /* 안쪽 버튼만 활성화 */
+      z-index: 10;
+    }
+
+    .ctrl-left,
+    .ctrl-right{
+      pointer-events: auto;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .dpad-base{
+      position: relative;
+      width: 84px;
+      height: 84px;
+      border-radius: 18px;
+      border: 2px solid #444;
+      background: radial-gradient(circle at 30% 20%, #3a3a46 0, #181821 50%, #050509 100%);
+      box-shadow:
+        0 4px 12px #000,
+        inset 0 0 4px #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .dpad-btn{
+      position: absolute;
+      width: 40px;
+      height: 32px;
+      border-radius: 8px;
+      border: 1px solid #aaa;
+      background: linear-gradient(to bottom, #f5f5f5 0, #d0d0d0 100%);
+      color: #222;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      text-shadow: 0 1px 0 #fff;
+    }
+    .dpad-btn.left{
+      left: 6px;
+    }
+    .dpad-btn.right{
+      right: 6px;
+    }
+    .dpad-btn:active{
+      transform: translateY(1px);
+      background: linear-gradient(to bottom, #e5e5e5 0, #c0c0c0 100%);
+    }
+
+    .action-btn{
+      width: 58px;
+      height: 58px;
+      border-radius: 50%;
+      border: 3px solid #440000;
+      background: radial-gradient(circle at 30% 20%, #ffb3a6 0, #e65a4b 45%, #7a1110 100%);
+      box-shadow:
+        0 4px 10px #000,
+        inset 0 0 4px rgba(0,0,0,0.8);
+      color: #ffdede;
+      font-size: 13px;
+      letter-spacing: 1px;
+      cursor: pointer;
+      text-shadow: 0 1px 0 #000;
+    }
+    .action-btn:active{
+      transform: translateY(2px);
+      box-shadow:
+        0 2px 6px #000,
+        inset 0 0 4px rgba(0,0,0,0.9);
+    }
+
+    .ctrl-right-label{
+      font-size: 9px;
+      color: #aaa;
+      letter-spacing: 1px;
+      margin-left: 4px;
+    }
+
+    /* 애니메이션 */
+    @keyframes blobFloat{
+      0%,100%{ transform: translate(-50%, -50%) scale(0.82); }
+      50%    { transform: translate(-50%, -53%) scale(0.95); }
+    }
+    @keyframes blobPulse{
+      0%,100%{ box-shadow: 0 0 24px rgba(150,220,255,0.7), 0 0 70px rgba(0,80,160,0.6); }
+      50%    { box-shadow: 0 0 40px rgba(200,240,255,0.9), 0 0 110px rgba(0,130,220,0.9); }
+    }
+
+    .blob-show{
+      opacity: 1;
+      transition: opacity 900ms ease;
+    }
+
+    /* 작은 화면 대응 */
+    @media (max-width: 768px){
+      .dialogue-bar{
+        min-height: 64px;
+      }
+      .controls{
+        padding-inline: 10px;
+      }
+      .dpad-base{
+        width: 76px;
+        height: 76px;
+      }
+      .action-btn{
+        width: 52px;
+        height: 52px;
+      }
     }
   </style>
 </head>
 <body>
-  <div id="frame">
-    <div id="game-wrapper">
-      <canvas id="game-canvas" width="320" height="180"></canvas>
-      <div id="label">PIXEL RABBIT</div>
-      <div id="help">← → ↑ ↓ : MOVE  |  버튼: 토끼 타입 변경</div>
-      <button id="toggle">RED</button>
+<div id="orientationOverlay">
+  <div>
+    이 화면은 가로 모드 전용입니다.<br><br>
+    기기를 가로로 돌려주세요.
+  </div>
+</div>
+
+<div id="app">
+  <!-- BGM (경로는 실제 파일 이름으로 교체) -->
+  <audio id="bgm" src="./audio/ch2_bgm.mp3" loop preload="auto"></audio>
+
+  <button id="fsBtn">FULL&nbsp;SCREEN</button>
+
+  <div class="frame">
+    <!-- 중앙 꿀렁이 (2장 전체에서 유지) -->
+    <div id="centerBlob" class="center-blob"></div>
+
+    <!-- 2장 타이틀 -->
+    <div id="chapterTitle" class="chapter-title"></div>
+
+    <!-- 게임 레이어 -->
+    <div id="gameLayer" class="game-layer">
+      <div class="game-window">
+        <canvas id="gameCanvas" width="480" height="270"></canvas>
+      </div>
+
+      <!-- 프레임 밖 하단 중앙 : 대화창 -->
+      <div class="dialogue-bar">
+        <div id="dialogueText" class="dialogue-text"></div>
+        <button id="nextBtn">NEXT ▷</button>
+      </div>
+
+      <div id="hintText" class="hint"></div>
+
+      <!-- 프레임 밖 하단 : 컨트롤러 -->
+      <div class="controls">
+        <div class="ctrl-left">
+          <div class="dpad-base">
+            <button class="dpad-btn left"  data-dir="left">◁</button>
+            <button class="dpad-btn right" data-dir="right">▷</button>
+          </div>
+        </div>
+        <div class="ctrl-right">
+          <button id="actionBtn" class="action-btn">A</button>
+          <span class="ctrl-right-label">JUMP / TALK</span>
+        </div>
+      </div>
     </div>
   </div>
+</div>
 
 <script>
-/* =========================
-   기본 세팅
-   ========================= */
-const canvas = document.getElementById('game-canvas');
-const ctx    = canvas.getContext('2d');
-const toggleBtn = document.getElementById('toggle');
+  // ===== 기본 유틸 =====
+  function getPlayerName(){
+    try{
+      const params = new URLSearchParams(location.search);
+      const fromQuery = params.get("name");
+      if(fromQuery && fromQuery.trim()) return fromQuery.trim();
 
-const WIDTH  = canvas.width;
-const HEIGHT = canvas.height;
-
-let lastTime = 0;
-
-const RABBIT = {
-  x: WIDTH/2,
-  y: HEIGHT/2 + 10,
-  speed: 80,
-  mode: 'red' // 'red' | 'mono'
-};
-
-/* =========================
-   토끼 드로잉 함수들
-   ========================= */
-
-/**
- * 빨간 토끼 (원래 쓰던 스타일)
- * ctx: 2D context
- * x, y: 기준 위치 (좌상단 느낌)
- * scale: 크기 배율
- */
-function drawRedRabbit(ctx, x, y, scale = 1){
-  const s = 8 * scale;
-  ctx.fillStyle = '#ff3333';
-
-  // 머리
-  ctx.fillRect(x + 2*scale, y + 1*scale, 4*scale, 3*scale);
-
-  // 귀 2개
-  ctx.fillRect(x + 1*scale, y - 1*scale, 1*scale, 3*scale);
-  ctx.fillRect(x + 4*scale, y - 1*scale, 1*scale, 3*scale);
-
-  // 몸통
-  ctx.fillRect(x + 2*scale, y + 4*scale, 4*scale, 3*scale);
-
-  // 꼬리
-  ctx.fillRect(x + 6*scale, y + 4*scale, 2*scale, 2*scale);
-}
-
-/**
- * 흑백 토끼 (미로용 흑백 구조에 맞는 버전)
- */
-function drawMonoRabbit(ctx, x, y, scale = 1){
-  const s = 8 * scale;
-  ctx.fillStyle = '#f5f5f5';
-
-  // 머리
-  ctx.fillRect(x + 2*scale, y + 1*scale, 4*scale, 3*scale);
-
-  // 귀 (조금 더 각진 느낌)
-  ctx.fillRect(x + 1*scale, y - 1*scale, 1*scale, 3*scale);
-  ctx.fillRect(x + 5*scale, y - 1*scale, 1*scale, 3*scale);
-
-  // 몸통
-  ctx.fillRect(x + 3*scale, y + 4*scale, 3*scale, 4*scale);
-
-  // 다리
-  ctx.fillRect(x + 2*scale, y + 7*scale, 1*scale, 2*scale);
-  ctx.fillRect(x + 5*scale, y + 7*scale, 1*scale, 2*scale);
-
-  // 꼬리 (살짝 회색)
-  ctx.fillStyle = '#d4d4d4';
-  ctx.fillRect(x + 6*scale, y + 4*scale, 2*scale, 2*scale);
-}
-
-/* =========================
-   키보드 입력
-   ========================= */
-const keys = {
-  ArrowLeft:  false,
-  ArrowRight: false,
-  ArrowUp:    false,
-  ArrowDown:  false
-};
-
-window.addEventListener('keydown', e=>{
-  if(e.key in keys){
-    keys[e.key] = true;
-  }
-});
-
-window.addEventListener('keyup', e=>{
-  if(e.key in keys){
-    keys[e.key] = false;
-  }
-});
-
-/* =========================
-   토끼 타입 토글
-   ========================= */
-toggleBtn.addEventListener('click', ()=>{
-  RABBIT.mode = (RABBIT.mode === 'red') ? 'mono' : 'red';
-  toggleBtn.textContent = (RABBIT.mode === 'red') ? 'RED' : 'MONO';
-});
-
-/* =========================
-   업데이트 & 그리기
-   ========================= */
-function update(dt){
-  let dx = 0;
-  let dy = 0;
-
-  if(keys.ArrowLeft)  dx -= 1;
-  if(keys.ArrowRight) dx += 1;
-  if(keys.ArrowUp)    dy -= 1;
-  if(keys.ArrowDown)  dy += 1;
-
-  if(dx !== 0 || dy !== 0){
-    const len = Math.sqrt(dx*dx + dy*dy) || 1;
-    dx /= len;
-    dy /= len;
-    RABBIT.x += dx * RABBIT.speed * dt;
-    RABBIT.y += dy * RABBIT.speed * dt;
+      const fromStorage = localStorage.getItem("sleepNickname");
+      if(fromStorage && fromStorage.trim()) return fromStorage.trim();
+    }catch(e){}
+    return "PLAYER";
   }
 
-  // 화면 밖으로 안 나가게
-  const margin = 16;
-  RABBIT.x = Math.max(margin, Math.min(WIDTH - margin, RABBIT.x));
-  RABBIT.y = Math.max(margin, Math.min(HEIGHT - margin, RABBIT.y));
-}
-
-function draw(){
-  // 배경
-  const grad = ctx.createLinearGradient(0,0,0,HEIGHT);
-  grad.addColorStop(0,"#050505");
-  grad.addColorStop(1,"#000000");
-  ctx.fillStyle = grad;
-  ctx.fillRect(0,0,WIDTH,HEIGHT);
-
-  // 바닥 느낌 라인
-  ctx.strokeStyle = "#111";
-  ctx.lineWidth = 1;
-  for(let y=HEIGHT*0.55; y<HEIGHT; y+=8){
-    ctx.beginPath();
-    ctx.moveTo(0,y);
-    ctx.lineTo(WIDTH,y);
-    ctx.stroke();
+  function updateOrientationOverlay(){
+    const overlay = document.getElementById("orientationOverlay");
+    if(window.innerWidth < window.innerHeight){
+      overlay.classList.add("show");
+    }else{
+      overlay.classList.remove("show");
+    }
   }
 
-  // 토끼 그림
-  const size = 2; // 스케일
-  const drawX = RABBIT.x - 4*size;
-  const drawY = RABBIT.y - 6*size;
+  window.addEventListener("resize", updateOrientationOverlay);
+  window.addEventListener("orientationchange", updateOrientationOverlay);
 
-  if(RABBIT.mode === 'red'){
-    drawRedRabbit(ctx, drawX, drawY, size);
-  }else{
-    drawMonoRabbit(ctx, drawX, drawY, size);
-  }
-}
+  // ===== 메인 로직 =====
+  document.addEventListener("DOMContentLoaded", () => {
+    updateOrientationOverlay();
 
-/* =========================
-   메인 루프
-   ========================= */
-function loop(timestamp){
-  const dt = (timestamp - lastTime) / 1000;
-  lastTime = timestamp;
+    const playerName = getPlayerName();
+    const centerBlob  = document.getElementById("centerBlob");
+    const titleEl     = document.getElementById("chapterTitle");
+    const gameLayer   = document.getElementById("gameLayer");
+    const fsBtn       = document.getElementById("fsBtn");
+    const bgm         = document.getElementById("bgm");
 
-  update(dt);
-  draw();
+    const dialogueText = document.getElementById("dialogueText");
+    const nextBtn      = document.getElementById("nextBtn");
+    const hintText     = document.getElementById("hintText");
+    const actionBtn    = document.getElementById("actionBtn");
 
-  requestAnimationFrame(loop);
-}
+    // 전체 화면 버튼
+    fsBtn.addEventListener("click", () => {
+      const el = document.documentElement;
+      if(!document.fullscreenElement){
+        if(el.requestFullscreen) el.requestFullscreen();
+      }else{
+        document.exitFullscreen && document.exitFullscreen();
+      }
+    });
 
-requestAnimationFrame(loop);
+    // 꿀렁이 등장 + 타이틀 타이핑
+    function startTitleSequence(){
+      centerBlob.classList.add("blob-show");
+
+      const titleStr = "제 2장 : THE SECOND SLEEP";
+      let idx = 0;
+
+      const typeInterval = setInterval(() => {
+        titleEl.style.opacity = 1;
+        titleEl.textContent = titleStr.slice(0, idx + 1);
+        idx++;
+        if(idx >= titleStr.length){
+          clearInterval(typeInterval);
+          // 잠깐 유지 후 페이드아웃
+          setTimeout(() => {
+            titleEl.classList.add("fade-out");
+            setTimeout(() => {
+              titleEl.style.display = "none";
+              startGameLayer();
+            }, 900);
+          }, 800);
+        }
+      }, 80);
+    }
+
+    // 게임 레이어 활성화
+    function startGameLayer(){
+      gameLayer.classList.add("show");
+
+      // 일부 브라우저는 사용자 입력 후에만 재생 가능.
+      // 첫 NEXT 버튼 클릭에서 다시 play 시도하도록 아래에서도 처리함.
+      try{ bgm.volume = 0.8; bgm.play().catch(()=>{}); }catch(e){}
+
+      setTimeout(() => {
+        startGameLogic(playerName);
+      }, 1000); // 화면이 뜬 뒤 1초 후 토끼 등장 & 대화 시작
+    }
+
+    startTitleSequence();
+
+    // ===== 게임 / 대화 로직 =====
+    function startGameLogic(playerName){
+      const canvas = document.getElementById("gameCanvas");
+      const ctx = canvas.getContext("2d");
+
+      const w = canvas.width;
+      const h = canvas.height;
+
+      // 지형
+      const groundY = h - 40;
+
+      // 플레이어 (토끼)
+      const player = {
+        x: -32,
+        y: groundY - 26,
+        width: 24,
+        height: 26,
+        speed: 1.8,
+        facing: 1,
+        autoWalk: true,
+        sitting: false
+      };
+
+      // 노란 쇼파
+      const sofa = {
+        x: w - 110,
+        y: groundY - 24,
+        width: 80,
+        height: 24
+      };
+
+      // 입력 상태
+      let pressingLeft  = false;
+      let pressingRight = false;
+
+      let gameState = "intro-dialog"; // intro-dialog -> free -> sit-dialog -> done
+
+      // 첫 번째 대사
+      const firstLines = [
+        "안녕?",
+        `나는 ${playerName}이야.`,
+        "어때, 그래도 한 8분 걸어온 것 같은데,\n어디 편한 곳에 앉아볼까?",
+        "아아앗? 저기 소파가 있다!\n저기에 앉아보자!!"
+      ];
+
+      // 두 번째 대사
+      const secondLines = [
+        "앉았어?",
+        "그래. 어때?",
+        "짧은 시간의 여정은 조금 괜찮아?",
+        "지금부터는 제 2장.\n그러니까 THE SECOND SLEEP이야!"
+      ];
+
+      let currentLines = firstLines;
+      let dialogueIndex = 0;
+      let onDialogueEnd = null;
+
+      function showLine(idx){
+        if(idx < 0 || idx >= currentLines.length) return;
+        dialogueText.textContent = currentLines[idx];
+      }
+
+      function startDialogue(lines, onEnd){
+        currentLines = lines;
+        dialogueIndex = 0;
+        onDialogueEnd = onEnd || null;
+        showLine(dialogueIndex);
+      }
+
+      // NEXT 버튼
+      nextBtn.addEventListener("click", () => {
+        // BGM 재생 재시도 (모바일 대비)
+        try{ bgm.play().catch(()=>{}); }catch(e){}
+
+        if(dialogueIndex < currentLines.length - 1){
+          dialogueIndex++;
+          showLine(dialogueIndex);
+        }else{
+          // 대화 끝
+          if(onDialogueEnd) onDialogueEnd();
+        }
+      });
+
+      // 첫 대사 시작
+      startDialogue(firstLines, () => {
+        // 안내 문구 + 조작 해방
+        gameState = "free";
+        player.autoWalk = false;
+        hintText.textContent =
+          "안내 : 캐릭터를 오른쪽으로 이동시켜 A 버튼을 눌러 쇼파에 앉으세요.\n당신도 어디 좋은 자리를 잡아 앉아보세요.";
+      });
+
+      // A 버튼 (점프/소통)
+      actionBtn.addEventListener("click", () => {
+        handleAction();
+      });
+
+      function handleAction(){
+        if(gameState === "free"){
+          // 쇼파 근처인지 확인
+          if(player.x + player.width > sofa.x - 8 &&
+             player.x < sofa.x + sofa.width + 4){
+            gameState = "sit-dialog";
+            player.sitting = true;
+            player.x = sofa.x - 14;
+            hintText.textContent = "";
+            startDialogue(secondLines, () => {
+              gameState = "done";
+              hintText.textContent = "THE SECOND SLEEP 로딩 중...";
+              // 여기서 3장으로 넘어가는 콜백을 연결할 수 있음
+              console.log("Chapter 2 finished.");
+            });
+          }
+        }
+      }
+
+      // 방향키 버튼 이벤트
+      const dpadButtons = document.querySelectorAll(".dpad-btn");
+      dpadButtons.forEach(btn => {
+        const dir = btn.dataset.dir;
+        const start = () => {
+          if(gameState !== "free") return;
+          if(dir === "left")  pressingLeft = true;
+          if(dir === "right") pressingRight = true;
+        };
+        const stop = () => {
+          if(dir === "left")  pressingLeft = false;
+          if(dir === "right") pressingRight = false;
+        };
+
+        btn.addEventListener("mousedown", start);
+        btn.addEventListener("touchstart", (e)=>{ e.preventDefault(); start();});
+        window.addEventListener("mouseup", stop);
+        window.addEventListener("touchend", stop);
+      });
+
+      // 키보드 지원 (테스트용)
+      window.addEventListener("keydown", (e) => {
+        if(gameState === "free" || gameState === "intro-dialog"){
+          if(e.key === "ArrowLeft"){
+            pressingLeft = true;
+          }else if(e.key === "ArrowRight"){
+            pressingRight = true;
+          }
+        }
+        if(e.key === " " || e.key === "Enter"){
+          handleAction();
+        }
+      });
+      window.addEventListener("keyup", (e) => {
+        if(e.key === "ArrowLeft") pressingLeft = false;
+        if(e.key === "ArrowRight") pressingRight = false;
+      });
+
+      // ===== 드로잉 유틸 =====
+
+      // 픽셀 토끼 (빨간 토끼)
+      function drawRedRabbit(ctx, x, y, scale = 1){
+        const s = scale;
+
+        ctx.fillStyle = "#ff5555";
+
+        // 몸통
+        ctx.fillRect(x + 2*s, y + 6*s, 6*s, 7*s);
+
+        // 머리
+        ctx.fillRect(x + 2*s, y + 1*s, 6*s, 5*s);
+
+        // 귀
+        ctx.fillRect(x + 2*s, y - 3*s, 2*s, 4*s);
+        ctx.fillRect(x + 6*s, y - 3*s, 2*s, 4*s);
+
+        // 발
+        ctx.fillRect(x + 2*s, y + 13*s, 3*s, 2*s);
+        ctx.fillRect(x + 5*s, y + 13*s, 3*s, 2*s);
+
+        // 꼬리
+        ctx.fillRect(x - 1*s, y + 7*s, 2*s, 3*s);
+
+        // 얼굴 (눈, 입)
+        ctx.fillStyle = "#2b1010";
+        if(player.facing >= 0){
+          ctx.fillRect(x + 5*s, y + 3*s, 1*s, 1*s);
+          ctx.fillRect(x + 6*s, y + 3*s, 1*s, 1*s);
+        }else{
+          ctx.fillRect(x + 3*s, y + 3*s, 1*s, 1*s);
+          ctx.fillRect(x + 4*s, y + 3*s, 1*s, 1*s);
+        }
+        ctx.fillRect(x + 4*s, y + 5*s, 2*s, 1*s);
+      }
+
+      function drawBackground(){
+        // 하늘/동굴 상단
+        const grad = ctx.createLinearGradient(0, 0, 0, h);
+        grad.addColorStop(0, "#3e2f43");
+        grad.addColorStop(0.5, "#2a1a25");
+        grad.addColorStop(1, "#140b0e");
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, w, h);
+
+        // 바위 벽
+        for(let i = 0; i < 8; i++){
+          const bx = i * 60 + (i%2 ? 6 : -4);
+          const by = 60 + (i%3 ? 6 : -8);
+          ctx.fillStyle = "#5b3c32";
+          ctx.fillRect(bx, by, 70, 24);
+          ctx.fillStyle = "#3a241f";
+          ctx.fillRect(bx+2, by+14, 66, 8);
+        }
+
+        // 바닥
+        ctx.fillStyle = "#3a241b";
+        ctx.fillRect(0, groundY, w, h-groundY);
+        ctx.fillStyle = "#6d4a37";
+        ctx.fillRect(0, groundY-8, w, 8);
+
+        // 작은 풀들
+        ctx.fillStyle = "#c0aa6a";
+        for(let i = 0; i < 6; i++){
+          const px = 30 + i * 70;
+          ctx.fillRect(px, groundY-12, 2, 6);
+          ctx.fillRect(px+4, groundY-10, 2, 6);
+          ctx.fillRect(px-4, groundY-11, 2, 5);
+        }
+
+        // 왼쪽 위 별 (원래 인트로 별 느낌)
+        ctx.fillStyle = "#ffeeb0";
+        ctx.beginPath();
+        ctx.arc(24, 30, 7, 0, Math.PI*2);
+        ctx.fill();
+      }
+
+      function drawSofa(){
+        // 쇼파 본체
+        ctx.fillStyle = "#ffd666";
+        ctx.fillRect(sofa.x, sofa.y, sofa.width, sofa.height);
+
+        // 등받이
+        ctx.fillRect(sofa.x + 4, sofa.y - 14, sofa.width - 8, 14);
+
+        // 그림자
+        ctx.fillStyle = "rgba(0,0,0,0.35)";
+        ctx.fillRect(sofa.x+2, sofa.y + sofa.height, sofa.width-4, 6);
+      }
+
+      function drawPlayer(){
+        const scale = 2;
+        let drawX = player.x;
+        let drawY = player.y - 10;
+
+        // 앉아 있을 때 살짝 아래로
+        if(player.sitting){
+          drawY += 6;
+        }
+
+        if(player.facing >= 0){
+          drawRedRabbit(ctx, drawX, drawY, scale);
+        }else{
+          // 좌우 반전
+          ctx.save();
+          ctx.translate(drawX + player.width, 0);
+          ctx.scale(-1, 1);
+          drawRedRabbit(ctx, 0, drawY, scale);
+          ctx.restore();
+        }
+
+        // 이름표
+        ctx.font = "6px 'Press Start 2P'";
+        ctx.fillStyle = "#000";
+        const label = playerName;
+        const textWidth = ctx.measureText(label).width;
+        ctx.fillStyle = "rgba(0,0,0,0.7)";
+        ctx.fillRect(player.x + player.width/2 - textWidth/2 - 4,
+                     player.y - 22,
+                     textWidth + 8,
+                     10);
+        ctx.fillStyle = "#ffeebb";
+        ctx.fillText(label,
+                     player.x + player.width/2 - textWidth/2,
+                     player.y - 14);
+      }
+
+      // ===== 메인 루프 =====
+      function update(){
+        // 자동으로 화면 안쪽까지 걸어오게
+        if(player.autoWalk){
+          player.x += player.speed * 1.1;
+          player.facing = 1;
+          if(player.x >= w*0.35){
+            player.autoWalk = false;
+          }
+        }else if(gameState === "free"){
+          if(pressingLeft){
+            player.x -= player.speed;
+            player.facing = -1;
+          }
+          if(pressingRight){
+            player.x += player.speed;
+            player.facing = 1;
+          }
+        }
+
+        // 경계
+        if(player.x < -10) player.x = -10;
+        if(player.x + player.width > w - 6){
+          player.x = w - 6 - player.width;
+        }
+      }
+
+      function render(){
+        drawBackground();
+        drawSofa();
+        drawPlayer();
+      }
+
+      function loop(){
+        update();
+        render();
+        requestAnimationFrame(loop);
+      }
+
+      loop();
+    } // startGameLogic 끝
+  });
 </script>
 </body>
 </html>
