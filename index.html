@@ -786,17 +786,17 @@ input, textarea{
     startGameScene();
   }
 
-  /* ===== 게임 영역 ===== */
+  /* ===== 게임 영역 DOM ===== */
   const gameLayout      = qs('#gameLayout');
   const gameCanvas      = qs('#gameCanvas');
   const gctx            = gameCanvas.getContext('2d');
   const nameTag         = qs('#nameTag');
   const dialogBar       = qs('#dialogBar');
-  const dialogText      = qs('#dialogText');
+  const dialogTextElem  = qs('#dialogText');
   const dialogHint      = qs('#dialogHint');
-  const dialogNextBtn   = qs('#dialogNext');
+  const dialogNextBtnEl = qs('#dialogNext');
   const dialogChoices   = qs('#dialogChoices');
-  const hudLeft         = qs('#hudLeft');
+  const hudLeftEl       = qs('#hudLeft');
   const hudRight        = qs('#hudRight');
   const startOverlayEl  = qs('#startOverlay');
   const startBtn        = qs('#startBtn');
@@ -805,7 +805,7 @@ input, textarea{
   const speechBubble    = qs('#speechBubble');
   const gameScreenWrap  = qs('#gameScreenWrap');
 
-  // 닉네임 처리
+  /* 닉네임 처리 */
   const nickRaw = (()=> {
     try{
       const v = localStorage.getItem('sleepNick');
@@ -917,11 +917,6 @@ input, textarea{
   let dialogMode = 'normal'; // 'normal' | 'blobIntro' | 'blobStory' | 'blobDecision'
   let currentBlobIndex = -1;
 
-  const dialogBar = qs('#dialogBar');
-  const dialogTextElem = qs('#dialogText');
-  const dialogChoices = qs('#dialogChoices');
-  const dialogNextBtnEl = qs('#dialogNext');
-
   function clearChoices(){
     dialogChoices.innerHTML = '';
     dialogChoices.classList.add('hidden');
@@ -1004,7 +999,6 @@ input, textarea{
   });
 
   /* HUD 입력 */
-  const hudLeftEl = qs('#hudLeft');
   const dpad = hudLeftEl.querySelector('.dpad');
   if(dpad){
     dpad.addEventListener('pointerdown', (e)=>{
@@ -1179,17 +1173,15 @@ input, textarea{
 
     // 미로 입장: 왼쪽에서 걸어오는 연출
     if(gameState === 'mazeEnter'){
-      // 목표 x 까지 자동으로 오른쪽으로 이동
       const targetX = mazeStartTargetX;
       const dir = targetX > mazePlayerX ? 1 : -1;
       const step = 0.7;
       mazePlayerX += dir * step;
 
-      // 살짝 오버해도 괜찮게 범위로 체크
       if( (dir > 0 && mazePlayerX >= targetX) ||
           (dir < 0 && mazePlayerX <= targetX) ){
         mazePlayerX = targetX;
-        gameState = 'maze';   // 여기서부터 플레이어 컨트롤 가능
+        gameState = 'maze';
       }
       return;
     }
@@ -1515,7 +1507,7 @@ input, textarea{
 
     setTimeout(()=>{
       // 미로 입장: 왼쪽 복도 바깥 쪽에서부터
-      mazePlayerX = (mazeStartTile.tx - 1) * tileSize; // 살짝 왼쪽에서
+      mazePlayerX = (mazeStartTile.tx - 1) * tileSize;
       mazePlayerY = mazeStartY;
 
       stageFade.style.opacity = '0';
@@ -1606,7 +1598,7 @@ input, textarea{
       {
         label: "들어가지",
         onSelect: ()=>{
-          // TODO: 나중에 진짜 '들어가기' 동작(다른 스테이지) 붙일 자리
+          // TODO: 이후 단계 연결
           clearChoices();
           dialogBar.classList.add('hidden');
           gameState = 'maze';
@@ -1638,12 +1630,20 @@ input, textarea{
     await showTitleSequence();
   }
 
-  ['click','touchstart','pointerdown'].forEach(ev=>{
+  // 버튼 / 오버레이 어디를 눌러도 시작되게
+  ['click'].forEach(ev=>{
     startBtn.addEventListener(ev, (e)=>{
       e.preventDefault();
       if(startOverlayEl.style.display === 'none') return;
       startAll();
-    }, {passive:false});
+    });
+    startOverlayEl.addEventListener(ev, (e)=>{
+      // 버튼 바깥 누를 때도 허용
+      if(e.target === startBtn) return; // 버튼 핸들러가 처리
+      e.preventDefault();
+      if(startOverlayEl.style.display === 'none') return;
+      startAll();
+    });
   });
 
 })();
