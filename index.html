@@ -167,12 +167,13 @@ input, textarea{
   z-index:20;
   padding:calc(var(--frame) + var(--safe-t))
            calc(var(--frame) + var(--safe-r))
-           calc(var(--frame) + var(--safe-b) + 90px)
+           calc(var(--frame) + var(--safe-b) + 40px)
            calc(var(--frame) + var(--safe-l));
   display:flex;
   align-items:center;           /* 중앙 정렬 */
   justify-content:center;
   pointer-events:none;          /* 실제 입력은 캔버스, HUD에만 */
+  transform: translateY(-4vh);  /* 게임 화면을 전체적으로 살짝 위로 */
 }
 #gameCard{
   width:100%;
@@ -180,8 +181,10 @@ input, textarea{
   height:auto;
   background:transparent;
   display:flex;
+  flex-direction:column;        /* 위: 게임 화면, 아래: 멘트창 */
   align-items:center;
-  justify-content:center;
+  justify-content:flex-start;
+  gap:8px;
 }
 #gameScreenWrap{
   position:relative;
@@ -213,15 +216,10 @@ input, textarea{
   font-size:clamp(9px,1.6vmin,12px);
 }
 
-/* 대화창 */
+/* 대화창 – 게임 화면 바로 아래, 같은 가로 폭 */
 #dialogBar{
-  position:fixed;
-  left:50%;
-  transform:translateX(-50%);
-  bottom:calc(var(--frame) + var(--safe-b) + 10px);
-  z-index:30;
-  max-width:1120px;
-  width:calc(100vw - 2*(var(--frame) + var(--safe-l)));
+  width:100%;
+  max-width:720px;              /* gameScreenWrap과 동일 */
   display:flex;
   align-items:flex-end;
   justify-content:space-between;
@@ -230,6 +228,10 @@ input, textarea{
   background:rgba(0,0,0,0.9);
   border:1px solid rgba(245,245,245,0.6);
   box-shadow:0 0 18px rgba(0,0,0,0.9);
+  position:relative;
+  left:auto;
+  bottom:auto;
+  transform:none;
 }
 #dialogTextWrap{
   flex:1;
@@ -355,6 +357,15 @@ input, textarea{
       <canvas id="gameCanvas" width="320" height="180"></canvas>
       <div id="nameTag"></div>
     </div>
+
+    <!-- 대화창: 게임 화면 바로 아래 -->
+    <div id="dialogBar" class="hidden">
+      <div id="dialogTextWrap">
+        <div id="dialogText"></div>
+        <div id="dialogHint"></div>
+      </div>
+      <button id="dialogNext" class="uiBtn">NEXT</button>
+    </div>
   </div>
 </div>
 
@@ -369,15 +380,6 @@ input, textarea{
 </div>
 <div id="hudRight" class="hidden">
   <button id="actionBtn">A</button>
-</div>
-
-<!-- 대화창 -->
-<div id="dialogBar" class="hidden">
-  <div id="dialogTextWrap">
-    <div id="dialogText"></div>
-    <div id="dialogHint"></div>
-  </div>
-  <button id="dialogNext" class="uiBtn">NEXT</button>
 </div>
 
 <script>
