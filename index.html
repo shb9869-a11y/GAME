@@ -251,6 +251,19 @@ input, textarea{
   white-space:pre-wrap;
 }
 #dialogHint{ display:none; }
+
+/* 선택지 버튼 그룹 */
+#dialogChoices{
+  margin-top:6px;
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+}
+#dialogChoices .uiBtn{
+  font-size:clamp(10px,1.7vmin,13px);
+  padding:4px 8px;
+}
+
 #dialogNext{
   flex:0 0 auto;
 }
@@ -425,6 +438,7 @@ input, textarea{
       <div id="dialogTextWrap">
         <div id="dialogText"></div>
         <div id="dialogHint"></div>
+        <div id="dialogChoices" class="hidden"></div>
       </div>
       <button id="dialogNext" class="uiBtn">NEXT</button>
     </div>
@@ -779,14 +793,17 @@ input, textarea{
   const nameTag         = qs('#nameTag');
   const dialogBar       = qs('#dialogBar');
   const dialogText      = qs('#dialogText');
+  const dialogHint      = qs('#dialogHint');
   const dialogNextBtn   = qs('#dialogNext');
+  const dialogChoices   = qs('#dialogChoices');
   const hudLeft         = qs('#hudLeft');
   const hudRight        = qs('#hudRight');
-  const startOverlay    = qs('#startOverlay');
+  const startOverlayEl  = qs('#startOverlay');
   const startBtn        = qs('#startBtn');
   const stageFade       = qs('#stageFade');
   const hintBar         = qs('#hintBar');
   const speechBubble    = qs('#speechBubble');
+  const gameScreenWrap  = qs('#gameScreenWrap');
 
   // 닉네임 처리
   const nickRaw = (()=> {
@@ -859,12 +876,13 @@ input, textarea{
   ];
   // 상/하/좌/우/중심 꿀렁이 위치 (타일 좌표)
   const mazeBlobs = [
-    {tx:10, ty:2}, // 상
-    {tx:10, ty:8}, // 하
-    {tx:4,  ty:5}, // 좌
-    {tx:16, ty:5}, // 우
-    {tx:10, ty:5}  // 중심
+    {tx:10, ty:2}, // 1번 (상)
+    {tx:10, ty:8}, // 2번 (하)
+    {tx:4,  ty:5}, // 3번 (좌)
+    {tx:16, ty:5}, // 4번 (우)
+    {tx:10, ty:5}  // 5번 (중심)
   ];
+  let blobVisited = [false,false,false,false,false];
 
   // 미로에서의 플레이어 좌표 (픽셀)
   let mazePlayerX = 10 * tileSize + tileSize/2;
@@ -879,18 +897,45 @@ input, textarea{
     return mazeMap[ty].charAt(tx) === '1';
   }
 
-  // 상태: title, introWalk, introDialog, freeToSofa, seatedDialog,
-  // freeToBlob, blobDialog, cosmic, maze
+  // 상태
+  // 'title', 'introWalk', 'introDialog', 'freeToSofa', 'seatedDialog',
+  // 'freeToBlob', 'blobDialog', 'transitionToCosmic', 'cosmic',
+  // 'transitionToMaze', 'maze', 'mazeDialog'
   let gameState = 'title';
 
-  /* 대화 시스템 */
+  /* 대화 시스템 (공통) */
   let currentLines = [];
   let currentIdx = 0;
   let typing = false;
   let fullLine = '';
   let onDialogDone = null;
+  let dialogMode = 'normal'; // 'normal' | 'blobIntro' | 'blobStory' | 'blobDecision'
+  let currentBlobIndex = -1;
+
+  function clearChoices(){
+    dialogChoices.innerHTML = '';
+    dialogChoices.classList.add('hidden');
+    dialogNextBtn.classList.remove('hidden');
+  }
+
+  function showChoiceButtons(options){
+    dialogChoices.innerHTML = '';
+    options.forEach(opt=>{
+      const b = document.createElement('button');
+      b.className = 'uiBtn';
+      b.textContent = opt.label;
+      b.addEventListener('click', async ()=>{
+        await ensureResumed();
+        opt.onSelect();
+      });
+      dialogChoices.appendChild(b);
+    });
+    dialogChoices.classList.remove('hidden');
+    dialogNextBtn.classList.add('hidden');
+  }
 
   async function showDialog(lines, hint='', cb=null){
+    dialogMode = 'normal';
     currentLines = lines;
     currentIdx = 0;
     onDialogDone = cb;
@@ -903,6 +948,7 @@ input, textarea{
       hintBar.classList.add('hidden');
     }
 
+    clearChoices();
     dialogBar.classList.remove('hidden');
     await typeCurrentLine();
   }
@@ -917,11 +963,30 @@ input, textarea{
 
   dialogNextBtn.addEventListener('click', async ()=>{
     await ensureResumed();
+
+    // 미로 블랙홀 스토리 모드
+    if(dialogMode === 'blobStory'){
+      if(typing){
+        typing = false;
+        dialogText.textContent = fullLine;
+        return;
+      }
+      // 스토리 끝나면 "흠… 들어가볼까?" + 선택지
+      await showBlobDecision(currentBlobIndex);
+      return;
+    }
+
+    if(dialogMode !== 'normal'){
+      // blobIntro / blobDecision 상태에서는 NEXT를 쓸 일이 없음
+      return;
+    }
+
     if(typing){
       typing = false;
       dialogText.textContent = fullLine;
       return;
     }
+
     currentIdx++;
     if(currentIdx >= currentLines.length){
       if(onDialogDone) onDialogDone();
@@ -1028,6 +1093,11 @@ input, textarea{
       return;
     }
 
+    // 블랙홀 대화 중에는 정지
+    if(gameState === 'mazeDialog'){
+      return;
+    }
+
     // 사이드뷰 자유 이동 (소파 / 꿀렁이까지)
     if(gameState === 'freeToSofa' || gameState === 'freeToBlob'){
       let ax = 0;
@@ -1076,15 +1146,15 @@ input, textarea{
       const cx = W/2;
       const cy = H/2;
       const R0 = 70;
-      const R = Math.max(6, R0 - t*10);     // 서서히 중심으로
-      const angle = t * 3.0 * Math.PI;      // 나선형
+      const R = Math.max(6, R0 - t*10);
+      const angle = t * 3.0 * Math.PI;
       playerX = cx + Math.cos(angle)*R;
       playerY = cy + Math.sin(angle)*R;
+
       if(t > 0.4 && t < 6){
         speechBubble.classList.remove('hidden');
       }
       // 말풍선 위치 갱신
-      const rect = gameCanvas.getBoundingClientRect();
       const wrapRect = gameScreenWrap.getBoundingClientRect();
       const nx = (playerX / W) * wrapRect.width;
       const ny = (playerY / H) * wrapRect.height;
@@ -1095,6 +1165,7 @@ input, textarea{
         speechBubble.classList.add('hidden');
         startMazeScene();
       }
+      return;
     }
 
     // 미로 씬
@@ -1110,6 +1181,25 @@ input, textarea{
 
       if(!isWall(nx, mazePlayerY)) mazePlayerX = nx;
       if(!isWall(mazePlayerX, ny)) mazePlayerY = ny;
+
+      checkMazeBlobs();
+    }
+  }
+
+  /* 미로에서 블랙홀 근접 체크 */
+  function checkMazeBlobs(){
+    for(let i=0;i<mazeBlobs.length;i++){
+      if(blobVisited[i]) continue;
+      const b = mazeBlobs[i];
+      const bx = (b.tx+0.5)*tileSize;
+      const by = (b.ty+0.5)*tileSize;
+      const dx = mazePlayerX - bx;
+      const dy = mazePlayerY - by;
+      const dist = Math.hypot(dx,dy);
+      if(dist < 10){
+        startBlobEncounter(i);
+        break;
+      }
     }
   }
 
@@ -1252,7 +1342,7 @@ input, textarea{
       ctx.stroke();
     });
 
-    // 토끼 (탑다운이지만 그냥 픽셀 토끼 써도 귀여움)
+    // 토끼 (탑다운이지만 귀여우니까 그대로)
     const rx = mazePlayerX - 6;
     const ry = mazePlayerY - 6;
     drawRedRabbit(ctx, rx, ry, 1.2);
@@ -1263,7 +1353,7 @@ input, textarea{
       drawCosmicView();
       return;
     }
-    if(gameState === 'maze'){
+    if(gameState === 'maze' || gameState === 'mazeDialog'){
       drawMazeView();
       return;
     }
@@ -1302,7 +1392,7 @@ input, textarea{
     const hint =
       "안내 : 캐릭터를 우측으로 이동시켜 버튼(A)을 눌러 쇼파에 앉으세요.\n" +
       "당신도 어디 좋은 자리를 잡아 앉아보세요.";
-    showDialog(lines, hint, ()=>{
+    await showDialog(lines, hint, ()=>{
       gameState = 'freeToSofa';
     });
   }
@@ -1363,7 +1453,6 @@ input, textarea{
     dialogBar.classList.add('hidden');
     hintBar.classList.add('hidden');
 
-    // 짧게 블랙 페이드 → 우주
     stageFade.classList.remove('hidden');
     requestAnimationFrame(()=>{
       stageFade.style.opacity = '1';
@@ -1387,11 +1476,9 @@ input, textarea{
   }
 
   function startMazeScene(){
-    // 우주에서 미로로 넘어가기
     gameState = 'transitionToMaze';
     speechBubble.classList.add('hidden');
 
-    // 짧은 블랙 → 미로
     stageFade.classList.remove('hidden');
     requestAnimationFrame(()=>{
       stageFade.style.opacity = '1';
@@ -1416,11 +1503,107 @@ input, textarea{
     }, 900);
   }
 
+  /* ===== 미로 블랙홀 이벤트 ===== */
+
+  const blobStories = [
+    // 1번
+    "이곳이 나를 원하지 않는다면 어쩔 수 없어요. 하지만 저는 선택지가 없습니다. 이곳에 머무는 것밖에.",
+    // 2번
+    "심라구지란 상류에 트럭이 섰다. 2개의 물탱크가 2분간 잿빛 오염수를 쏟아냈다. 30분 뒤 똑같은 장면이 반복됐다. 표백공장의 ‘더러운 물’은 방류되어 마을과 강으로 흐른다.",
+    // 3번
+    "멀리서 볼 땐 동산이나 언덕처럼 보였다. ...가장 높은 곳은 높이가 10m를 넘고 면적은 5㎢가 된다. 거대한 쓰레기 산 위에 까마귀EP가 맴돌고 들개는 잔해물을 물어뜯는다.",
+    // 4번
+    "GPS를 넣은 신발은 포천시 외곽지역으로 이동했다. 이틀 뒤 양주시로 보내졌다. 일주일 뒤 인천 항구에서 발견됐다. 약 4주 뒤, 타이 아란야쁘라텟 롱끌르아 시장에서 신호를 보냈다. 한국에서 약 3500km 떨어진 곳이다.",
+    // 5번
+    "매일 아침 왼발 앞쪽에 붕대를 감는다. 2011년 산업재해로 왼쪽 발가락 5개 전부를 잃었다. 붕대는 발가락 대신 몸의 균형을 잡아준다. 하지만 얼마 못 가 모양이 흐트러진다."
+  ];
+
+  function startBlobEncounter(index){
+    currentBlobIndex = index;
+    blobVisited[index] = true;
+    gameState = 'mazeDialog';
+    dialogMode = 'blobIntro';
+    clearChoices();
+    dialogBar.classList.remove('hidden');
+    hintBar.classList.add('hidden');
+    showBlobIntro();
+  }
+
+  async function showBlobIntro(){
+    const line = "어어엇…? 무슨 소리가 들려온다.";
+    typing = true;
+    fullLine = line;
+    await typeText(dialogText, line, 40, false);
+    typing = false;
+
+    dialogMode = 'blobIntro';
+    showChoiceButtons([
+      {
+        label: "들어보기",
+        onSelect: ()=> {
+          dialogMode = 'blobStory';
+          playBlobStory(currentBlobIndex);
+        }
+      },
+      {
+        label: "무시하기",
+        onSelect: ()=> {
+          clearChoices();
+          dialogBar.classList.add('hidden');
+          gameState = 'maze';
+          dialogMode = 'normal';
+        }
+      }
+    ]);
+  }
+
+  async function playBlobStory(index){
+    clearChoices();
+    dialogMode = 'blobStory';
+    const line = blobStories[index] || "";
+    typing = true;
+    fullLine = line;
+    await typeText(dialogText, line, 35, false);
+    typing = false;
+    dialogNextBtn.classList.remove('hidden');
+  }
+
+  async function showBlobDecision(index){
+    dialogMode = 'blobDecision';
+    const line = "흠… 들어가볼까?";
+    typing = true;
+    fullLine = line;
+    await typeText(dialogText, line, 40, false);
+    typing = false;
+
+    showChoiceButtons([
+      {
+        label: "들어가지",
+        onSelect: ()=>{
+          // TODO: 나중에 진짜 '들어가기' 동작(다른 스테이지) 붙일 자리
+          clearChoices();
+          dialogBar.classList.add('hidden');
+          gameState = 'maze';
+          dialogMode = 'normal';
+        }
+      },
+      {
+        label: "더 둘러보기",
+        onSelect: ()=>{
+          clearChoices();
+          dialogBar.classList.add('hidden');
+          gameState = 'maze';
+          dialogMode = 'normal';
+        }
+      }
+    ]);
+  }
+
   /* ===== 시작 오버레이 ===== */
   async function startAll(){
     await primeAudio();
     await enterFullscreen();
-    startOverlay.style.display = 'none';
+    startOverlayEl.style.display = 'none';
     blobStartTime = performance.now();
     blobFadeIn = true;
     blobAlpha = 0;
@@ -1432,7 +1615,7 @@ input, textarea{
   ['click','touchstart','pointerdown'].forEach(ev=>{
     startBtn.addEventListener(ev, (e)=>{
       e.preventDefault();
-      if(startOverlay.style.display === 'none') return;
+      if(startOverlayEl.style.display === 'none') return;
       startAll();
     }, {passive:false});
   });
