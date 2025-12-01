@@ -167,7 +167,7 @@ input, textarea{
   text-shadow:0 0 8px rgba(0,0,0,0.85);
 }
 
-/* 게임 카드 (인트로 카드 위치에 맞게, 팝업 느낌) */
+/* 게임 카드 */
 #gameLayout{
   position:fixed;
   inset:0;
@@ -177,10 +177,10 @@ input, textarea{
            calc(var(--frame) + var(--safe-b) + 40px)
            calc(var(--frame) + var(--safe-l));
   display:flex;
-  align-items:center;           /* 중앙 정렬 */
+  align-items:center;
   justify-content:center;
-  pointer-events:none;          /* 실제 입력은 캔버스, HUD, 대화창에서 */
-  transform: translateY(-4vh);  /* 게임 화면을 전체적으로 살짝 위로 */
+  pointer-events:none;
+  transform: translateY(-4vh);
 }
 #gameCard{
   width:100%;
@@ -188,7 +188,7 @@ input, textarea{
   height:auto;
   background:transparent;
   display:flex;
-  flex-direction:column;        /* 위: 게임 화면, 아래: 멘트창 */
+  flex-direction:column;
   align-items:center;
   justify-content:flex-start;
   gap:8px;
@@ -223,10 +223,10 @@ input, textarea{
   font-size:clamp(9px,1.6vmin,12px);
 }
 
-/* 대화창 – 게임 화면 바로 아래, 같은 가로 폭 */
+/* 대화창 – 게임 화면 아래 */
 #dialogBar{
   width:100%;
-  max-width:720px;              /* gameScreenWrap과 동일 */
+  max-width:720px;
   display:flex;
   align-items:flex-end;
   justify-content:space-between;
@@ -239,7 +239,7 @@ input, textarea{
   left:auto;
   bottom:auto;
   transform:none;
-  pointer-events:auto;          /* NEXT 버튼 클릭 가능하게 */
+  pointer-events:auto;
 }
 #dialogTextWrap{
   flex:1;
@@ -250,9 +250,7 @@ input, textarea{
   line-height:1.7;
   white-space:pre-wrap;
 }
-#dialogHint{
-  display:none; /* 예전 힌트 영역은 숨김 */
-}
+#dialogHint{ display:none; }
 #dialogNext{
   flex:0 0 auto;
 }
@@ -269,11 +267,37 @@ input, textarea{
   font-family:"Courier New",ui-monospace,monospace;
   font-size:clamp(10px,1.9vmin,13px);
   text-align:center;
-  color:#7b1f2a; /* 검붉은 색 */
+  color:#7b1f2a;
   pointer-events:none;
 }
 
-/* HUD – 방향키 & 액션 버튼 (프레임 밖) */
+/* 말풍선 (우주 구간에서 사용) */
+#speechBubble{
+  position:absolute;
+  max-width:180px;
+  padding:6px 8px;
+  background:#f5f5f5;
+  color:#000;
+  border-radius:8px;
+  border:1px solid #000;
+  font-family:"Courier New",ui-monospace,monospace;
+  font-size:10px;
+  line-height:1.4;
+  pointer-events:none;
+  transform:translate(-50%, -100%);
+}
+#speechBubble::after{
+  content:"";
+  position:absolute;
+  left:50%;
+  bottom:-6px;
+  transform:translateX(-50%);
+  border-width:6px 6px 0 6px;
+  border-style:solid;
+  border-color:#f5f5f5 transparent transparent transparent;
+}
+
+/* HUD – 방향키 & 액션 버튼 */
 #hudLeft{
   position:fixed;
   left:calc(var(--frame) + var(--safe-l));
@@ -336,7 +360,7 @@ input, textarea{
 .fade-hidden{ opacity:0; transition:opacity 1800ms ease; }
 .fade-show{ opacity:1; }
 
-/* 스테이지 전환 페이드 */
+/* 스테이지 전환 페이드 (짧은 블랙) */
 #stageFade{
   position:fixed;
   inset:0;
@@ -344,7 +368,7 @@ input, textarea{
   z-index:50;
   opacity:0;
   pointer-events:none;
-  transition:opacity 1200ms ease;
+  transition:opacity 800ms ease;
 }
 
 /* 가시성 제어 */
@@ -387,15 +411,16 @@ input, textarea{
   </div>
 </div>
 
-<!-- 게임 레이아웃 : 중앙 팝업 카드 -->
+<!-- 게임 레이아웃 -->
 <div id="gameLayout" class="hidden">
   <div id="gameCard">
     <div id="gameScreenWrap">
       <canvas id="gameCanvas" width="320" height="180"></canvas>
       <div id="nameTag"></div>
+      <div id="speechBubble" class="hidden">어어어어…!! 빨려들어간다..!!!!</div>
     </div>
 
-    <!-- 대화창: 게임 화면 바로 아래 -->
+    <!-- 대화창 -->
     <div id="dialogBar" class="hidden">
       <div id="dialogTextWrap">
         <div id="dialogText"></div>
@@ -523,7 +548,6 @@ input, textarea{
     }catch(e){}
   }
 
-  // append 모드 지원
   async function typeText(el, text, speed=40, append=false){
     if(!append) el.textContent = '';
     for(let i=0;i<text.length;i++){
@@ -533,7 +557,7 @@ input, textarea{
     }
   }
 
-  /* ===== 간단한 팅~ (ding) 효과 ===== */
+  /* ===== 효과음 ding ===== */
   async function playDing(){
     try{
       ensureAudio();
@@ -555,27 +579,28 @@ input, textarea{
     }catch(e){}
   }
 
-  /* ===== 게임풍 OST ===== */
+  /* ===== BGM ===== */
   let musicRunning = false;
 
-  function playNote(freq, dur=0.16, vol=0.38){
+  function playNote(freq, dur=0.16, vol=0.38, type='square'){
     try{
       ensureAudio();
       const ctx = audioCtx;
       const now = ctx.currentTime;
       const o = ctx.createOscillator();
       const g = ctx.createGain();
-      o.type='square';
+      o.type = type;
       o.frequency.setValueAtTime(freq, now);
       g.gain.setValueAtTime(0.0001, now);
       g.gain.exponentialRampToValueAtTime(vol, now+0.01);
       g.gain.exponentialRampToValueAtTime(0.0001, now+dur);
       o.connect(g).connect(ctx.destination);
       o.start(now);
-      o.stop(now+dur+0.02);
+      o.stop(now+dur+0.05);
     }catch(e){}
   }
 
+  // 1) 밝고 귀여운 음악 (소파까지)
   function startBrightMusic(){
     if(musicRunning) return;
     musicRunning = true;
@@ -587,38 +612,58 @@ input, textarea{
       9, 5, 2, 7
     ];
     let idx = 0;
-    const stepDur = 150; // ms
+    const stepDur = 150;
 
     function step(){
       if(!musicRunning) return;
       const semi = pattern[idx % pattern.length];
       const f = base * Math.pow(2, semi/12);
-      playNote(f, 0.14, 0.4);
+      playNote(f, 0.14, 0.4, 'square');
       idx++;
       setTimeout(step, stepDur);
     }
     step();
   }
 
+  // 2) 우주 워프 삐루룽 삐루룽
+  function startWarpMusic(){
+    musicRunning = false;
+    setTimeout(()=>{
+      if(musicRunning) return;
+      musicRunning = true;
+      const base = 880; // A5
+      let idx = 0;
+
+      function step(){
+        if(!musicRunning) return;
+        const t = idx % 8;
+        const semi = [0, 2, 4, 7, 12, 7, 4, 2][t];
+        const f = base * Math.pow(2, semi/12);
+        const dur = 0.18;
+        playNote(f, dur, 0.25, 'triangle');
+        idx++;
+        setTimeout(step, 160);
+      }
+      step();
+    }, 300);
+  }
+
+  // 3) 진지한 미로 음악
   function startDarkMusic(){
-    // 밝은 음악 정지 후 어두운 음악 시작
     musicRunning = false;
     setTimeout(()=>{
       if(musicRunning) return;
       musicRunning = true;
       const base = 440; // A4
-      const pattern = [
-        0, 3, 7, 10,
-        3, 7, 0,  -2
-      ];
+      const pattern = [0, 3, 7, 10, 3, 7, 0, -2];
       let idx = 0;
-      const stepDur = 230;
+      const stepDur = 260;
 
       function step(){
         if(!musicRunning) return;
         const semi = pattern[idx % pattern.length];
         const f = base * Math.pow(2, semi/12);
-        playNote(f, 0.2, 0.25);
+        playNote(f, 0.22, 0.28, 'sawtooth');
         idx++;
         setTimeout(step, stepDur);
       }
@@ -642,7 +687,7 @@ input, textarea{
   resizeBlob();
   addEventListener('resize', ()=>setTimeout(resizeBlob,30), {passive:true});
 
-  function drawBlob(){
+  function drawBlobBackground(){
     const w = innerWidth;
     const h = innerHeight;
     blobCtx.clearRect(0,0,w,h);
@@ -651,7 +696,7 @@ input, textarea{
     const t = (performance.now() - blobStartTime) * 0.001;
     const cx = w/2;
     const cy = h/2;
-    const baseR = Math.min(w,h)*0.45; // 더 크게
+    const baseR = Math.min(w,h)*0.45;
     const N = 48;
 
     blobCtx.save();
@@ -684,11 +729,11 @@ input, textarea{
       const k = clamp((now - blobStartTime)/2000, 0, 1);
       blobAlpha = k;
     }
-    drawBlob();
+    drawBlobBackground();
   }
   blobLoop();
 
-  /* ===== 2장 타이틀 연출 (3줄 타이핑) ===== */
+  /* ===== 2장 타이틀 연출 (3줄) ===== */
   const titleOverlay = qs('#titleOverlay');
   const titleLine1 = qs('#titleLine1');
   const titleLine2 = qs('#titleLine2');
@@ -708,24 +753,19 @@ input, textarea{
     titleOverlay.classList.remove('fade-hidden');
     titleOverlay.classList.add('fade-show');
 
-    // 첫 줄
     await typeText(titleLine1, 'SLEEEEEEEEP', 55, false);
     await sleep(250);
-    // 둘째 줄
     await typeText(titleLine2, 'SLEEEEEEEEP', 55, false);
     await sleep(250);
-    // 셋째 줄
     await typeText(titleLine3, 'THE SECOND SLEEP', 55, false);
 
     await sleep(900);
 
-    // 페이드 아웃
     titleOverlay.classList.remove('fade-show');
     titleOverlay.classList.add('fade-hidden');
     await sleep(1400);
     titleOverlay.style.display = 'none';
 
-    // 타이틀 사라진 뒤 OST 시작 & 게임 UI 등장
     await ensureResumed();
     await playDing();
     startBrightMusic();
@@ -746,8 +786,9 @@ input, textarea{
   const startBtn        = qs('#startBtn');
   const stageFade       = qs('#stageFade');
   const hintBar         = qs('#hintBar');
+  const speechBubble    = qs('#speechBubble');
 
-  // 닉네임 (SLEEP 본편에서 localStorage.sleepNick 사용했다고 가정)
+  // 닉네임 처리
   const nickRaw = (()=> {
     try{
       const v = localStorage.getItem('sleepNick');
@@ -756,7 +797,6 @@ input, textarea{
     return '';
   })();
 
-  // 기본 'YOU'는 라벨에 표시하지 않고, 대사에는 '토끼'로 대체
   const nick =
     nickRaw && nickRaw.toUpperCase() !== 'YOU'
       ? nickRaw
@@ -773,18 +813,14 @@ input, textarea{
   /* 픽셀 토끼 */
   function drawRedRabbit(ctx, x, y, scale=1){
     ctx.fillStyle = '#ff3333';
-    // 머리
-    ctx.fillRect(x + 2*scale, y + 1*scale, 4*scale, 3*scale);
-    // 귀
-    ctx.fillRect(x + 1*scale, y - 1*scale, 1*scale, 3*scale);
-    ctx.fillRect(x + 4*scale, y - 1*scale, 1*scale, 3*scale);
-    // 몸통
-    ctx.fillRect(x + 2*scale, y + 4*scale, 4*scale, 3*scale);
-    // 꼬리
-    ctx.fillRect(x + 6*scale, y + 4*scale, 2*scale, 2*scale);
+    ctx.fillRect(x + 2*scale, y + 1*scale, 4*scale, 3*scale); // 머리
+    ctx.fillRect(x + 1*scale, y - 1*scale, 1*scale, 3*scale); // 귀1
+    ctx.fillRect(x + 4*scale, y - 1*scale, 1*scale, 3*scale); // 귀2
+    ctx.fillRect(x + 2*scale, y + 4*scale, 4*scale, 3*scale); // 몸통
+    ctx.fillRect(x + 6*scale, y + 4*scale, 2*scale, 2*scale); // 꼬리
   }
 
-  /* 게임 월드 */
+  /* 게임 월드(사이드뷰 파트) */
   const W = gameCanvas.width;
   const H = gameCanvas.height;
   const groundY = 145;
@@ -803,7 +839,48 @@ input, textarea{
   let gameStarted = false;
   let introWalkStartTime = 0;
 
-  // 상태: 타이틀, 인트로 걷기, 인트로 대화, 소파까지 자유, 소파에서 대화, 꿀렁이까지 자유, 꿀렁이 대화, 종료
+  // 우주 씬 시간
+  let cosmicStartTime = 0;
+
+  // 미로 관련
+  const tileSize = 16;
+  const mazeMap = [
+    "11111111111111111111",
+    "10000001000000000001",
+    "10111101011111111001",
+    "10100100010000001001",
+    "10100111110111101001",
+    "10100000000100101001",
+    "10101111110100101001",
+    "10101000010100101001",
+    "10101011110100101001",
+    "10001000000000100001",
+    "11111111111111111111"
+  ];
+  // 상/하/좌/우/중심 꿀렁이 위치 (타일 좌표)
+  const mazeBlobs = [
+    {tx:10, ty:2}, // 상
+    {tx:10, ty:8}, // 하
+    {tx:4,  ty:5}, // 좌
+    {tx:16, ty:5}, // 우
+    {tx:10, ty:5}  // 중심
+  ];
+
+  // 미로에서의 플레이어 좌표 (픽셀)
+  let mazePlayerX = 10 * tileSize + tileSize/2;
+  let mazePlayerY = 8 * tileSize + tileSize/2;
+  const mazeSpeed = 1.1;
+
+  function isWall(px, py){
+    const tx = Math.floor(px / tileSize);
+    const ty = Math.floor(py / tileSize);
+    if(ty < 0 || ty >= mazeMap.length) return true;
+    if(tx < 0 || tx >= mazeMap[0].length) return true;
+    return mazeMap[ty].charAt(tx) === '1';
+  }
+
+  // 상태: title, introWalk, introDialog, freeToSofa, seatedDialog,
+  // freeToBlob, blobDialog, cosmic, maze
   let gameState = 'title';
 
   /* 대화 시스템 */
@@ -841,7 +918,6 @@ input, textarea{
   dialogNextBtn.addEventListener('click', async ()=>{
     await ensureResumed();
     if(typing){
-      // 타이핑 중이면 즉시 완성
       typing = false;
       dialogText.textContent = fullLine;
       return;
@@ -897,16 +973,18 @@ input, textarea{
     if(e.code === 'ArrowLeft')  moveLeft=true;
     if(e.code === 'ArrowRight') moveRight=true;
     if(e.code === 'ArrowUp')    moveUp=true;
+    if(e.code === 'ArrowDown')  moveDown=true;
     if(e.code === 'Space')      actionPressed=true;
   });
   window.addEventListener('keyup', (e)=>{
     if(e.code === 'ArrowLeft')  moveLeft=false;
     if(e.code === 'ArrowRight') moveRight=false;
     if(e.code === 'ArrowUp')    moveUp=false;
+    if(e.code === 'ArrowDown')  moveDown=false;
     if(e.code === 'Space')      actionPressed=false;
   });
 
-  /* 게임 안에 들어가는 작은 꿀렁이 */
+  /* 게임 안 작은 꿀렁이 (사이드뷰) */
   function drawInnerBlob(ctx){
     const cx = W/2;
     const cy = 70;
@@ -931,11 +1009,11 @@ input, textarea{
     ctx.stroke();
   }
 
-  /* 게임 루프 */
+  /* ===== 업데이트 ===== */
   function update(){
     if(!gameStarted) return;
 
-    // 인트로 걷기 (왼쪽에서 등장)
+    // 인트로 걷기
     if(gameState === 'introWalk'){
       const elapsed = (performance.now() - introWalkStartTime) / 1000;
       const startX = -24;
@@ -950,7 +1028,7 @@ input, textarea{
       return;
     }
 
-    // 소파까지 / 꿀렁이까지 이동할 수 있는 구간
+    // 사이드뷰 자유 이동 (소파 / 꿀렁이까지)
     if(gameState === 'freeToSofa' || gameState === 'freeToBlob'){
       let ax = 0;
       if(moveLeft)  ax -= speed;
@@ -962,7 +1040,6 @@ input, textarea{
       playerX += playerVX;
       playerY = groundY - 16;
 
-      // 화면 밖 제한
       if(playerX < 8){
         playerX = 8;
         playerVX = 0;
@@ -972,7 +1049,6 @@ input, textarea{
         playerVX = 0;
       }
 
-      // 소파에 앉기 (첫 번째 구간에서만)
       if(gameState === 'freeToSofa'){
         const nearSofa = (playerX > sofaX - 12);
         if(nearSofa && actionPressed){
@@ -980,7 +1056,6 @@ input, textarea{
         }
       }
 
-      // 중앙 꿀렁이로 가기 (두 번째 구간에서)
       if(gameState === 'freeToBlob'){
         const centerX = W/2;
         const nearBlob = (Math.abs(playerX - centerX) < 20);
@@ -990,25 +1065,64 @@ input, textarea{
       }
     }
 
-    // 소파에 앉아 있는 동안은 위치 고정
     if(gameState === 'seatedDialog'){
       playerVX = 0;
       playerVY = 0;
     }
+
+    // 우주 씬
+    if(gameState === 'cosmic'){
+      const t = (performance.now() - cosmicStartTime) * 0.001;
+      const cx = W/2;
+      const cy = H/2;
+      const R0 = 70;
+      const R = Math.max(6, R0 - t*10);     // 서서히 중심으로
+      const angle = t * 3.0 * Math.PI;      // 나선형
+      playerX = cx + Math.cos(angle)*R;
+      playerY = cy + Math.sin(angle)*R;
+      if(t > 0.4 && t < 6){
+        speechBubble.classList.remove('hidden');
+      }
+      // 말풍선 위치 갱신
+      const rect = gameCanvas.getBoundingClientRect();
+      const wrapRect = gameScreenWrap.getBoundingClientRect();
+      const nx = (playerX / W) * wrapRect.width;
+      const ny = (playerY / H) * wrapRect.height;
+      speechBubble.style.left = nx + 'px';
+      speechBubble.style.top  = ny + 'px';
+
+      if(t > 6){
+        speechBubble.classList.add('hidden');
+        startMazeScene();
+      }
+    }
+
+    // 미로 씬
+    if(gameState === 'maze'){
+      let dx = 0, dy = 0;
+      if(moveLeft)  dx -= mazeSpeed;
+      if(moveRight) dx += mazeSpeed;
+      if(moveUp)    dy -= mazeSpeed;
+      if(moveDown)  dy += mazeSpeed;
+
+      let nx = mazePlayerX + dx;
+      let ny = mazePlayerY + dy;
+
+      if(!isWall(nx, mazePlayerY)) mazePlayerX = nx;
+      if(!isWall(mazePlayerX, ny)) mazePlayerY = ny;
+    }
   }
 
-  function draw(){
+  /* ===== 그리기 ===== */
+  function drawSideView(){
     const ctx = gctx;
     ctx.clearRect(0,0,W,H);
 
-    // 배경 (초록 계열)
     ctx.fillStyle = '#05210f';
     ctx.fillRect(0,0,W,H);
 
-    // 안쪽 꿀렁이 (게임 화면 안)
     drawInnerBlob(ctx);
 
-    // 바닥 (녹색 톤)
     ctx.fillStyle = '#0b2f18';
     ctx.fillRect(0, groundY, W, H-groundY);
     ctx.strokeStyle = '#193d23';
@@ -1017,26 +1131,144 @@ input, textarea{
     ctx.lineTo(W,groundY);
     ctx.stroke();
 
-    // 왼쪽 단 (녹색 블럭)
     ctx.fillStyle = '#164524';
     ctx.fillRect(8, groundY-10, 32, 10);
 
-    // 쇼파 (오른쪽, 노란색 유지)
     ctx.save();
     ctx.translate(sofaX, groundY - sofaHeight);
     ctx.fillStyle = '#e8c93b';
-    ctx.fillRect(0, 8, sofaWidth, sofaHeight-8);   // 몸통
-    ctx.fillRect(4, 0, sofaWidth-8, 10);           // 등받이
+    ctx.fillRect(0, 8, sofaWidth, sofaHeight-8);
+    ctx.fillRect(4, 0, sofaWidth-8, 10);
     ctx.fillStyle = '#c6a629';
-    ctx.fillRect(6, 12, sofaWidth-12, sofaHeight-14); // 쿠션
+    ctx.fillRect(6, 12, sofaWidth-12, sofaHeight-14);
     ctx.fillStyle = '#b09324';
-    ctx.fillRect(4, sofaHeight-2, 8, 4);           // 다리
+    ctx.fillRect(4, sofaHeight-2, 8, 4);
     ctx.fillRect(sofaWidth-12, sofaHeight-2, 8, 4);
     ctx.restore();
 
-    // 플레이어 (토끼)
     const scale = 3;
     drawRedRabbit(ctx, playerX, playerY, scale);
+  }
+
+  function drawCosmicView(){
+    const ctx = gctx;
+    ctx.clearRect(0,0,W,H);
+
+    ctx.fillStyle = '#000010';
+    ctx.fillRect(0,0,W,H);
+
+    const cx = W/2;
+    const cy = H/2;
+    const t = (performance.now() - cosmicStartTime) * 0.001;
+
+    // 별점
+    ctx.fillStyle = '#88ffee';
+    for(let i=0;i<40;i++){
+      const sAng = i*(Math.PI*2/40);
+      const r = ( (t*20 + i*15) % 160 );
+      const x = cx + Math.cos(sAng)*r*0.4;
+      const y = cy + Math.sin(sAng)*r*0.4;
+      ctx.fillRect(x, y, 1, 1);
+    }
+
+    // 꿀렁이 띠들
+    for(let j=0;j<5;j++){
+      const phase = t*0.5 + j*0.7;
+      const baseR = 90 - j*10;
+      const N = 24;
+      ctx.beginPath();
+      for(let i=0;i<N;i++){
+        const ang = (i/N)*Math.PI*2;
+        const wob = 0.25*Math.sin(phase*2 + i*0.9);
+        const r = baseR*(0.8 + wob);
+        const x = cx + Math.cos(ang)*r;
+        const y = cy + Math.sin(ang)*r*0.6;
+        if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+      }
+      ctx.closePath();
+      ctx.strokeStyle = 'rgba(180,255,220,0.25)';
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+    }
+
+    // 가운데 어두운 코어
+    ctx.beginPath();
+    ctx.arc(cx, cy, 10, 0, Math.PI*2);
+    ctx.fillStyle = '#000';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(250,250,250,0.4)';
+    ctx.stroke();
+
+    // 나선형 토끼
+    const R0 = 70;
+    const R = Math.max(6, R0 - t*10);
+    const angle = t * 3.0 * Math.PI;
+    const px = cx + Math.cos(angle)*R;
+    const py = cy + Math.sin(angle)*R;
+    const scale = 3 * (R / R0);
+    drawRedRabbit(ctx, px, py, scale <= 0.7 ? 0.7 : scale);
+
+    // playerX, playerY 동기화 (말풍선용)
+    playerX = px;
+    playerY = py;
+  }
+
+  function drawMazeView(){
+    const ctx = gctx;
+    ctx.clearRect(0,0,W,H);
+
+    ctx.fillStyle = '#001307';
+    ctx.fillRect(0,0,W,H);
+
+    for(let y=0;y<mazeMap.length;y++){
+      for(let x=0;x<mazeMap[0].length;x++){
+        const tile = mazeMap[y].charAt(x);
+        const px = x*tileSize;
+        const py = y*tileSize;
+        if(tile === '1'){
+          ctx.fillStyle = '#062711';
+          ctx.fillRect(px,py,tileSize,tileSize);
+          ctx.strokeStyle = '#0f3c1e';
+          ctx.strokeRect(px+0.5,py+0.5,tileSize-1,tileSize-1);
+        }else{
+          ctx.fillStyle = '#07351a';
+          ctx.fillRect(px,py,tileSize,tileSize);
+        }
+      }
+    }
+
+    // 작은 꿀렁이들
+    const t = performance.now()*0.001;
+    mazeBlobs.forEach(b=>{
+      const cx = (b.tx+0.5)*tileSize;
+      const cy = (b.ty+0.5)*tileSize;
+      const r = 4 + Math.sin(t*2 + b.tx*0.5 + b.ty*0.8)*1.5;
+      ctx.beginPath();
+      ctx.arc(cx,cy,r,0,Math.PI*2);
+      ctx.fillStyle = '#000';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(190,230,190,0.8)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    });
+
+    // 토끼 (탑다운이지만 그냥 픽셀 토끼 써도 귀여움)
+    const rx = mazePlayerX - 6;
+    const ry = mazePlayerY - 6;
+    drawRedRabbit(ctx, rx, ry, 1.2);
+  }
+
+  function draw(){
+    if(gameState === 'cosmic'){
+      drawCosmicView();
+      return;
+    }
+    if(gameState === 'maze'){
+      drawMazeView();
+      return;
+    }
+    // 기본: 사이드뷰
+    drawSideView();
   }
 
   function gameLoop(){
@@ -1054,7 +1286,6 @@ input, textarea{
 
     gameStarted = true;
 
-    // 1초 후 왼쪽에서 토끼 등장
     setTimeout(()=>{
       gameState = 'introWalk';
       introWalkStartTime = performance.now();
@@ -1080,7 +1311,6 @@ input, textarea{
     if(gameState !== 'freeToSofa') return;
     gameState = 'seatedDialog';
 
-    // 쇼파 위 위치로 스냅
     playerX = sofaX + sofaWidth*0.4;
     playerY = groundY - sofaHeight - 2;
     playerVX = 0;
@@ -1097,9 +1327,7 @@ input, textarea{
       "너는 편하게 앉아있어. 이제 내가 한 번 움직여볼게."
     ];
     showDialog(lines, '', ()=>{
-      // 토끼는 쇼파에서 일어나 바닥으로
       playerY = groundY - 16;
-      // 조금 왼쪽으로 내려와서 중앙으로 갈 준비
       playerX = sofaX + sofaWidth*0.2;
       gameState = 'freeToBlob';
       const hint =
@@ -1114,7 +1342,6 @@ input, textarea{
     if(gameState !== 'freeToBlob') return;
     gameState = 'blobDialog';
 
-    // 중앙 쪽으로 스냅
     playerX = W/2 - 8;
     playerY = groundY - 16;
 
@@ -1127,36 +1354,66 @@ input, textarea{
     hintBar.textContent = '';
     hintBar.classList.add('hidden');
     showDialog(lines, '', ()=>{
-      endSecondStage();
+      endSecondStageToCosmic();
     });
   }
 
-  function endSecondStage(){
-    gameState = 'finished';
-    dialogNextBtn.disabled = true;
+  function endSecondStageToCosmic(){
+    gameState = 'transitionToCosmic';
+    dialogBar.classList.add('hidden');
+    hintBar.classList.add('hidden');
 
-    // 페이드 인
+    // 짧게 블랙 페이드 → 우주
     stageFade.classList.remove('hidden');
     requestAnimationFrame(()=>{
       stageFade.style.opacity = '1';
     });
 
-    // 음악은 조금 어두운 느낌으로 변화
+    musicRunning = false;
+    startWarpMusic();
+
+    setTimeout(()=>{
+      stageFade.style.opacity = '0';
+      setTimeout(()=>{
+        stageFade.classList.add('hidden');
+      }, 800);
+      startCosmicScene();
+    }, 800);
+  }
+
+  function startCosmicScene(){
+    gameState = 'cosmic';
+    cosmicStartTime = performance.now();
+  }
+
+  function startMazeScene(){
+    // 우주에서 미로로 넘어가기
+    gameState = 'transitionToMaze';
+    speechBubble.classList.add('hidden');
+
+    // 짧은 블랙 → 미로
+    stageFade.classList.remove('hidden');
+    requestAnimationFrame(()=>{
+      stageFade.style.opacity = '1';
+    });
+
+    musicRunning = false;
     startDarkMusic();
 
-    // 다음 스테이지로 넘길 수 있는 훅
     setTimeout(()=>{
-      if(typeof window.sleepSecondStageDone === 'function'){
-        window.sleepSecondStageDone();
-      } else {
-        // 임시로 검은 화면만 남겨둔다
-        gameLayout.classList.add('hidden');
-        hudLeft.classList.add('hidden');
-        hudRight.classList.add('hidden');
-        dialogBar.classList.add('hidden');
-        hintBar.classList.add('hidden');
-      }
-    }, 1300);
+      // 미로 초기 위치 설정
+      mazePlayerX = 10 * tileSize + tileSize/2;
+      mazePlayerY = 8 * tileSize + tileSize/2;
+
+      stageFade.style.opacity = '0';
+      setTimeout(()=>{
+        stageFade.classList.add('hidden');
+      }, 800);
+
+      gameState = 'maze';
+      dialogBar.classList.add('hidden');
+      hintBar.classList.add('hidden');
+    }, 900);
   }
 
   /* ===== 시작 오버레이 ===== */
