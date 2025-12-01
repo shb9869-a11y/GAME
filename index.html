@@ -209,6 +209,19 @@ input, textarea{
   height:100%;
   display:block;
   image-rendering:pixelated;
+  position:relative;
+  z-index:1;
+}
+
+/* 다큐 영상 */
+#docVideo{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  background:#000;
+  z-index:0;
 }
 
 /* 닉네임 라벨 */
@@ -373,7 +386,7 @@ input, textarea{
 .fade-hidden{ opacity:0; transition:opacity 1800ms ease; }
 .fade-show{ opacity:1; }
 
-/* 스테이지 전환 페이드 (짧은 블랙) */
+/* 스테이지 전환 페이드 */
 #stageFade{
   position:fixed;
   inset:0;
@@ -429,6 +442,7 @@ input, textarea{
   <div id="gameCard">
     <div id="gameScreenWrap">
       <canvas id="gameCanvas" width="320" height="180"></canvas>
+      <video id="docVideo" class="hidden" playsinline webkit-playsinline></video>
       <div id="nameTag"></div>
       <div id="speechBubble" class="hidden">어어어어…!! 빨려들어간다..!!!!</div>
     </div>
@@ -804,6 +818,7 @@ input, textarea{
   const hintBar         = qs('#hintBar');
   const speechBubble    = qs('#speechBubble');
   const gameScreenWrap  = qs('#gameScreenWrap');
+  const docVideo        = qs('#docVideo');
 
   /* 닉네임 처리 */
   const nickRaw = (()=> {
@@ -905,7 +920,8 @@ input, textarea{
   // 상태
   // 'title', 'introWalk', 'introDialog', 'freeToSofa', 'seatedDialog',
   // 'freeToBlob', 'blobDialog', 'transitionToCosmic', 'cosmic',
-  // 'transitionToMaze', 'mazeEnter', 'maze', 'mazeDialog'
+  // 'transitionToMaze', 'mazeEnter', 'maze', 'mazeDialog',
+  // 'blobVideo', 'blobVideoBlack'
   let gameState = 'title';
 
   /* 대화 시스템 (공통) */
@@ -1080,6 +1096,11 @@ input, textarea{
   /* ===== 업데이트 ===== */
   function update(){
     if(!gameStarted) return;
+
+    // 비디오 재생 중 / 비디오 블랙 화면일 때는 업데이트 X
+    if(gameState === 'blobVideo' || gameState === 'blobVideoBlack'){
+      return;
+    }
 
     // 인트로 걷기
     if(gameState === 'introWalk'){
@@ -1366,7 +1387,35 @@ input, textarea{
     drawRedRabbit(ctx, rx, ry, 1.2);
   }
 
+  // 다큐 비디오 씬: 영상 위에 토끼만 그리기
+  function drawBlobVideoView(){
+    const ctx = gctx;
+    ctx.clearRect(0,0,W,H);
+    // 배경을 채우지 않아서 canvas는 투명, 밑의 video가 보임
+
+    const scale = 3;
+    const px = W/2 - 4*scale;
+    const py = H - 32 - 10;
+    drawRedRabbit(ctx, px, py, scale);
+  }
+
+  // 비디오 끝난 후 검정 화면
+  function drawBlobVideoBlackView(){
+    const ctx = gctx;
+    ctx.clearRect(0,0,W,H);
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(0,0,W,H);
+  }
+
   function draw(){
+    if(gameState === 'blobVideo'){
+      drawBlobVideoView();
+      return;
+    }
+    if(gameState === 'blobVideoBlack'){
+      drawBlobVideoBlackView();
+      return;
+    }
     if(gameState === 'cosmic'){
       drawCosmicView();
       return;
@@ -1598,11 +1647,8 @@ input, textarea{
       {
         label: "들어가지",
         onSelect: ()=>{
-          // TODO: 이후 단계 연결
           clearChoices();
-          dialogBar.classList.add('hidden');
-          gameState = 'maze';
-          dialogMode = 'normal';
+          startBlobVideo(index);
         }
       },
       {
@@ -1615,6 +1661,56 @@ input, textarea{
         }
       }
     ]);
+  }
+
+  /* ===== 블랙홀 비디오 (다큐 영상) ===== */
+
+  function getBlobVideoSrc(index){
+    // blob1.mp4 ~ blob5.mp4 를 ./video 폴더에 넣어두면 됨
+    const i = index + 1;
+    return `./video/blob${i}.mp4`;
+  }
+
+  function startBlobVideo(index){
+    gameState = 'blobVideo';
+    dialogMode = 'normal';
+    dialogBar.classList.add('hidden');
+    hintBar.classList.add('hidden');
+
+    // BGM 정지
+    musicRunning = false;
+
+    // HUD는 그대로 둬도 되지만, 입력은 update()에서 막혀 있음
+
+    // 비디오 세팅
+    const src = getBlobVideoSrc(index);
+    docVideo.src = src;
+    docVideo.currentTime = 0;
+    docVideo.classList.remove('hidden');
+
+    ensureResumed().then(()=>{
+      docVideo.play().catch(()=>{});
+    });
+
+    // ended 이벤트에서 블랙 화면으로 전환
+    const onEnded = ()=>{
+      docVideo.removeEventListener('ended', onEnded);
+      endBlobVideoToBlack();
+    };
+    docVideo.addEventListener('ended', onEnded);
+
+    // 혹시 모를 길이 문제 대비 타임아웃 (5분 후 강제 블랙)
+    setTimeout(()=>{
+      if(gameState === 'blobVideo'){
+        endBlobVideoToBlack();
+      }
+    }, 5*60*1000);
+  }
+
+  function endBlobVideoToBlack(){
+    docVideo.pause();
+    docVideo.classList.add('hidden');
+    gameState = 'blobVideoBlack';
   }
 
   /* ===== 시작 오버레이 ===== */
