@@ -111,12 +111,12 @@ input, textarea{
   font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
 }
 
-/* 시작 게이트 (실제 화면에는 안 보이게 숨김) */
+/* 시작 게이트 */
 #startOverlay{
   position:fixed;
   inset:0;
   z-index:1500;
-  display:none; /* ⭐ 스타트 창 비표시 처리 */
+  display:flex;
   align-items:center;
   justify-content:center;
   background:rgba(0,0,0,0.9);
@@ -389,7 +389,7 @@ input, textarea{
   </div>
 </div>
 
-<!-- 시작 게이트 (이제 실제로는 안 씀, 화면에도 안 보임) -->
+<!-- 시작 게이트 -->
 <div id="startOverlay">
   <div id="startInner">
     <p>WELCOME TO</p>
@@ -1640,13 +1640,11 @@ input, textarea{
     gameState = 'blobVideoBlack';
   }
 
-  /* ===== 시작 오버레이 → 이제 자동 시작 ===== */
+  /* ===== 시작 오버레이 ===== */
   async function startAll(){
     await primeAudio();
     await enterFullscreen();
-    if(startOverlayEl){
-      startOverlayEl.style.display = 'none';
-    }
+    startOverlayEl.style.display = 'none';
     blobStartTime = performance.now();
     blobFadeIn = true;
     blobAlpha = 0;
@@ -1657,28 +1655,19 @@ input, textarea{
     startGameScene();
   }
 
-  // ⭐ 페이지 로드되면 자동으로 게임 시작
-  window.addEventListener('load', ()=>{
-    startAll();
-  }, {once:true});
-
-  // (예전 START 버튼 핸들러는 남겨두지만, 실제로는 startOverlay가 안 보이므로 쓰이지 않음)
+  // 버튼 / 오버레이 어디를 눌러도 시작되게
   ['click'].forEach(ev=>{
-    if(startBtn){
-      startBtn.addEventListener(ev, (e)=>{
-        e.preventDefault();
-        if(startOverlayEl && startOverlayEl.style.display === 'none') return;
-        startAll();
-      });
-    }
-    if(startOverlayEl){
-      startOverlayEl.addEventListener(ev, (e)=>{
-        if(e.target === startBtn) return;
-        e.preventDefault();
-        if(startOverlayEl.style.display === 'none') return;
-        startAll();
-      });
-    }
+    startBtn.addEventListener(ev, (e)=>{
+      e.preventDefault();
+      if(startOverlayEl.style.display === 'none') return;
+      startAll();
+    });
+    startOverlayEl.addEventListener(ev, (e)=>{
+      if(e.target === startBtn) return; // 버튼 핸들러가 처리
+      e.preventDefault();
+      if(startOverlayEl.style.display === 'none') return;
+      startAll();
+    });
   });
 
 })();
