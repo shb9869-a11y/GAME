@@ -36,180 +36,414 @@
   --accent: #f5f5f5;
 }
 
-*{ box-sizing:border-box; margin:0; padding:0; user-select:none; }
+*{
+  box-sizing:border-box;
+  margin:0;
+  padding:0;
+  -webkit-user-select:none;
+  user-select:none;
+  -webkit-touch-callout:none;
+  -webkit-tap-highlight-color: transparent;
+}
 
-html,body{
+html, body{
   width:100%;
   height:100%;
   overflow:hidden;
   touch-action:manipulation;
-  background:#000;
-  color:var(--accent);
 }
 
-.frameBox{
-  position:fixed;
-  left:var(--frame);
-  right:var(--frame);
-  top:var(--frame);
-  bottom:var(--frame);
-  border:2px solid rgba(255,255,255,0.8);
+body{
+  background:#000;
+  color:var(--accent);
+  font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans KR",sans-serif;
+}
+
+input, textarea{
+  -webkit-user-select:text;
+  user-select:text;
+}
+
+/* 공통 버튼 */
+.uiBtn{
+  background:transparent;
+  color:var(--accent);
+  border:1px solid rgba(245,245,245,0.8);
+  font-size:var(--fs-small);
+  padding:var(--pad-btn-y) var(--pad-btn-x);
+  font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
+  white-space:nowrap;
+  cursor:pointer;
+}
+.uiBtn.flat{
+  border:none;
+  background:transparent;
+}
+.uiBtn[disabled]{
+  opacity:0.4;
   pointer-events:none;
 }
 
-.hidden{ display:none !important; }
+/* 프레임 박스 */
+.frameBox{
+  position:fixed;
+  left:calc(var(--frame) + var(--safe-l));
+  top:calc(var(--frame) + var(--safe-t));
+  right:calc(var(--frame) + var(--safe-r));
+  bottom:calc(var(--frame) + var(--safe-b));
+  border:2px solid rgba(245,245,245,0.85);
+  z-index:5;
+  pointer-events:none;
+}
 
+/* 회전 안내 */
+#rotateOverlay{
+  position:fixed;
+  inset:0;
+  z-index:2000;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  background:#000;
+  color:var(--accent);
+  padding:40px;
+  font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
+}
+
+/* 시작 게이트 (안씀, 혹시 몰라 남김) */
+#startOverlay{
+  position:fixed;
+  inset:0;
+  z-index:1500;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  background:rgba(0,0,0,0.9);
+  color:var(--accent);
+  text-align:center;
+  padding:24px;
+}
+#startInner{
+  max-width:72ch;
+  font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
+  line-height:1.8;
+}
+
+/* 중앙 꿀렁이 배경 */
 #blobCanvas{
   position:fixed;
   inset:0;
-  width:100%;
-  height:100%;
-  image-rendering:pixelated;
   z-index:0;
+  width:100vw;
+  height:100vh;
+  display:block;
+  image-rendering:pixelated;
 }
 
-/* GAME LAYOUT */
-#gameLayout{
+/* 타이틀 (지금은 안 씀) */
+#titleOverlay{
   position:fixed;
   inset:0;
-  padding:calc(var(--frame) + 0px);
-  z-index:20;
-  display:flex;
+  z-index:30;
+  display:none;
   align-items:center;
   justify-content:center;
   pointer-events:none;
 }
-
-#gameCard{
-  width:100%;
-  max-width:1120px;
+#titleLines{
   display:flex;
   flex-direction:column;
   align-items:center;
-  gap:16px;
+  gap:8px;
+}
+.sleepLine{
+  font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
+  letter-spacing:.16em;
+  font-size:clamp(26px, 6.2vmin, 80px);
+  text-transform:uppercase;
+  white-space:nowrap;
+  text-align:center;
+  text-shadow:0 0 8px rgba(0,0,0,0.85);
 }
 
+/* 게임 레이아웃 */
+#gameLayout{
+  position:fixed;
+  inset:0;
+  z-index:20;
+  padding:calc(var(--frame) + var(--safe-t))
+           calc(var(--frame) + var(--safe-r))
+           calc(var(--frame) + var(--safe-b) + 40px)
+           calc(var(--frame) + var(--safe-l));
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  pointer-events:none;
+  transform: translateY(-4vh);
+}
+#gameCard{
+  width:100%;
+  max-width:1120px;
+  height:auto;
+  background:transparent;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:flex-start;
+  gap:8px;
+}
 #gameScreenWrap{
+  position:relative;
   width:100%;
   max-width:720px;
   aspect-ratio:16/9;
   background:#001307;
-  border:1px solid rgba(255,255,255,0.4);
-  box-shadow:0 0 0 2px #000, 0 0 30px #000;
-  position:relative;
+  border:1px solid rgba(245,245,245,0.4);
+  box-shadow:0 0 0 2px rgba(0,0,0,0.85), 0 0 30px rgba(0,0,0,0.9);
   overflow:hidden;
   pointer-events:auto;
 }
-
 #gameCanvas{
   width:100%;
   height:100%;
+  display:block;
+  image-rendering:pixelated;
   position:relative;
   z-index:1;
-  image-rendering:pixelated;
 }
 
+/* 다큐 영상 */
 #docVideo{
   position:absolute;
   inset:0;
   width:100%;
   height:100%;
   object-fit:cover;
+  background:#000;
   z-index:0;
 }
 
+/* 닉네임 라벨 */
+#nameTag{
+  position:absolute;
+  left:8px;
+  top:8px;
+  padding:4px 8px;
+  background:rgba(0,0,0,0.6);
+  border:1px solid rgba(245,245,245,0.7);
+  font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
+  font-size:clamp(9px,1.6vmin,12px);
+}
+
+/* 대화창 */
 #dialogBar{
   width:100%;
   max-width:720px;
-  background:rgba(0,0,0,0.8);
-  border:1px solid rgba(255,255,255,0.6);
-  padding:14px;
-  box-shadow:0 0 20px #000;
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:12px;
+  padding:10px 12px;
+  background:rgba(0,0,0,0.9);
+  border:1px solid rgba(245,245,245,0.6);
+  box-shadow:0 0 18px rgba(0,0,0,0.9);
+  position:relative;
   pointer-events:auto;
 }
-
+#dialogTextWrap{
+  flex:1;
+}
 #dialogText{
-  font-size:clamp(11px,2vmin,14px);
-  font-family:"Courier New",ui-monospace;
-  white-space:pre-wrap;
+  font-family:"Courier New",ui-monospace,monospace;
+  font-size:clamp(11px,2.0vmin,14px);
   line-height:1.7;
+  white-space:pre-wrap;
+}
+#dialogHint{ display:none; }
+
+#dialogChoices{
+  margin-top:6px;
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+}
+#dialogChoices .uiBtn{
+  font-size:clamp(10px,1.7vmin,13px);
+  padding:4px 8px;
+}
+#dialogNext{
+  flex:0 0 auto;
 }
 
-#dialogChoices{ margin-top:10px; display:flex; flex-wrap:wrap; gap:6px; }
-.uiBtn{ color:white; background:rgba(0,0,0,0.7); border:1px solid #fff; padding:6px 10px; }
-.uiBtn:active{ background:white; color:black; }
+/* 안내 바 */
+#hintBar{
+  position:fixed;
+  left:50%;
+  transform:translateX(-50%);
+  bottom:calc(var(--frame) + var(--safe-b) + 4px);
+  max-width:720px;
+  width:calc(100vw - 2*(var(--frame) + var(--safe-l)));
+  padding:6px 10px;
+  font-family:"Courier New",ui-monospace,monospace;
+  font-size:clamp(10px,1.9vmin,13px);
+  text-align:center;
+  color:#7b1f2a;
+  pointer-events:none;
+}
 
-#dialogNext{ margin-left:auto; }
+/* 말풍선(일단 유지) */
+#speechBubble{
+  position:absolute;
+  max-width:180px;
+  padding:6px 8px;
+  background:#f5f5f5;
+  color:#000;
+  border-radius:8px;
+  border:1px solid #000;
+  font-family:"Courier New",ui-monospace,monospace;
+  font-size:10px;
+  line-height:1.4;
+  pointer-events:none;
+  transform:translate(-50%, -100%);
+}
+#speechBubble::after{
+  content:"";
+  position:absolute;
+  left:50%;
+  bottom:-6px;
+  transform:translateX(-50%);
+  border-width:6px 6px 0 6px;
+  border-style:solid;
+  border-color:#f5f5f5 transparent transparent transparent;
+}
 
 /* HUD */
 #hudLeft{
   position:fixed;
-  left:var(--frame);
-  bottom:var(--frame);
-  z-index:50;
+  left:calc(var(--frame) + var(--safe-l));
+  bottom:calc(var(--frame) + var(--safe-b));
+  z-index:40;
 }
+#hudRight{
+  position:fixed;
+  right:calc(var(--frame) + var(--safe-r));
+  bottom:calc(var(--frame) + var(--safe-b));
+  z-index:40;
+}
+
+/* D-Pad */
 .dpad{
   width:96px;
   height:96px;
   position:relative;
 }
 .dpad button{
+  position:absolute;
   width:32px;
   height:32px;
-  position:absolute;
   border-radius:6px;
-  border:1px solid #fff;
-  background:#000;
-  color:white;
+  border:1px solid rgba(245,245,245,0.8);
+  background:rgba(0,0,0,0.85);
+  font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
+  font-size:10px;
+  color:var(--accent);
+  cursor:pointer;
 }
-.dpad-up{ left:32px; top:0;}
-.dpad-down{ left:32px; bottom:0;}
-.dpad-left{ left:0; top:32px;}
-.dpad-right{ right:0; top:32px;}
+.dpad button:active{
+  background:#f5f5f5;
+  color:#000;
+}
+.dpad-up{    left:32px; top:0; }
+.dpad-down{  left:32px; bottom:0; }
+.dpad-left{  left:0; top:32px; }
+.dpad-right{ right:0; top:32px; }
 
-#hudRight{
-  position:fixed;
-  right:var(--frame);
-  bottom:var(--frame);
-  z-index:50;
-}
+/* 액션 버튼 */
 #actionBtn{
   width:72px;
   height:72px;
   border-radius:50%;
-  border:2px solid #fff;
-  background:#a2192f;
-  color:white;
-  font-family:"Press Start 2P";
+  border:2px solid rgba(245,245,245,0.9);
+  background:rgba(156,31,60,0.95);
+  color:#fff;
+  font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
+  font-size:11px;
+  cursor:pointer;
+  box-shadow:0 4px 0 rgba(0,0,0,0.9);
 }
+#actionBtn:active{
+  transform:translateY(2px);
+  box-shadow:0 2px 0 rgba(0,0,0,0.9);
+}
+
+/* 페이드 */
+.fade-hidden{ opacity:0; transition:opacity 1800ms ease; }
+.fade-show{   opacity:1; }
 
 #stageFade{
   position:fixed;
   inset:0;
-  background:black;
-  z-index:200;
+  background:#000;
+  z-index:50;
   opacity:0;
   pointer-events:none;
-  transition:opacity .8s;
+  transition:opacity 800ms ease;
 }
+
+/* 가시성 */
+.hidden{ display:none !important; }
+
 </style>
 </head>
 <body>
 
 <canvas id="blobCanvas"></canvas>
-<div class="frameBox"></div>
+<div class="frameBox" aria-hidden="true"></div>
 
-<!-- 게임 전체 -->
+<div id="rotateOverlay">
+  <div>
+    <b>Landscape mode required</b><br/>
+    Please rotate your device to continue.
+  </div>
+</div>
+
+<!-- (안쓰는) 시작 오버레이 -->
+<div id="startOverlay">
+  <div id="startInner">
+    <p>WELCOME TO</p>
+    <p style="margin-top:8px;">SLEEEEEEEEP – THE SECOND SLEEP</p>
+    <p style="margin-top:18px;font-size:clamp(10px,2vmin,13px);">
+      Tap START to continue.<br/>
+    </p>
+    <button id="startBtn" class="uiBtn flat" style="margin-top:20px;">START</button>
+  </div>
+</div>
+
+<div id="titleOverlay">
+  <div id="titleLines">
+    <div id="titleLine1" class="sleepLine"></div>
+    <div id="titleLine2" class="sleepLine"></div>
+    <div id="titleLine3" class="sleepLine"></div>
+  </div>
+</div>
+
+<!-- 게임 레이아웃 -->
 <div id="gameLayout" class="hidden">
   <div id="gameCard">
     <div id="gameScreenWrap">
       <canvas id="gameCanvas" width="320" height="180"></canvas>
       <video id="docVideo" class="hidden" playsinline webkit-playsinline></video>
+      <div id="nameTag"></div>
+      <div id="speechBubble" class="hidden">어어어어…!!</div>
     </div>
 
     <div id="dialogBar" class="hidden">
-      <div id="dialogText"></div>
-      <div id="dialogChoices" class="hidden"></div>
+      <div id="dialogTextWrap">
+        <div id="dialogText"></div>
+        <div id="dialogHint"></div>
+        <div id="dialogChoices" class="hidden"></div>
+      </div>
       <button id="dialogNext" class="uiBtn">NEXT</button>
     </div>
   </div>
@@ -218,9 +452,9 @@ html,body{
 <!-- HUD -->
 <div id="hudLeft" class="hidden">
   <div class="dpad">
-    <button class="dpad-up" data-dir="up">▲</button>
-    <button class="dpad-down" data-dir="down">▼</button>
-    <button class="dpad-left" data-dir="left">◀</button>
+    <button class="dpad-up"    data-dir="up">▲</button>
+    <button class="dpad-down"  data-dir="down">▼</button>
+    <button class="dpad-left"  data-dir="left">◀</button>
     <button class="dpad-right" data-dir="right">▶</button>
   </div>
 </div>
@@ -228,49 +462,115 @@ html,body{
   <button id="actionBtn">A</button>
 </div>
 
+<div id="hintBar" class="hidden"></div>
 <div id="stageFade" class="hidden"></div>
 
 <script>
 (() => {
+  /* ===== 유틸 ===== */
   const qs = s => document.querySelector(s);
   const sleep = ms => new Promise(r=>setTimeout(r,ms));
-  const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
+  const clamp = (v,min,max)=>Math.max(min,Math.min(max,v));
 
-  /* DOM */
-  const gameLayout = qs('#gameLayout');
-  const gameCanvas = qs('#gameCanvas');
-  const gctx = gameCanvas.getContext('2d');
-  const dialogBar = qs('#dialogBar');
-  const dialogTextElem = qs('#dialogText');
-  const dialogNextBtn = qs('#dialogNext');
-  const dialogChoices = qs('#dialogChoices');
-  const hudLeft = qs('#hudLeft');
-  const hudRight = qs('#hudRight');
-  const dpad = qs('#hudLeft .dpad');   /* 중복 문제 해결된 부분 */
-  const actionBtn = qs('#actionBtn');
-  const stageFade = qs('#stageFade');
-  const docVideo = qs('#docVideo');
+  function setAppH(){
+    document.documentElement.style.setProperty('--appH', window.innerHeight + 'px');
+  }
+  setAppH();
+  addEventListener('resize', ()=>setTimeout(setAppH,50), {passive:true});
 
-  /* 오디오 */
+  /* ===== 회전 안내 ===== */
+  const rotateOverlay = qs('#rotateOverlay');
+  function isPortrait(){
+    const vv = window.visualViewport;
+    const w = vv?vv.width:innerWidth;
+    const h = vv?vv.height:innerHeight;
+    return h > w;
+  }
+  function updateRotateOverlay(){
+    rotateOverlay.style.display = isPortrait() ? 'flex' : 'none';
+  }
+  ['load','resize','orientationchange','pageshow'].forEach(ev=>{
+    addEventListener(ev, updateRotateOverlay, {passive:true});
+  });
+  updateRotateOverlay();
+
+  /* ===== 오디오 (에러 나도 게임은 계속 진행되게) ===== */
   let audioCtx = null;
-  let musicRunning = false;
-
   function ensureAudio(){
-    if(!audioCtx){
-      audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+    try{
+      if(!audioCtx){
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if(AC){
+          audioCtx = new AC();
+        }
+      }
+    }catch(e){
+      audioCtx = null;
     }
   }
   async function ensureResumed(){
-    ensureAudio();
-    if(audioCtx.state==='suspended'){
-      try{ await audioCtx.resume(); }catch(e){}
+    try{
+      ensureAudio();
+      if(audioCtx && audioCtx.state === 'suspended'){
+        await audioCtx.resume();
+      }
+    }catch(e){}
+  }
+
+  /* ===== 타자 소리 ===== */
+  let typeBuffer = null;
+  let lastTypeSoundTime = 0;
+
+  function buildTypeBuffer(ctx){
+    const duration   = 0.05;
+    const sampleRate = ctx.sampleRate;
+    const length     = Math.floor(sampleRate * duration);
+    const buffer     = ctx.createBuffer(1, length, sampleRate);
+    const data       = buffer.getChannelData(0);
+    const freq       = 780;
+    for(let i=0;i<length;i++){
+      const t   = i / sampleRate;
+      const env = Math.exp(-t * 11);
+      const phase = 2*Math.PI*freq*t;
+      data[i] = Math.sin(phase)*env*0.9;
+    }
+    return buffer;
+  }
+
+  function playTypeTick(){
+    try{
+      ensureAudio();
+      if(!audioCtx) return;
+      const ctx = audioCtx;
+      const now = ctx.currentTime || 0;
+      if(now - lastTypeSoundTime < 0.05) return;
+      lastTypeSoundTime = now;
+      if(!typeBuffer) typeBuffer = buildTypeBuffer(ctx);
+      const src = ctx.createBufferSource();
+      src.buffer = typeBuffer;
+      const g = ctx.createGain();
+      g.gain.value = 0.35;
+      src.connect(g).connect(ctx.destination);
+      src.start();
+    }catch(e){}
+  }
+
+  async function typeText(el, text, speed=40, append=false){
+    if(!append) el.textContent = '';
+    for(let i=0;i<text.length;i++){
+      el.textContent += text[i];
+      playTypeTick();
+      await sleep(speed);
     }
   }
 
-  /* 귀여운 시작 음악 */
-  function playNote(freq, dur=0.15, vol=0.4, type='square'){
+  /* ===== BGM ===== */
+  let musicRunning = false;
+
+  function playNote(freq, dur=0.16, vol=0.38, type='square'){
     try{
       ensureAudio();
+      if(!audioCtx) return;
       const ctx = audioCtx;
       const now = ctx.currentTime;
       const o = ctx.createOscillator();
@@ -286,135 +586,197 @@ html,body{
     }catch(e){}
   }
 
+  // 1) 밝은 음악
   function startBrightMusic(){
-    if(musicRunning) return;
-    musicRunning=true;
-    const base=523.25;
-    const pattern=[0,4,7,12,7,4,0,7,2,5,9,14,9,5,2,7];
-    let idx=0;
-    function step(){
-      if(!musicRunning) return;
-      const semi=pattern[idx%pattern.length];
-      const f=base*Math.pow(2,semi/12);
-      playNote(f,0.14,0.4);
-      idx++;
-      setTimeout(step,150);
-    }
-    step();
-  }
-
-  /* 미로 음악 */
-  function startDarkMusic(){
-    musicRunning=false;
+    musicRunning = false;
     setTimeout(()=>{
       if(musicRunning) return;
-      musicRunning=true;
-      const base=440;
-      const pattern=[0,3,7,10,3,7,0,-2];
-      let idx=0;
+      musicRunning = true;
+      const base = 523.25;
+      const pattern = [0,4,7,12, 7,4,0,7, 2,5,9,14, 9,5,2,7];
+      let idx = 0;
+      const stepDur = 150;
       function step(){
         if(!musicRunning) return;
-        const semi=pattern[idx%pattern.length];
-        const f=base*Math.pow(2,semi/12);
+        const semi = pattern[idx % pattern.length];
+        const f = base * Math.pow(2, semi/12);
+        playNote(f,0.14,0.4,'square');
+        idx++;
+        setTimeout(step, stepDur);
+      }
+      step();
+    }, 200);
+  }
+
+  // 2) 미로 음악
+  function startDarkMusic(){
+    musicRunning = false;
+    setTimeout(()=>{
+      if(musicRunning) return;
+      musicRunning = true;
+      const base = 440;
+      const pattern = [0,3,7,10, 3,7,0,-2];
+      let idx = 0;
+      const stepDur = 260;
+      function step(){
+        if(!musicRunning) return;
+        const semi = pattern[idx % pattern.length];
+        const f = base * Math.pow(2, semi/12);
         playNote(f,0.22,0.28,'sawtooth');
         idx++;
-        setTimeout(step,260);
+        setTimeout(step, stepDur);
       }
       step();
-    },400);
+    }, 400);
   }
 
-  /* 우주 패드 */
+  // 3) 영상용 잔잔한 우주 앰비언트
   function startVideoAmbientMusic(){
-    musicRunning=false;
+    musicRunning = false;
     setTimeout(()=>{
       if(musicRunning) return;
-      musicRunning=true;
-      const base=220;
-      const pattern=[0,7,12,5,0,-5];
-      let idx=0;
+      musicRunning = true;
+      const base = 220;
+      const pattern = [0,7,12,5,0,-5];
+      let idx = 0;
       function step(){
         if(!musicRunning) return;
-        const semi=pattern[idx%pattern.length];
-        const f=base*Math.pow(2,semi/12);
-        playNote(f,0.8,0.18,'sine');
+        const semi = pattern[idx % pattern.length];
+        const f = base * Math.pow(2, semi/12);
+        playNote(f,1.6,0.16,'sine');
         idx++;
-        setTimeout(step,900);
+        setTimeout(step, 1400 + Math.random()*800);
       }
       step();
-    },400);
+    }, 600);
   }
 
-  /* ==== 이동 입력 ==== */
-  let moveLeft=false, moveRight=false, moveUp=false, moveDown=false, actionPressed=false;
+  /* ===== 중앙 꿀렁이 배경 ===== */
+  const blobCanvas = qs('#blobCanvas');
+  const blobCtx = blobCanvas.getContext('2d');
+  let blobAlpha = 0;
+  let blobFadeIn = true;
+  let blobStartTime = performance.now();
 
-  if(dpad){
-    dpad.addEventListener('pointerdown', e=>{
-      const b=e.target.closest('button[data-dir]');
-      if(!b) return;
-      const d=b.dataset.dir;
-      if(d==='left') moveLeft=true;
-      if(d==='right') moveRight=true;
-      if(d==='up') moveUp=true;
-      if(d==='down') moveDown=true;
-    });
-    dpad.addEventListener('pointerup', e=>{
-      const b=e.target.closest('button[data-dir]');
-      if(!b) return;
-      const d=b.dataset.dir;
-      if(d==='left') moveLeft=false;
-      if(d==='right') moveRight=false;
-      if(d==='up') moveUp=false;
-      if(d==='down') moveDown=false;
-    });
+  function resizeBlob(){
+    const dpr = window.devicePixelRatio || 1;
+    blobCanvas.width = innerWidth * dpr;
+    blobCanvas.height = innerHeight * dpr;
+    blobCtx.setTransform(dpr,0,0,dpr,0,0);
+  }
+  resizeBlob();
+  addEventListener('resize', ()=>setTimeout(resizeBlob,30), {passive:true});
+
+  function drawBlobBackground(){
+    const w = innerWidth;
+    const h = innerHeight;
+    blobCtx.clearRect(0,0,w,h);
+    if(blobAlpha <= 0) return;
+    const t = (performance.now() - blobStartTime)*0.001;
+    const cx = w/2, cy = h/2;
+    const baseR = Math.min(w,h)*0.45;
+    const N = 48;
+    blobCtx.save();
+    blobCtx.globalAlpha = blobAlpha;
+    blobCtx.beginPath();
+    for(let i=0;i<N;i++){
+      const ang = (i/N)*Math.PI*2;
+      const wob = 0.24*Math.sin(t*2 + i*0.7);
+      const rr = baseR*(0.8+wob);
+      const x = cx + Math.cos(ang)*rr;
+      const y = cy + Math.sin(ang)*rr*0.6;
+      if(i===0) blobCtx.moveTo(x,y); else blobCtx.lineTo(x,y);
+    }
+    blobCtx.closePath();
+    const grad = blobCtx.createRadialGradient(cx,cy,baseR*0.1,cx,cy,baseR*1.1);
+    grad.addColorStop(0,'#000000');
+    grad.addColorStop(1,'#101010');
+    blobCtx.fillStyle = grad;
+    blobCtx.strokeStyle = 'rgba(245,245,245,0.3)';
+    blobCtx.lineWidth = 2.3;
+    blobCtx.fill();
+    blobCtx.stroke();
+    blobCtx.restore();
   }
 
-  actionBtn.addEventListener('pointerdown', ()=>actionPressed=true);
-  actionBtn.addEventListener('pointerup', ()=>actionPressed=false);
+  function blobLoop(){
+    requestAnimationFrame(blobLoop);
+    const now = performance.now();
+    if(blobFadeIn && blobAlpha < 1){
+      const k = clamp((now-blobStartTime)/2000,0,1);
+      blobAlpha = k;
+    }
+    drawBlobBackground();
+  }
+  blobLoop();
 
-  window.addEventListener('keydown', e=>{
-    if(e.code==='ArrowLeft') moveLeft=true;
-    if(e.code==='ArrowRight') moveRight=true;
-    if(e.code==='ArrowUp') moveUp=true;
-    if(e.code==='ArrowDown') moveDown=true;
-    if(e.code==='Space') actionPressed=true;
-  });
-  window.addEventListener('keyup', e=>{
-    if(e.code==='ArrowLeft') moveLeft=false;
-    if(e.code==='ArrowRight') moveRight=false;
-    if(e.code==='ArrowUp') moveUp=false;
-    if(e.code==='ArrowDown') moveDown=false;
-    if(e.code==='Space') actionPressed=false;
-  });
+  /* ===== DOM 참조 ===== */
+  const gameLayout      = qs('#gameLayout');
+  const gameCanvas      = qs('#gameCanvas');
+  const gctx            = gameCanvas.getContext('2d');
+  const nameTag         = qs('#nameTag');
+  const dialogBar       = qs('#dialogBar');
+  const dialogTextElem  = qs('#dialogText');
+  const dialogHint      = qs('#dialogHint');
+  const dialogNextBtnEl = qs('#dialogNext');
+  const dialogChoices   = qs('#dialogChoices');
+  const hudLeftEl       = qs('#hudLeft');
+  const hudRight        = qs('#hudRight');
+  const startOverlayEl  = qs('#startOverlay');
+  const stageFade       = qs('#stageFade');
+  const hintBar         = qs('#hintBar');
+  const speechBubble    = qs('#speechBubble');
+  const gameScreenWrap  = qs('#gameScreenWrap');
+  const docVideo        = qs('#docVideo');
 
-  /* ==== 사이드뷰 ==== */
-  const W=gameCanvas.width;
-  const H=gameCanvas.height;
+  /* 닉네임 */
+  const nickRaw = (()=> {
+    try{
+      const v = localStorage.getItem('sleepNick');
+      if(v && v.trim().length>0) return v.trim();
+    }catch(e){}
+    return '';
+  })();
+  const nick = (nickRaw && nickRaw.toUpperCase()!=='YOU') ? nickRaw : '';
+  const nickForText = nick || '토끼';
+  if(nick){
+    nameTag.textContent = nick;
+  }else{
+    nameTag.style.display = 'none';
+  }
 
-  const groundY=145;
-  const sofaX=210;
-  const sofaWidth=70;
-  const sofaHeight=26;
-
-  let playerX=40;
-  let playerY=groundY-16;
-  let playerVX=0;
-
-  let gameState='introWalk';
-  let gameStarted=false;
-
+  /* 토끼 */
   function drawRedRabbit(ctx,x,y,scale=1){
-    ctx.fillStyle='#ff3333';
-    ctx.fillRect(x+2*scale,y+1*scale,4*scale,3*scale);
-    ctx.fillRect(x+1*scale,y-1*scale,scale,3*scale);
-    ctx.fillRect(x+4*scale,y-1*scale,scale,3*scale);
-    ctx.fillRect(x+2*scale,y+4*scale,4*scale,3*scale);
-    ctx.fillRect(x+6*scale,y+4*scale,2*scale,2*scale);
+    ctx.fillStyle = '#ff3333';
+    ctx.fillRect(x+2*scale, y+1*scale, 4*scale, 3*scale);
+    ctx.fillRect(x+1*scale, y-1*scale, 1*scale, 3*scale);
+    ctx.fillRect(x+4*scale, y-1*scale, 1*scale, 3*scale);
+    ctx.fillRect(x+2*scale, y+4*scale, 4*scale, 3*scale);
+    ctx.fillRect(x+6*scale, y+4*scale, 2*scale, 2*scale);
   }
 
-  /* ==== 미로 ==== */
-  const tileSize=16;
-  const mazeMap=[
+  /* 사이드뷰 월드 */
+  const W = gameCanvas.width;
+  const H = gameCanvas.height;
+  const groundY = 145;
+  const sofaX = 210;
+  const sofaWidth = 70;
+  const sofaHeight = 26;
+
+  let playerX = 40;
+  let playerY = groundY - 16;
+  let playerVX = 0;
+  let playerVY = 0;
+  const speed = 0.14;
+  const maxVX = 1.4;
+
+  let moveLeft=false, moveRight=false, moveUp=false, moveDown=false, actionPressed=false;
+  let gameStarted = false;
+  let introWalkStartTime = 0;
+
+  /* 미로 */
+  const tileSize = 16;
+  const mazeMap = [
     "11111111111111111111",
     "10000001000000000001",
     "10111101011111111001",
@@ -427,199 +789,337 @@ html,body{
     "10001000000000100001",
     "11111111111111111111"
   ];
-
-  const mazeBlobs=[
-    {tx:10,ty:2},
-    {tx:10,ty:8},
-    {tx:4, ty:5},
-    {tx:16,ty:5},
-    {tx:10,ty:5}
+  const mazeBlobs = [
+    {tx:10, ty:2},
+    {tx:10, ty:8},
+    {tx:4,  ty:5},
+    {tx:16, ty:5},
+    {tx:10, ty:5}
   ];
-  let blobVisited=[false,false,false,false,false];
+  let blobVisited = [false,false,false,false,false];
 
-  const mazeStartTile={tx:1,ty:8};
-  const mazeStartX=(mazeStartTile.tx+0.5)*tileSize;
-  const mazeStartY=(mazeStartTile.ty+0.5)*tileSize;
-  let mazePlayerX=mazeStartX, mazePlayerY=mazeStartY;
-  const mazeSpeed=1.1;
+  const mazeStartTile = {tx:1, ty:8};
+  const mazeStartTargetX = (mazeStartTile.tx + 0.5)*tileSize;
+  const mazeStartY = (mazeStartTile.ty + 0.5)*tileSize;
+
+  let mazePlayerX = mazeStartTargetX;
+  let mazePlayerY = mazeStartY;
+  const mazeSpeed = 1.1;
 
   function isWall(px,py){
-    const tx=Math.floor(px/tileSize);
-    const ty=Math.floor(py/tileSize);
-    if(ty<0||ty>=mazeMap.length) return true;
-    if(tx<0||tx>=mazeMap[0].length) return true;
+    const tx = Math.floor(px/tileSize);
+    const ty = Math.floor(py/tileSize);
+    if(ty<0 || ty>=mazeMap.length) return true;
+    if(tx<0 || tx>=mazeMap[0].length) return true;
     return mazeMap[ty].charAt(tx)==='1';
   }
 
-  /* ==== 대화 ==== */
-  let currentLines=[];
-  let currentIdx=0;
-  let typing=false;
-  let fullLine="";
-  let dialogMode='normal';
-  let onDialogDone=null;
-  let currentBlobIndex=-1;
+  // 상태
+  let gameState = 'title';
+
+  /* 대화 시스템 */
+  let currentLines = [];
+  let currentIdx = 0;
+  let typing = false;
+  let fullLine = '';
+  let onDialogDone = null;
+  let dialogMode = 'normal';
+  let currentBlobIndex = -1;
 
   function clearChoices(){
-    dialogChoices.innerHTML="";
+    dialogChoices.innerHTML = '';
     dialogChoices.classList.add('hidden');
-    dialogNextBtn.classList.remove('hidden');
+    dialogNextBtnEl.classList.remove('hidden');
   }
 
-  async function showDialog(lines,cb=null){
-    currentLines=lines;
-    currentIdx=0;
-    onDialogDone=cb;
-    dialogBar.classList.remove('hidden');
-    clearChoices();
-    dialogTextElem.textContent="";
-    await typeCurrent();
+  function showChoiceButtons(options){
+    dialogChoices.innerHTML = '';
+    options.forEach(opt=>{
+      const b = document.createElement('button');
+      b.className = 'uiBtn';
+      b.textContent = opt.label;
+      b.addEventListener('click', async ()=>{
+        await ensureResumed();
+        opt.onSelect();
+      });
+      dialogChoices.appendChild(b);
+    });
+    dialogChoices.classList.remove('hidden');
+    dialogNextBtnEl.classList.add('hidden');
   }
 
-  async function typeCurrent(){
-    fullLine=currentLines[currentIdx]||"";
-    typing=true;
-    dialogTextElem.textContent="";
-    for(let i=0;i<fullLine.length;i++){
-      dialogTextElem.textContent+=fullLine[i];
-      await sleep(40);
+  async function showDialog(lines,hint='',cb=null){
+    dialogMode = 'normal';
+    currentLines = lines;
+    currentIdx = 0;
+    onDialogDone = cb;
+
+    if(hint && hint.trim().length){
+      hintBar.textContent = hint;
+      hintBar.classList.remove('hidden');
+    }else{
+      hintBar.textContent = '';
+      hintBar.classList.add('hidden');
     }
-    typing=false;
+
+    clearChoices();
+    dialogBar.classList.remove('hidden');
+    await typeCurrentLine();
   }
 
-  dialogNextBtn.addEventListener('click',()=>{
-    if(typing){
-      typing=false;
-      dialogTextElem.textContent=fullLine;
+  async function typeCurrentLine(){
+    const line = currentLines[currentIdx] || '';
+    fullLine = line;
+    typing = true;
+    await typeText(dialogTextElem, line, 40, false);
+    typing = false;
+  }
+
+  dialogNextBtnEl.addEventListener('click', async ()=>{
+    await ensureResumed();
+
+    if(dialogMode === 'blobStory'){
+      if(typing){
+        typing = false;
+        dialogTextElem.textContent = fullLine;
+        return;
+      }
+      await showBlobDecision(currentBlobIndex);
       return;
     }
+
+    if(dialogMode !== 'normal') return;
+
+    if(typing){
+      typing = false;
+      dialogTextElem.textContent = fullLine;
+      return;
+    }
+
     currentIdx++;
-    if(currentIdx>=currentLines.length){
-      dialogBar.classList.add('hidden');
+    if(currentIdx >= currentLines.length){
       if(onDialogDone) onDialogDone();
       return;
     }
-    typeCurrent();
+    await typeCurrentLine();
   });
 
-  /* ==== 사이드뷰 루프 ==== */
-  let introStart=0;
+  /* HUD 입력 */
+  const hudLeftEl = qs('#hudLeft');
+  const dpad = hudLeftEl.querySelector('.dpad');
+  if(dpad){
+    dpad.addEventListener('pointerdown',(e)=>{
+      const btn = e.target.closest('button[data-dir]');
+      if(!btn) return;
+      const dir = btn.dataset.dir;
+      if(dir==='left')  moveLeft=true;
+      if(dir==='right') moveRight=true;
+      if(dir==='up')    moveUp=true;
+      if(dir==='down')  moveDown=true;
+      e.target.setPointerCapture(e.pointerId);
+    });
+    dpad.addEventListener('pointerup',(e)=>{
+      const btn = e.target.closest('button[data-dir]');
+      if(!btn) return;
+      const dir = btn.dataset.dir;
+      if(dir==='left')  moveLeft=false;
+      if(dir==='right') moveRight=false;
+      if(dir==='up')    moveUp=false;
+      if(dir==='down')  moveDown=false;
+    });
+    dpad.addEventListener('pointercancel',()=>{
+      moveLeft=moveRight=moveUp=moveDown=false;
+    });
+  }
 
+  const actionBtn = qs('#actionBtn');
+  actionBtn.addEventListener('pointerdown',()=>{ actionPressed=true; });
+  actionBtn.addEventListener('pointerup',()=>{ actionPressed=false; });
+  actionBtn.addEventListener('pointercancel',()=>{ actionPressed=false; });
+
+  window.addEventListener('keydown',(e)=>{
+    if(e.code==='ArrowLeft')  moveLeft=true;
+    if(e.code==='ArrowRight') moveRight=true;
+    if(e.code==='ArrowUp')    moveUp=true;
+    if(e.code==='ArrowDown')  moveDown=true;
+    if(e.code==='Space')      actionPressed=true;
+  });
+  window.addEventListener('keyup',(e)=>{
+    if(e.code==='ArrowLeft')  moveLeft=false;
+    if(e.code==='ArrowRight') moveRight=false;
+    if(e.code==='ArrowUp')    moveUp=false;
+    if(e.code==='ArrowDown')  moveDown=false;
+    if(e.code==='Space')      actionPressed=false;
+  });
+
+  /* 사이드뷰 꿀렁이 */
+  function drawInnerBlob(ctx){
+    const cx=W/2, cy=70;
+    const baseR=40;
+    const N=22;
+    const t = performance.now()*0.001;
+    ctx.beginPath();
+    for(let i=0;i<N;i++){
+      const ang=(i/N)*Math.PI*2;
+      const wob=0.25*Math.sin(t*2 + i*0.6);
+      const r=baseR*(0.8+wob);
+      const x=cx+Math.cos(ang)*r;
+      const y=cy+Math.sin(ang)*r*0.6;
+      if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    }
+    ctx.closePath();
+    ctx.fillStyle='#001307';
+    ctx.strokeStyle='rgba(190,230,190,0.4)';
+    ctx.lineWidth=1.5;
+    ctx.fill();
+    ctx.stroke();
+  }
+
+  /* ===== UPDATE ===== */
   function update(){
     if(!gameStarted) return;
+    if(gameState==='blobVideo' || gameState==='blobVideoBlack') return;
 
     if(gameState==='introWalk'){
-      const t=clamp((performance.now()-introStart)/1200,0,1);
-      const start=-24, end=56;
-      playerX = start + (end-start)*t;
-      playerY = groundY-16;
+      const elapsed=(performance.now()-introWalkStartTime)/1000;
+      const startX=-24, targetX=56;
+      const t=clamp(elapsed/1.2,0,1);
+      playerX=startX+(targetX-startX)*t;
+      playerY=groundY-16;
       if(t>=1){
         gameState='introDialog';
-        showDialog([
-          "안녕?",
-          "나는 너야.",
-          "한 번 걸어볼까?",
-          "저기 소파 보이지?"
-        ],()=>{
-          gameState='freeSofa';
-        });
+        startIntroDialog();
       }
       return;
     }
 
-    if(gameState==='freeSofa'){
-      let ax=0;
-      if(moveLeft) ax-=0.14;
-      if(moveRight) ax+=0.14;
-      playerVX+=ax;
-      playerVX*=0.85;
-      playerX+=playerVX;
+    if(gameState==='mazeDialog') return;
 
-      if(playerX>sofaX-12 && actionPressed){
-        sitSofa();
+    if(gameState==='freeToSofa' || gameState==='freeToBlob'){
+      let ax=0;
+      if(moveLeft)  ax-=speed;
+      if(moveRight) ax+=speed;
+      playerVX += ax;
+      playerVX *= 0.82;
+      playerVX = clamp(playerVX,-maxVX,maxVX);
+
+      playerX += playerVX;
+      playerY = groundY-16;
+
+      if(playerX<8){ playerX=8; playerVX=0;}
+      if(playerX>W-24){ playerX=W-24; playerVX=0;}
+
+      if(gameState==='freeToSofa'){
+        const nearSofa = (playerX > sofaX-12);
+        if(nearSofa && actionPressed) sitOnSofa();
       }
-      return;
+
+      if(gameState==='freeToBlob'){
+        const centerX=W/2;
+        const nearBlob=(Math.abs(playerX-centerX)<20);
+        if(nearBlob && actionPressed) startBlobDialog();
+      }
     }
 
-    if(gameState==='freeBlob'){
-      let ax=0;
-      if(moveLeft) ax-=0.14;
-      if(moveRight) ax+=0.14;
-      playerVX+=ax;
-      playerVX*=0.85;
-      playerX+=playerVX;
-      if(Math.abs(playerX - (W/2)) <20 && actionPressed){
-        enterBlob();
+    if(gameState==='seatedDialog'){
+      playerVX=0; playerVY=0;
+    }
+
+    if(gameState==='transitionToMaze') return;
+
+    if(gameState==='mazeEnter'){
+      const targetX=mazeStartTargetX;
+      const dir = targetX>mazePlayerX?1:-1;
+      const step=0.7;
+      mazePlayerX += dir*step;
+      if((dir>0 && mazePlayerX>=targetX) || (dir<0 && mazePlayerX<=targetX)){
+        mazePlayerX=targetX;
+        gameState='maze';
       }
       return;
     }
 
     if(gameState==='maze'){
-      let dx=0,dy=0;
-      if(moveLeft) dx-=mazeSpeed;
+      let dx=0, dy=0;
+      if(moveLeft)  dx-=mazeSpeed;
       if(moveRight) dx+=mazeSpeed;
-      if(moveUp) dy-=mazeSpeed;
-      if(moveDown) dy+=mazeSpeed;
-
-      const nx=mazePlayerX+dx;
-      const ny=mazePlayerY+dy;
+      if(moveUp)    dy-=mazeSpeed;
+      if(moveDown)  dy+=mazeSpeed;
+      let nx=mazePlayerX+dx;
+      let ny=mazePlayerY+dy;
       if(!isWall(nx,mazePlayerY)) mazePlayerX=nx;
       if(!isWall(mazePlayerX,ny)) mazePlayerY=ny;
-
       checkMazeBlobs();
-      return;
     }
   }
 
-  function draw(){
-    const ctx=gctx;
-    if(gameState==='maze'){
-      drawMaze();
-      return;
+  function checkMazeBlobs(){
+    for(let i=0;i<mazeBlobs.length;i++){
+      if(blobVisited[i]) continue;
+      const b=mazeBlobs[i];
+      const bx=(b.tx+0.5)*tileSize;
+      const by=(b.ty+0.5)*tileSize;
+      const dx=mazePlayerX-bx;
+      const dy=mazePlayerY-by;
+      const dist=Math.hypot(dx,dy);
+      if(dist<10){
+        startBlobEncounter(i);
+        break;
+      }
     }
-    if(gameState==='blobVideo'){
-      drawBlobVideoFrame();
-      return;
-    }
-    if(gameState==='blobVideoBlack'){
-      ctx.fillStyle='#000';
-      ctx.fillRect(0,0,W,H);
-      return;
-    }
-    drawSide();
   }
 
-  function drawSide(){
+  /* ===== DRAW ===== */
+  function drawSideView(){
     const ctx=gctx;
+    ctx.clearRect(0,0,W,H);
     ctx.fillStyle='#05210f';
     ctx.fillRect(0,0,W,H);
 
+    drawInnerBlob(ctx);
+
     ctx.fillStyle='#0b2f18';
     ctx.fillRect(0,groundY,W,H-groundY);
+    ctx.strokeStyle='#193d23';
+    ctx.beginPath();
+    ctx.moveTo(0,groundY);
+    ctx.lineTo(W,groundY);
+    ctx.stroke();
 
-    // sofa
+    ctx.fillStyle='#164524';
+    ctx.fillRect(8,groundY-10,32,10);
+
     ctx.save();
     ctx.translate(sofaX,groundY-sofaHeight);
     ctx.fillStyle='#e8c93b';
     ctx.fillRect(0,8,sofaWidth,sofaHeight-8);
+    ctx.fillRect(4,0,sofaWidth-8,10);
+    ctx.fillStyle='#c6a629';
+    ctx.fillRect(6,12,sofaWidth-12,sofaHeight-14);
+    ctx.fillStyle='#b09324';
+    ctx.fillRect(4,sofaHeight-2,8,4);
+    ctx.fillRect(sofaWidth-12,sofaHeight-2,8,4);
     ctx.restore();
 
     drawRedRabbit(ctx,playerX,playerY,3);
   }
 
-  function drawMaze(){
+  function drawMazeView(){
     const ctx=gctx;
+    ctx.clearRect(0,0,W,H);
     ctx.fillStyle='#001307';
     ctx.fillRect(0,0,W,H);
 
     for(let y=0;y<mazeMap.length;y++){
       for(let x=0;x<mazeMap[0].length;x++){
-        const t=mazeMap[y].charAt(x);
+        const tile=mazeMap[y].charAt(x);
         const px=x*tileSize;
         const py=y*tileSize;
-        if(t==='1'){
+        if(tile==='1'){
           ctx.fillStyle='#062711';
           ctx.fillRect(px,py,tileSize,tileSize);
+          ctx.strokeStyle='#0f3c1e';
+          ctx.strokeRect(px+0.5,py+0.5,tileSize-1,tileSize-1);
         }else{
           ctx.fillStyle='#07351a';
           ctx.fillRect(px,py,tileSize,tileSize);
@@ -627,189 +1127,305 @@ html,body{
       }
     }
 
+    const t=performance.now()*0.001;
     mazeBlobs.forEach(b=>{
       const cx=(b.tx+0.5)*tileSize;
       const cy=(b.ty+0.5)*tileSize;
+      const r=4+Math.sin(t*2 + b.tx*0.5 + b.ty*0.8)*1.5;
       ctx.beginPath();
-      ctx.arc(cx,cy,5,0,Math.PI*2);
+      ctx.arc(cx,cy,r,0,Math.PI*2);
       ctx.fillStyle='#000';
       ctx.fill();
       ctx.strokeStyle='rgba(190,230,190,0.8)';
+      ctx.lineWidth=1;
       ctx.stroke();
     });
 
-    drawRedRabbit(ctx,mazePlayerX-6,mazePlayerY-6,1.2);
+    const rx=mazePlayerX-6;
+    const ry=mazePlayerY-6;
+    drawRedRabbit(ctx,rx,ry,1.2);
   }
 
-  function checkMazeBlobs(){
-    for(let i=0;i<mazeBlobs.length;i++){
-      if(blobVisited[i]) continue;
-      const b=mazeBlobs[i];
-      const cx=(b.tx+0.5)*tileSize;
-      const cy=(b.ty+0.5)*tileSize;
-      const dx=mazePlayerX-cx;
-      const dy=mazePlayerY-cy;
-      const d=Math.hypot(dx,dy);
-      if(d<10){
-        blobVisited[i]=true;
-        currentBlobIndex=i;
-        showMazeBlobDialog(i);
-        break;
-      }
-    }
-  }
-
-  function showMazeBlobDialog(i){
-    gameState='mazeDialog';
-    showDialog(["어어..? 소리가 들린다."],()=>{
-      showChoices(i);
-    });
-  }
-
-  function showChoices(i){
-    dialogChoices.innerHTML="";
-    dialogChoices.classList.remove('hidden');
-    dialogNextBtn.classList.add('hidden');
-
-    const btn1=document.createElement('button');
-    btn1.className='uiBtn';
-    btn1.textContent="들어보기";
-    btn1.onclick=()=>playBlobStory(i);
-
-    const btn2=document.createElement('button');
-    btn2.className='uiBtn';
-    btn2.textContent="무시하기";
-    btn2.onclick=()=>{
-      dialogBar.classList.add('hidden');
-      gameState='maze';
-    };
-
-    dialogChoices.appendChild(btn1);
-    dialogChoices.appendChild(btn2);
-  }
-
-  const blobStories=[
-    "이곳이 나를 원하지 않는다면...",
-    "표백공장의 더러운 물이 흘러든다...",
-    "쓰레기 산 위에 까마귀가 맴돌았다...",
-    "GPS 신발은 3500km를 이동했다...",
-    "붕대는 발가락 대신 균형을 잡아준다..."
-  ];
-
-  function playBlobStory(i){
-    dialogChoices.classList.add('hidden');
-    dialogNextBtn.classList.remove('hidden');
-    showDialog([blobStories[i]],()=>{
-      askEnter(i);
-    });
-  }
-
-  function askEnter(i){
-    showDialog(["들어가볼까?"],()=>{
-      dialogChoices.innerHTML="";
-      dialogChoices.classList.remove('hidden');
-      dialogNextBtn.classList.add('hidden');
-
-      const b1=document.createElement('button');
-      b1.className='uiBtn';
-      b1.textContent="들어가지";
-      b1.onclick=()=> startBlobVideo(i);
-
-      const b2=document.createElement('button');
-      b2.className='uiBtn';
-      b2.textContent="더 둘러보기";
-      b2.onclick=()=>{
-        dialogBar.classList.add('hidden');
-        gameState='maze';
-      };
-
-      dialogChoices.appendChild(b1);
-      dialogChoices.appendChild(b2);
-    });
-  }
-
-  /* ==== 비디오 ==== */
-  function getBlobVideoSrc(i){
-    return `video/blob${i+1}.mp4`;
-  }
-
-  function startBlobVideo(i){
-    dialogBar.classList.add('hidden');
-    musicRunning=false;
-    startVideoAmbientMusic();
-
-    const src=getBlobVideoSrc(i);
-    docVideo.src=src;
-    docVideo.classList.remove('hidden');
-    ensureResumed().then(()=>docVideo.play().catch(()=>{}));
-
-    docVideo.onended=()=>{
-      docVideo.classList.add('hidden');
-      gameState='blobVideoBlack';
-      musicRunning=false;
-    };
-
-    gameState='blobVideo';
-  }
-
-  function drawBlobVideoFrame(){
+  function drawBlobVideoView(){
     const ctx=gctx;
     ctx.clearRect(0,0,W,H);
-    drawRedRabbit(ctx, W/2-12, H-40, 3);
+    const scale=3;
+    const px=W/2-4*scale;
+    const py=H-32-10;
+    drawRedRabbit(ctx,px,py,scale);
   }
 
-  /* ==== 소파 ==== */
-  function sitSofa(){
-    gameState='sofaTalk';
-    showDialog([
-      "좋아, 앉았네?",
-      "제2장에 들어가보자.",
-      "꿀렁이를 눌러줘."
-    ],()=>{
-      gameState='freeBlob';
+  function drawBlobVideoBlackView(){
+    const ctx=gctx;
+    ctx.clearRect(0,0,W,H);
+    ctx.fillStyle='#000';
+    ctx.fillRect(0,0,W,H);
+  }
+
+  function draw(){
+    if(gameState==='blobVideo'){
+      drawBlobVideoView();
+      return;
+    }
+    if(gameState==='blobVideoBlack'){
+      drawBlobVideoBlackView();
+      return;
+    }
+    if(gameState==='maze' || gameState==='mazeEnter' || gameState==='mazeDialog' || gameState==='transitionToMaze'){
+      drawMazeView();
+      return;
+    }
+    drawSideView();
+  }
+
+  function gameLoop(){
+    requestAnimationFrame(gameLoop);
+    update();
+    draw();
+  }
+  gameLoop();
+
+  /* ===== 상태 전환 ===== */
+  function startGameScene(){
+    gameLayout.classList.remove('hidden');
+    hudLeftEl.classList.remove('hidden');
+    hudRight.classList.remove('hidden');
+    gameStarted = true;
+    setTimeout(()=>{
+      gameState='introWalk';
+      introWalkStartTime=performance.now();
+    },800);
+  }
+
+  async function startIntroDialog(){
+    const lines = [
+      "안녕?",
+      `나는 ${nickForText}이야.`,
+      "어때, 그래도 한 8분 걸어온 것 같은데, 어디 편한 곳에 앉아볼까?",
+      "아아앗? 저기 소파가 있다! 저기에 앉아보자!!"
+    ];
+    const hint =
+      "안내 : 캐릭터를 우측으로 이동시켜 버튼(A)을 눌러 쇼파에 앉으세요.\n" +
+      "당신도 어디 좋은 자리를 잡아 앉아보세요.";
+    await showDialog(lines, hint, ()=>{
+      gameState='freeToSofa';
     });
   }
 
-  /* ==== 꿀렁이 ==== */
-  function enterBlob(){
+  function sitOnSofa(){
+    if(gameState!=='freeToSofa') return;
+    gameState='seatedDialog';
+    playerX=sofaX + sofaWidth*0.4;
+    playerY=groundY - sofaHeight - 2;
+    playerVX=0; playerVY=0;
+
+    const lines = [
+      "앉았어?",
+      "그래. 어때?",
+      "짧은 시간의 여정은 조금 괜찮아?",
+      "지금부터는 제 2장. 그러니까 THE SECOND SLEEP이야!",
+      "THE FIRST SLEEP가 눈과 귀로 타자를 인식해나가는 순간이었다면, 지금은 어쩌면…",
+      "머리로?",
+      "그러니까 그냥 인식되어버렸던 그것들을 한 번 더 생각해보는 시간이지!",
+      "너는 편하게 앉아있어. 이제 내가 한 번 움직여볼게."
+    ];
+    showDialog(lines,'',()=>{
+      playerY=groundY-16;
+      playerX=sofaX+sofaWidth*0.2;
+      gameState='freeToBlob';
+      const hint =
+        "안내 : 캐릭터를 화면 중앙의 꿀렁이 가까이 이동시킨 뒤, A 버튼을 눌러주세요.\n" +
+        "당신은 그대로 편하게 앉아, 방금 들었던 것들을 한 번 더 떠올려 보세요.";
+      hintBar.textContent=hint;
+      hintBar.classList.remove('hidden');
+    });
+  }
+
+  function startBlobDialog(){
+    if(gameState!=='freeToBlob') return;
+    gameState='blobDialog';
+    playerX=W/2-8;
+    playerY=groundY-16;
+    const lines = [
+      "우리는 지금부터 이 꿀렁꿀렁 거리는 물질 속으로 들어갈거야.",
+      "이건 언제부터 존재했는지는 모르지만, 어느 순간부터 생겨난 응축된 응어리 같은 거거든.",
+      "준비가 되면 버튼을 눌러줘.",
+      "함께 그것의 속으로 들어가보자."
+    ];
+    hintBar.textContent='';
+    hintBar.classList.add('hidden');
+    showDialog(lines,'',()=>{
+      goToMaze();
+    });
+  }
+
+  function goToMaze(){
+    gameState='transitionToMaze';
     dialogBar.classList.add('hidden');
+    hintBar.classList.add('hidden');
 
     stageFade.classList.remove('hidden');
-    requestAnimationFrame(()=> stageFade.style.opacity='1');
+    requestAnimationFrame(()=>{ stageFade.style.opacity='1'; });
 
     musicRunning=false;
     startDarkMusic();
 
     setTimeout(()=>{
-      stageFade.style.opacity='0';
-      setTimeout(()=> stageFade.classList.add('hidden'),800);
-
       mazePlayerX=(mazeStartTile.tx-1)*tileSize;
       mazePlayerY=mazeStartY;
-      gameState='maze';
+      stageFade.style.opacity='0';
+      setTimeout(()=>{ stageFade.classList.add('hidden'); },800);
+      gameState='mazeEnter';
     },900);
   }
 
-  /* ==== 루프 ==== */
-  function loop(){
-    update();
-    draw();
-    requestAnimationFrame(loop);
+  /* ===== 미로 블랙홀 이벤트 ===== */
+  const blobStories = [
+    "이곳이 나를 원하지 않는다면 어쩔 수 없어요. 하지만 저는 선택지가 없습니다. 이곳에 머무는 것밖에.",
+    "심라구지란 상류에 트럭이 섰다. 2개의 물탱크가 2분간 잿빛 오염수를 쏟아냈다. 30분 뒤 똑같은 장면이 반복됐다. 표백공장의 ‘더러운 물’은 방류되어 마을과 강으로 흐른다.",
+    "멀리서 볼 땐 동산이나 언덕처럼 보였다. ...가장 높은 곳은 높이가 10m를 넘고 면적은 5㎢가 된다. 거대한 쓰레기 산 위에 까마귀EP가 맴돌고 들개는 잔해물을 물어뜯는다.",
+    "GPS를 넣은 신발은 포천시 외곽지역으로 이동했다. 이틀 뒤 양주시로 보내졌다. 일주일 뒤 인천 항구에서 발견됐다. 약 4주 뒤, 타이 아란야쁘라텟 롱끌르아 시장에서 신호를 보냈다. 한국에서 약 3500km 떨어진 곳이다.",
+    "매일 아침 왼발 앞쪽에 붕대를 감는다. 2011년 산업재해로 왼쪽 발가락 5개 전부를 잃었다. 붕대는 발가락 대신 몸의 균형을 잡아준다. 하지만 얼마 못 가 모양이 흐트러진다."
+  ];
+
+  function startBlobEncounter(index){
+    currentBlobIndex=index;
+    blobVisited[index]=true;
+    gameState='mazeDialog';
+    dialogMode='blobIntro';
+    clearChoices();
+    dialogBar.classList.remove('hidden');
+    hintBar.classList.add('hidden');
+    showBlobIntro();
   }
 
-  /* ==== 시작 ==== */
-  window.addEventListener('load', async ()=>{
-    ensureAudio();
-    await ensureResumed();
+  async function showBlobIntro(){
+    const line="어어엇…? 무슨 소리가 들려온다.";
+    typing=true;
+    fullLine=line;
+    await typeText(dialogTextElem,line,40,false);
+    typing=false;
 
-    gameLayout.classList.remove('hidden');
-    hudLeft.classList.remove('hidden');
-    hudRight.classList.remove('hidden');
+    dialogMode='blobIntro';
+    showChoiceButtons([
+      {
+        label:"들어보기",
+        onSelect:()=>{
+          dialogMode='blobStory';
+          playBlobStory(currentBlobIndex);
+        }
+      },
+      {
+        label:"무시하기",
+        onSelect:()=>{
+          clearChoices();
+          dialogBar.classList.add('hidden');
+          gameState='maze';
+          dialogMode='normal';
+        }
+      }
+    ]);
+  }
 
-    introStart=performance.now();
-    gameStarted=true;
+  async function playBlobStory(index){
+    clearChoices();
+    dialogMode='blobStory';
+    const line=blobStories[index] || "";
+    typing=true;
+    fullLine=line;
+    await typeText(dialogTextElem,line,35,false);
+    typing=false;
+    dialogNextBtnEl.classList.remove('hidden');
+  }
+
+  async function showBlobDecision(index){
+    dialogMode='blobDecision';
+    const line="흠… 들어가볼까?";
+    typing=true;
+    fullLine=line;
+    await typeText(dialogTextElem,line,40,false);
+    typing=false;
+
+    showChoiceButtons([
+      {
+        label:"들어가지",
+        onSelect:()=>{
+          clearChoices();
+          startBlobVideo(index);
+        }
+      },
+      {
+        label:"더 둘러보기",
+        onSelect:()=>{
+          clearChoices();
+          dialogBar.classList.add('hidden');
+          gameState='maze';
+          dialogMode='normal';
+        }
+      }
+    ]);
+  }
+
+  function getBlobVideoSrc(index){
+    const i=index+1;
+    return `video/blob${i}.mp4`;
+  }
+
+  function startBlobVideo(index){
+    gameState='blobVideo';
+    dialogMode='normal';
+    dialogBar.classList.add('hidden');
+    hintBar.classList.add('hidden');
+
+    musicRunning=false;
+    startVideoAmbientMusic();
+
+    const src=getBlobVideoSrc(index);
+    docVideo.src=src;
+    docVideo.currentTime=0;
+    docVideo.classList.remove('hidden');
+
+    ensureResumed().then(()=>{
+      docVideo.play().catch(()=>{});
+    });
+
+    const onEnded = ()=>{
+      docVideo.removeEventListener('ended',onEnded);
+      endBlobVideoToBlack();
+    };
+    docVideo.addEventListener('ended',onEnded);
+
+    setTimeout(()=>{
+      if(gameState==='blobVideo'){
+        endBlobVideoToBlack();
+      }
+    },5*60*1000);
+  }
+
+  function endBlobVideoToBlack(){
+    try{ docVideo.pause(); }catch(e){}
+    docVideo.classList.add('hidden');
+    gameState='blobVideoBlack';
+    musicRunning=false;
+  }
+
+  /* ===== 시작: 오디오 실패해도 게임은 무조건 시작 ===== */
+  function startAll(){
+    try{ ensureAudio(); }catch(e){}
+    startOverlayEl.style.display='none';
+    blobStartTime=performance.now();
+    blobFadeIn=true;
+    blobAlpha=0;
     startBrightMusic();
-  });
+    startGameScene();
+  }
+
+  // DOM 준비되면 바로 실행
+  if(document.readyState === 'complete' || document.readyState === 'interactive'){
+    startAll();
+  }else{
+    window.addEventListener('DOMContentLoaded', startAll);
+  }
 
 })();
 </script>
