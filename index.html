@@ -141,32 +141,6 @@ input, textarea{
   image-rendering:pixelated;
 }
 
-/* 2장 타이틀 */
-#titleOverlay{
-  position:fixed;
-  inset:0;
-  z-index:30;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  pointer-events:none;
-}
-#titleLines{
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  gap:8px;
-}
-.sleepLine{
-  font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
-  letter-spacing:.16em;
-  font-size:clamp(26px, 6.2vmin, 80px);
-  text-transform:uppercase;
-  white-space:nowrap;
-  text-align:center;
-  text-shadow:0 0 8px rgba(0,0,0,0.85);
-}
-
 /* 게임 카드 */
 #gameLayout{
   position:fixed;
@@ -213,7 +187,7 @@ input, textarea{
   z-index:1;
 }
 
-/* 다큐 영상 */
+/* 다큐 영상 (web/video/blobN.mp4) */
 #docVideo{
   position:absolute;
   inset:0;
@@ -428,20 +402,12 @@ input, textarea{
   </div>
 </div>
 
-<!-- 2장 타이틀 -->
-<div id="titleOverlay" class="fade-hidden">
-  <div id="titleLines">
-    <div id="titleLine1" class="sleepLine"></div>
-    <div id="titleLine2" class="sleepLine"></div>
-    <div id="titleLine3" class="sleepLine"></div>
-  </div>
-</div>
-
 <!-- 게임 레이아웃 -->
 <div id="gameLayout" class="hidden">
   <div id="gameCard">
     <div id="gameScreenWrap">
       <canvas id="gameCanvas" width="320" height="180"></canvas>
+      <!-- web/video/blob1~5.mp4 에 다큐 영상 넣기 -->
       <video id="docVideo" class="hidden" playsinline webkit-playsinline></video>
       <div id="nameTag"></div>
       <div id="speechBubble" class="hidden">어어어어…!! 빨려들어간다..!!!!</div>
@@ -761,45 +727,6 @@ input, textarea{
   }
   blobLoop();
 
-  /* ===== 2장 타이틀 연출 (3줄) ===== */
-  const titleOverlay = qs('#titleOverlay');
-  const titleLine1 = qs('#titleLine1');
-  const titleLine2 = qs('#titleLine2');
-  const titleLine3 = qs('#titleLine3');
-
-  async function showTitleSequence(){
-    titleOverlay.classList.remove('fade-show');
-    titleOverlay.classList.add('fade-hidden');
-    titleOverlay.style.display = 'flex';
-
-    titleLine1.textContent = '';
-    titleLine2.textContent = '';
-    titleLine3.textContent = '';
-
-    await sleep(50);
-
-    titleOverlay.classList.remove('fade-hidden');
-    titleOverlay.classList.add('fade-show');
-
-    await typeText(titleLine1, 'SLEEEEEEEEP', 55, false);
-    await sleep(250);
-    await typeText(titleLine2, 'SLEEEEEEEEP', 55, false);
-    await sleep(250);
-    await typeText(titleLine3, 'THE SECOND SLEEP', 55, false);
-
-    await sleep(900);
-
-    titleOverlay.classList.remove('fade-show');
-    titleOverlay.classList.add('fade-hidden');
-    await sleep(1400);
-    titleOverlay.style.display = 'none';
-
-    await ensureResumed();
-    await playDing();
-    startBrightMusic();
-    startGameScene();
-  }
-
   /* ===== 게임 영역 DOM ===== */
   const gameLayout      = qs('#gameLayout');
   const gameCanvas      = qs('#gameCanvas');
@@ -820,7 +747,7 @@ input, textarea{
   const gameScreenWrap  = qs('#gameScreenWrap');
   const docVideo        = qs('#docVideo');
 
-  /* 닉네임 처리 */
+  /* 닉네임 처리 (SLEEP 본편에서 localStorage.sleepNick 사용 가정) */
   const nickRaw = (()=> {
     try{
       const v = localStorage.getItem('sleepNick');
@@ -918,11 +845,11 @@ input, textarea{
   }
 
   // 상태
-  // 'title', 'introWalk', 'introDialog', 'freeToSofa', 'seatedDialog',
+  // 'introWalk', 'introDialog', 'freeToSofa', 'seatedDialog',
   // 'freeToBlob', 'blobDialog', 'transitionToCosmic', 'cosmic',
   // 'transitionToMaze', 'mazeEnter', 'maze', 'mazeDialog',
   // 'blobVideo', 'blobVideoBlack'
-  let gameState = 'title';
+  let gameState = 'introWalk';
 
   /* 대화 시스템 (공통) */
   let currentLines = [];
@@ -1391,7 +1318,7 @@ input, textarea{
   function drawBlobVideoView(){
     const ctx = gctx;
     ctx.clearRect(0,0,W,H);
-    // 배경을 채우지 않아서 canvas는 투명, 밑의 video가 보임
+    // canvas는 투명 → 뒤에 video가 보임
 
     const scale = 3;
     const px = W/2 - 4*scale;
@@ -1666,9 +1593,11 @@ input, textarea{
   /* ===== 블랙홀 비디오 (다큐 영상) ===== */
 
   function getBlobVideoSrc(index){
-    // blob1.mp4 ~ blob5.mp4 를 ./video 폴더에 넣어두면 됨
+    // SLEEP 웹 작업 기준:
+    // web 폴더 안에 video 폴더 생성
+    // web/video/blob1.mp4 ~ blob5.mp4 로 파일 배치
     const i = index + 1;
-    return `./video/blob${i}.mp4`;
+    return `video/blob${i}.mp4`;
   }
 
   function startBlobVideo(index){
@@ -1679,8 +1608,6 @@ input, textarea{
 
     // BGM 정지
     musicRunning = false;
-
-    // HUD는 그대로 둬도 되지만, 입력은 update()에서 막혀 있음
 
     // 비디오 세팅
     const src = getBlobVideoSrc(index);
@@ -1723,7 +1650,9 @@ input, textarea{
     blobAlpha = 0;
 
     await ensureResumed();
-    await showTitleSequence();
+    await playDing();
+    startBrightMusic();
+    startGameScene();
   }
 
   // 버튼 / 오버레이 어디를 눌러도 시작되게
@@ -1734,7 +1663,6 @@ input, textarea{
       startAll();
     });
     startOverlayEl.addEventListener(ev, (e)=>{
-      // 버튼 바깥 누를 때도 허용
       if(e.target === startBtn) return; // 버튼 핸들러가 처리
       e.preventDefault();
       if(startOverlayEl.style.display === 'none') return;
