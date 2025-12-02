@@ -111,25 +111,6 @@ input, textarea{
   font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
 }
 
-/* 시작 게이트 */
-#startOverlay{
-  position:fixed;
-  inset:0;
-  z-index:1500;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  background:rgba(0,0,0,0.9);
-  color:var(--accent);
-  text-align:center;
-  padding:24px;
-}
-#startInner{
-  max-width:72ch;
-  font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
-  line-height:1.8;
-}
-
 /* 중앙 꿀렁이 (전체 배경) */
 #blobCanvas{
   position:fixed;
@@ -271,7 +252,7 @@ input, textarea{
   pointer-events:none;
 }
 
-/* 말풍선 (우주 구간에서 사용) */
+/* 말풍선 (현재는 사용 안 하지만 구조 유지) */
 #speechBubble{
   position:absolute;
   max-width:180px;
@@ -356,10 +337,6 @@ input, textarea{
   box-shadow:0 2px 0 rgba(0,0,0,0.9);
 }
 
-/* 페이드 유틸 */
-.fade-hidden{ opacity:0; transition:opacity 1800ms ease; }
-.fade-show{ opacity:1; }
-
 /* 스테이지 전환 페이드 */
 #stageFade{
   position:fixed;
@@ -386,19 +363,6 @@ input, textarea{
   <div>
     <b>Landscape mode required</b><br/>
     Please rotate your device to continue.
-  </div>
-</div>
-
-<!-- 시작 게이트 -->
-<div id="startOverlay">
-  <div id="startInner">
-    <p>WELCOME TO</p>
-    <p style="margin-top:8px;">SLEEEEEEEEP – THE SECOND SLEEP</p>
-    <p style="margin-top:18px;font-size:clamp(10px,2vmin,13px);">
-      Tap START to continue.<br/>
-      (카메라와 마이크는 사용하지 않지만, 전체 화면 및 사운드 사용을 위해 한 번 터치가 필요합니다.)
-    </p>
-    <button id="startBtn" class="uiBtn flat" style="margin-top:20px;">START</button>
   </div>
 </div>
 
@@ -475,34 +439,16 @@ input, textarea{
 
   /* ===== 전체 화면 & 오디오 ===== */
   let audioCtx = null;
-  let audioPrimed = false;
   function ensureAudio(){
     if(!audioCtx){
       audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     }
-  }
-  async function primeAudio(){
-    ensureAudio();
-    if(audioCtx.state === 'suspended'){
-      try{ await audioCtx.resume(); }catch(e){}
-    }
-    audioPrimed = true;
   }
   async function ensureResumed(){
     ensureAudio();
     if(audioCtx.state === 'suspended'){
       try{ await audioCtx.resume(); }catch(e){}
     }
-  }
-
-  async function enterFullscreen(){
-    const el = document.documentElement;
-    try{
-      if(!document.fullscreenElement){
-        if(el.requestFullscreen) await el.requestFullscreen({navigationUI:'hide'});
-        else if(el.webkitRequestFullscreen) el.webkitRequestFullscreen();
-      }
-    }catch(e){}
   }
 
   /* ===== 타자 소리 ===== */
@@ -551,7 +497,7 @@ input, textarea{
     }
   }
 
-  /* ===== 효과음 ding ===== */
+  /* ===== 효과음 ding (현재 자동 시작에선 사용 안 하지만 남겨둠) ===== */
   async function playDing(){
     try{
       ensureAudio();
@@ -594,7 +540,7 @@ input, textarea{
     }catch(e){}
   }
 
-  // 1) 밝고 귀여운 음악 (소파까지)
+  // 1) 밝고 귀여운 음악 (사이드뷰 파트)
   function startBrightMusic(){
     if(musicRunning) return;
     musicRunning = true;
@@ -619,30 +565,7 @@ input, textarea{
     step();
   }
 
-  // 2) 우주 워프 삐루룽 삐루룽
-  function startWarpMusic(){
-    musicRunning = false;
-    setTimeout(()=>{
-      if(musicRunning) return;
-      musicRunning = true;
-      const base = 880; // A5
-      let idx = 0;
-
-      function step(){
-        if(!musicRunning) return;
-        const t = idx % 8;
-        const semi = [0, 2, 4, 7, 12, 7, 4, 2][t];
-        const f = base * Math.pow(2, semi/12);
-        const dur = 0.18;
-        playNote(f, dur, 0.25, 'triangle');
-        idx++;
-        setTimeout(step, 160);
-      }
-      step();
-    }, 300);
-  }
-
-  // 3) 진지한 미로 음악
+  // 2) 진지한 미로 음악
   function startDarkMusic(){
     musicRunning = false;
     setTimeout(()=>{
@@ -663,6 +586,30 @@ input, textarea{
       }
       step();
     }, 400);
+  }
+
+  // 3) 비디오 재생 중 잔잔한 우주 사운드
+  function startVideoAmbientMusic(){
+    musicRunning = false;
+    setTimeout(()=>{
+      if(musicRunning) return;
+      musicRunning = true;
+      const base = 220; // A3
+      const pattern = [0, 7, 12, 5, 0, -5];
+      let idx = 0;
+      const stepDur = 900;
+
+      function step(){
+        if(!musicRunning) return;
+        const semi = pattern[idx % pattern.length];
+        const f = base * Math.pow(2, semi/12);
+        // 길게 울리는 패드 느낌
+        playNote(f, 0.8, 0.18, 'sine');
+        idx++;
+        setTimeout(step, stepDur);
+      }
+      step();
+    }, 500);
   }
 
   /* ===== 중앙 꿀렁이 (전체 배경, 더 크게) ===== */
@@ -739,8 +686,6 @@ input, textarea{
   const dialogChoices   = qs('#dialogChoices');
   const hudLeftEl       = qs('#hudLeft');
   const hudRight        = qs('#hudRight');
-  const startOverlayEl  = qs('#startOverlay');
-  const startBtn        = qs('#startBtn');
   const stageFade       = qs('#stageFade');
   const hintBar         = qs('#hintBar');
   const speechBubble    = qs('#speechBubble');
@@ -798,9 +743,6 @@ input, textarea{
   let gameStarted = false;
   let introWalkStartTime = 0;
 
-  // 우주 씬 시간
-  let cosmicStartTime = 0;
-
   // 미로 관련
   const tileSize = 16;
   const mazeMap = [
@@ -846,7 +788,7 @@ input, textarea{
 
   // 상태
   // 'introWalk', 'introDialog', 'freeToSofa', 'seatedDialog',
-  // 'freeToBlob', 'blobDialog', 'transitionToCosmic', 'cosmic',
+  // 'freeToBlob', 'blobDialog',
   // 'transitionToMaze', 'mazeEnter', 'maze', 'mazeDialog',
   // 'blobVideo', 'blobVideoBlack'
   let gameState = 'introWalk';
@@ -942,6 +884,7 @@ input, textarea{
   });
 
   /* HUD 입력 */
+  const hudLeftEl = qs('#hudLeft');
   const dpad = hudLeftEl.querySelector('.dpad');
   if(dpad){
     dpad.addEventListener('pointerdown', (e)=>{
@@ -1091,34 +1034,6 @@ input, textarea{
       playerVY = 0;
     }
 
-    // 우주 씬
-    if(gameState === 'cosmic'){
-      const t = (performance.now() - cosmicStartTime) * 0.001;
-      const cx = W/2;
-      const cy = H/2;
-      const R0 = 70;
-      const R = Math.max(6, R0 - t*10);
-      const angle = t * 3.0 * Math.PI;
-      playerX = cx + Math.cos(angle)*R;
-      playerY = cy + Math.sin(angle)*R;
-
-      if(t > 0.4 && t < 6){
-        speechBubble.classList.remove('hidden');
-      }
-      // 말풍선 위치 갱신
-      const wrapRect = gameScreenWrap.getBoundingClientRect();
-      const nx = (playerX / W) * wrapRect.width;
-      const ny = (playerY / H) * wrapRect.height;
-      speechBubble.style.left = nx + 'px';
-      speechBubble.style.top  = ny + 'px';
-
-      if(t > 6){
-        speechBubble.classList.add('hidden');
-        startMazeScene();
-      }
-      return;
-    }
-
     // 미로 입장: 왼쪽에서 걸어오는 연출
     if(gameState === 'mazeEnter'){
       const targetX = mazeStartTargetX;
@@ -1206,69 +1121,6 @@ input, textarea{
     drawRedRabbit(ctx, playerX, playerY, scale);
   }
 
-  function drawCosmicView(){
-    const ctx = gctx;
-    ctx.clearRect(0,0,W,H);
-
-    ctx.fillStyle = '#000010';
-    ctx.fillRect(0,0,W,H);
-
-    const cx = W/2;
-    const cy = H/2;
-    const t = (performance.now() - cosmicStartTime) * 0.001;
-
-    // 별점
-    ctx.fillStyle = '#88ffee';
-    for(let i=0;i<40;i++){
-      const sAng = i*(Math.PI*2/40);
-      const r = ( (t*20 + i*15) % 160 );
-      const x = cx + Math.cos(sAng)*r*0.4;
-      const y = cy + Math.sin(sAng)*r*0.4;
-      ctx.fillRect(x, y, 1, 1);
-    }
-
-    // 꿀렁이 띠들
-    for(let j=0;j<5;j++){
-      const phase = t*0.5 + j*0.7;
-      const baseR = 90 - j*10;
-      const N = 24;
-      ctx.beginPath();
-      for(let i=0;i<N;i++){
-        const ang = (i/N)*Math.PI*2;
-        const wob = 0.25*Math.sin(phase*2 + i*0.9);
-        const r = baseR*(0.8 + wob);
-        const x = cx + Math.cos(ang)*r;
-        const y = cy + Math.sin(ang)*r*0.6;
-        if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
-      }
-      ctx.closePath();
-      ctx.strokeStyle = 'rgba(180,255,220,0.25)';
-      ctx.lineWidth = 1.2;
-      ctx.stroke();
-    }
-
-    // 가운데 어두운 코어
-    ctx.beginPath();
-    ctx.arc(cx, cy, 10, 0, Math.PI*2);
-    ctx.fillStyle = '#000';
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(250,250,250,0.4)';
-    ctx.stroke();
-
-    // 나선형 토끼
-    const R0 = 70;
-    const R = Math.max(6, R0 - t*10);
-    const angle = t * 3.0 * Math.PI;
-    const px = cx + Math.cos(angle)*R;
-    const py = cy + Math.sin(angle)*R;
-    const scale = 3 * (R / R0);
-    drawRedRabbit(ctx, px, py, scale <= 0.7 ? 0.7 : scale);
-
-    // playerX, playerY 동기화 (말풍선용)
-    playerX = px;
-    playerY = py;
-  }
-
   function drawMazeView(){
     const ctx = gctx;
     ctx.clearRect(0,0,W,H);
@@ -1341,10 +1193,6 @@ input, textarea{
     }
     if(gameState === 'blobVideoBlack'){
       drawBlobVideoBlackView();
-      return;
-    }
-    if(gameState === 'cosmic'){
-      drawCosmicView();
       return;
     }
     if(gameState === 'maze' || gameState === 'mazeEnter' || gameState === 'mazeDialog'){
@@ -1438,40 +1286,14 @@ input, textarea{
     hintBar.textContent = '';
     hintBar.classList.add('hidden');
     showDialog(lines, '', ()=>{
-      endSecondStageToCosmic();
+      goDirectToMaze();  // 깔끔하게 바로 미로로
     });
   }
 
-  function endSecondStageToCosmic(){
-    gameState = 'transitionToCosmic';
+  // 중간 우주-빨려들기 연출 제거: 바로 미로로 전환
+  function goDirectToMaze(){
     dialogBar.classList.add('hidden');
     hintBar.classList.add('hidden');
-
-    stageFade.classList.remove('hidden');
-    requestAnimationFrame(()=>{
-      stageFade.style.opacity = '1';
-    });
-
-    musicRunning = false;
-    startWarpMusic();
-
-    setTimeout(()=>{
-      stageFade.style.opacity = '0';
-      setTimeout(()=>{
-        stageFade.classList.add('hidden');
-      }, 800);
-      startCosmicScene();
-    }, 800);
-  }
-
-  function startCosmicScene(){
-    gameState = 'cosmic';
-    cosmicStartTime = performance.now();
-  }
-
-  function startMazeScene(){
-    gameState = 'transitionToMaze';
-    speechBubble.classList.add('hidden');
 
     stageFade.classList.remove('hidden');
     requestAnimationFrame(()=>{
@@ -1606,8 +1428,9 @@ input, textarea{
     dialogBar.classList.add('hidden');
     hintBar.classList.add('hidden');
 
-    // BGM 정지
+    // 기존 BGM 정지 → 비디오용 우주 사운드 시작
     musicRunning = false;
+    startVideoAmbientMusic();
 
     // 비디오 세팅
     const src = getBlobVideoSrc(index);
@@ -1638,36 +1461,24 @@ input, textarea{
     docVideo.pause();
     docVideo.classList.add('hidden');
     gameState = 'blobVideoBlack';
+    musicRunning = false; // 비디오용 우주 사운드도 정지
   }
 
-  /* ===== 시작 오버레이 ===== */
-  async function startAll(){
-    await primeAudio();
-    await enterFullscreen();
-    startOverlayEl.style.display = 'none';
+  /* ===== 페이지 로드 시 자동 시작 ===== */
+  window.addEventListener('load', async ()=>{
     blobStartTime = performance.now();
     blobFadeIn = true;
     blobAlpha = 0;
 
-    await ensureResumed();
-    await playDing();
-    startBrightMusic();
-    startGameScene();
-  }
+    // 오디오 자동 재생은 브라우저에서 막힐 수 있지만,
+    // 사용자가 HUD를 누르는 순간 ensureResumed()로 풀리도록 설계되어 있음.
+    try{
+      await ensureResumed();
+      await playDing();
+    }catch(e){}
 
-  // 버튼 / 오버레이 어디를 눌러도 시작되게
-  ['click'].forEach(ev=>{
-    startBtn.addEventListener(ev, (e)=>{
-      e.preventDefault();
-      if(startOverlayEl.style.display === 'none') return;
-      startAll();
-    });
-    startOverlayEl.addEventListener(ev, (e)=>{
-      if(e.target === startBtn) return; // 버튼 핸들러가 처리
-      e.preventDefault();
-      if(startOverlayEl.style.display === 'none') return;
-      startAll();
-    });
+    startGameScene();
+    startBrightMusic();
   });
 
 })();
