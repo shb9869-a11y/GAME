@@ -665,31 +665,31 @@ input, textarea{
     }, 400);
   }
 
-  // 4) 블랙홀 안에서 흐르는 잔잔한 우주 음악
+  // 4) 블랙홀 안에서 흐르는 잔잔하고 느린 우주 음악 (더 길고 느리게)
   function startCalmSpaceMusic(){
     musicRunning = false;
     setTimeout(()=>{
       if(musicRunning) return;
       musicRunning = true;
 
-      const base = 261.63; // C4
-      // 느리게 떠다니는 코드톤
-      const pattern = [0, 5, 9, 12, 9, 5];
+      const base = 196.00; // G3 (조금 더 낮은 음역)
+      // 아주 느리게 떠다니는 톤 패턴
+      const pattern = [0, 7, 3, 10]; // G, D, Bb, F 느낌
       let idx = 0;
-      const stepDur = 1000; // 1초에 한 번씩 음
+      const stepDur = 2600; // 2.6초에 한 번씩 음 전환
 
       function step(){
         if(!musicRunning) return;
         const semi = pattern[idx % pattern.length];
         const f = base * Math.pow(2, semi/12);
-        // 길게 울리는 사인파 톤
-        playNote(f, 0.9, 0.15, 'sine');
+        // 길고 천천히 사라지는 사인파
+        playNote(f, 1.9, 0.13, 'sine');
         idx++;
         setTimeout(step, stepDur);
       }
 
       step();
-    }, 500);
+    }, 700); // 살짝 있다가 시작
   }
 
   /* ===== 중앙 꿀렁이 (전체 배경, 더 크게) ===== */
