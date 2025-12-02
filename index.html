@@ -36,7 +36,14 @@
   --accent: #f5f5f5;
 }
 
-*{ box-sizing:border-box; margin:0; padding:0; user-select:none; }
+*{
+  box-sizing:border-box;
+  margin:0;
+  padding:0;
+  -webkit-user-select:none;
+  user-select:none;
+  -webkit-tap-highlight-color:transparent;
+}
 
 html,body{
   width:100%;
@@ -45,20 +52,23 @@ html,body{
   touch-action:manipulation;
   background:#000;
   color:var(--accent);
+  font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans KR",sans-serif;
 }
 
 .frameBox{
   position:fixed;
-  left:var(--frame);
-  right:var(--frame);
-  top:var(--frame);
-  bottom:var(--frame);
+  left:calc(var(--frame) + var(--safe-l));
+  right:calc(var(--frame) + var(--safe-r));
+  top:calc(var(--frame) + var(--safe-t));
+  bottom:calc(var(--frame) + var(--safe-b));
   border:2px solid rgba(255,255,255,0.8);
   pointer-events:none;
+  z-index:5;
 }
 
 .hidden{ display:none !important; }
 
+/* 배경 캔버스(지금은 안 써도 됨) */
 #blobCanvas{
   position:fixed;
   inset:0;
@@ -72,7 +82,10 @@ html,body{
 #gameLayout{
   position:fixed;
   inset:0;
-  padding:calc(var(--frame) + 0px);
+  padding:calc(var(--frame) + var(--safe-t))
+           calc(var(--frame) + var(--safe-r))
+           calc(var(--frame) + var(--safe-b))
+           calc(var(--frame) + var(--safe-l));
   z-index:20;
   display:flex;
   align-items:center;
@@ -89,6 +102,7 @@ html,body{
   gap:16px;
 }
 
+/* 게임 화면 박스 */
 #gameScreenWrap{
   width:100%;
   max-width:720px;
@@ -109,6 +123,7 @@ html,body{
   image-rendering:pixelated;
 }
 
+/* 다큐 영상 */
 #docVideo{
   position:absolute;
   inset:0;
@@ -118,6 +133,7 @@ html,body{
   z-index:0;
 }
 
+/* 대화창 */
 #dialogBar{
   width:100%;
   max-width:720px;
@@ -126,28 +142,58 @@ html,body{
   padding:14px;
   box-shadow:0 0 20px #000;
   pointer-events:auto;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
 }
 
 #dialogText{
   font-size:clamp(11px,2vmin,14px);
-  font-family:"Courier New",ui-monospace;
+  font-family:"Courier New",ui-monospace,monospace;
   white-space:pre-wrap;
   line-height:1.7;
 }
 
-#dialogChoices{ margin-top:10px; display:flex; flex-wrap:wrap; gap:6px; }
-.uiBtn{ color:white; background:rgba(0,0,0,0.7); border:1px solid #fff; padding:6px 10px; }
-.uiBtn:active{ background:white; color:black; }
+#dialogChoices{
+  margin-top:4px;
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+}
 
-#dialogNext{ margin-left:auto; }
+.uiBtn{
+  background:rgba(0,0,0,0.7);
+  color:#fff;
+  border:1px solid #fff;
+  padding:6px 10px;
+  font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
+  font-size:10px;
+  cursor:pointer;
+}
+.uiBtn:active{
+  background:#fff;
+  color:#000;
+}
+
+#dialogNext{
+  margin-left:auto;
+}
 
 /* HUD */
 #hudLeft{
   position:fixed;
-  left:var(--frame);
-  bottom:var(--frame);
-  z-index:50;
+  left:calc(var(--frame) + var(--safe-l));
+  bottom:calc(var(--frame) + var(--safe-b));
+  z-index:40;
 }
+#hudRight{
+  position:fixed;
+  right:calc(var(--frame) + var(--safe-r));
+  bottom:calc(var(--frame) + var(--safe-b));
+  z-index:40;
+}
+
+/* D-Pad */
 .dpad{
   width:96px;
   height:96px;
@@ -158,39 +204,38 @@ html,body{
   height:32px;
   position:absolute;
   border-radius:6px;
-  border:1px solid #fff;
+  border:1px solid rgba(245,245,245,0.9);
   background:#000;
-  color:white;
+  color:#fff;
+  font-size:10px;
+  font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
 }
-.dpad-up{ left:32px; top:0;}
-.dpad-down{ left:32px; bottom:0;}
-.dpad-left{ left:0; top:32px;}
-.dpad-right{ right:0; top:32px;}
+.dpad-up{    left:32px; top:0; }
+.dpad-down{  left:32px; bottom:0; }
+.dpad-left{  left:0; top:32px; }
+.dpad-right{ right:0; top:32px; }
 
-#hudRight{
-  position:fixed;
-  right:var(--frame);
-  bottom:var(--frame);
-  z-index:50;
-}
+/* 액션 버튼 */
 #actionBtn{
   width:72px;
   height:72px;
   border-radius:50%;
-  border:2px solid #fff;
+  border:2px solid rgba(245,245,245,0.9);
   background:#a2192f;
-  color:white;
-  font-family:"Press Start 2P";
+  color:#fff;
+  font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
+  font-size:12px;
 }
 
+/* 페이드 */
 #stageFade{
   position:fixed;
   inset:0;
-  background:black;
+  background:#000;
   z-index:200;
   opacity:0;
   pointer-events:none;
-  transition:opacity .8s;
+  transition:opacity 0.8s ease;
 }
 </style>
 </head>
@@ -199,7 +244,7 @@ html,body{
 <canvas id="blobCanvas"></canvas>
 <div class="frameBox"></div>
 
-<!-- 게임 전체 -->
+<!-- 게임 레이아웃 -->
 <div id="gameLayout" class="hidden">
   <div id="gameCard">
     <div id="gameScreenWrap">
@@ -236,22 +281,21 @@ html,body{
   const sleep = ms => new Promise(r=>setTimeout(r,ms));
   const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
 
-  /* DOM */
   const gameLayout = qs('#gameLayout');
   const gameCanvas = qs('#gameCanvas');
-  const gctx = gameCanvas.getContext('2d');
-  const dialogBar = qs('#dialogBar');
-  const dialogTextElem = qs('#dialogText');
-  const dialogNextBtn = qs('#dialogNext');
+  const gctx       = gameCanvas.getContext('2d');
+  const dialogBar  = qs('#dialogBar');
+  const dialogText = qs('#dialogText');
+  const dialogNext = qs('#dialogNext');
   const dialogChoices = qs('#dialogChoices');
-  const hudLeft = qs('#hudLeft');
-  const hudRight = qs('#hudRight');
-  const dpad = qs('#hudLeft .dpad');   /* 중복 문제 해결된 부분 */
-  const actionBtn = qs('#actionBtn');
-  const stageFade = qs('#stageFade');
-  const docVideo = qs('#docVideo');
+  const hudLeft    = qs('#hudLeft');
+  const hudRight   = qs('#hudRight');
+  const dpad       = qs('#hudLeft .dpad');
+  const actionBtn  = qs('#actionBtn');
+  const stageFade  = qs('#stageFade');
+  const docVideo   = qs('#docVideo');
 
-  /* 오디오 */
+  /* ==== 오디오 ==== */
   let audioCtx = null;
   let musicRunning = false;
 
@@ -267,7 +311,6 @@ html,body{
     }
   }
 
-  /* 귀여운 시작 음악 */
   function playNote(freq, dur=0.15, vol=0.4, type='square'){
     try{
       ensureAudio();
@@ -286,66 +329,67 @@ html,body{
     }catch(e){}
   }
 
+  // 밝고 귀여운 시작 음악
   function startBrightMusic(){
     if(musicRunning) return;
-    musicRunning=true;
-    const base=523.25;
-    const pattern=[0,4,7,12,7,4,0,7,2,5,9,14,9,5,2,7];
-    let idx=0;
+    musicRunning = true;
+    const base = 523.25;
+    const pattern = [0,4,7,12,7,4,0,7,2,5,9,14,9,5,2,7];
+    let idx = 0;
     function step(){
       if(!musicRunning) return;
-      const semi=pattern[idx%pattern.length];
-      const f=base*Math.pow(2,semi/12);
-      playNote(f,0.14,0.4);
+      const semi = pattern[idx%pattern.length];
+      const f = base * Math.pow(2, semi/12);
+      playNote(f, 0.14, 0.4, 'square');
       idx++;
-      setTimeout(step,150);
+      setTimeout(step, 150);
     }
     step();
   }
 
-  /* 미로 음악 */
+  // 미로용 다크 BGM
   function startDarkMusic(){
-    musicRunning=false;
+    musicRunning = false;
     setTimeout(()=>{
       if(musicRunning) return;
-      musicRunning=true;
-      const base=440;
-      const pattern=[0,3,7,10,3,7,0,-2];
-      let idx=0;
+      musicRunning = true;
+      const base = 440;
+      const pattern = [0,3,7,10,3,7,0,-2];
+      let idx = 0;
       function step(){
         if(!musicRunning) return;
-        const semi=pattern[idx%pattern.length];
-        const f=base*Math.pow(2,semi/12);
-        playNote(f,0.22,0.28,'sawtooth');
+        const semi = pattern[idx%pattern.length];
+        const f = base * Math.pow(2, semi/12);
+        playNote(f, 0.22, 0.28, 'sawtooth');
         idx++;
-        setTimeout(step,260);
+        setTimeout(step, 260);
       }
       step();
-    },400);
+    }, 400);
   }
 
-  /* 우주 패드 */
+  // 영상 재생용 우주 패드
   function startVideoAmbientMusic(){
-    musicRunning=false;
+    musicRunning = false;
     setTimeout(()=>{
       if(musicRunning) return;
-      musicRunning=true;
-      const base=220;
-      const pattern=[0,7,12,5,0,-5];
-      let idx=0;
+      musicRunning = true;
+      const base = 220;
+      const pattern = [0,7,12,5,0,-5];
+      let idx = 0;
       function step(){
         if(!musicRunning) return;
-        const semi=pattern[idx%pattern.length];
-        const f=base*Math.pow(2,semi/12);
-        playNote(f,0.8,0.18,'sine');
+        const semi = pattern[idx%pattern.length];
+        const f = base * Math.pow(2, semi/12);
+        playNote(f, 0.8, 0.18, 'sine');
         idx++;
-        setTimeout(step,900);
+        setTimeout(step, 900);
       }
       step();
-    },400);
+    }, 400);
   }
 
-  /* ==== 이동 입력 ==== */
+  /* ==== 입력 ==== */
   let moveLeft=false, moveRight=false, moveUp=false, moveDown=false, actionPressed=false;
 
   if(dpad){
@@ -369,8 +413,9 @@ html,body{
     });
   }
 
-  actionBtn.addEventListener('pointerdown', ()=>actionPressed=true);
-  actionBtn.addEventListener('pointerup', ()=>actionPressed=false);
+  actionBtn.addEventListener('pointerdown',()=>actionPressed=true);
+  actionBtn.addEventListener('pointerup',()=>actionPressed=false);
+  actionBtn.addEventListener('pointercancel',()=>actionPressed=false);
 
   window.addEventListener('keydown', e=>{
     if(e.code==='ArrowLeft') moveLeft=true;
@@ -387,21 +432,17 @@ html,body{
     if(e.code==='Space') actionPressed=false;
   });
 
-  /* ==== 사이드뷰 ==== */
-  const W=gameCanvas.width;
-  const H=gameCanvas.height;
+  /* ==== 기본 사이드뷰 ==== */
+  const W = gameCanvas.width;
+  const H = gameCanvas.height;
+  const groundY = 145;
+  const sofaX = 210;
+  const sofaWidth = 70;
+  const sofaHeight = 26;
 
-  const groundY=145;
-  const sofaX=210;
-  const sofaWidth=70;
-  const sofaHeight=26;
-
-  let playerX=40;
-  let playerY=groundY-16;
-  let playerVX=0;
-
-  let gameState='introWalk';
-  let gameStarted=false;
+  let playerX = 40;
+  let playerY = groundY - 16;
+  let playerVX = 0;
 
   function drawRedRabbit(ctx,x,y,scale=1){
     ctx.fillStyle='#ff3333';
@@ -440,7 +481,8 @@ html,body{
   const mazeStartTile={tx:1,ty:8};
   const mazeStartX=(mazeStartTile.tx+0.5)*tileSize;
   const mazeStartY=(mazeStartTile.ty+0.5)*tileSize;
-  let mazePlayerX=mazeStartX, mazePlayerY=mazeStartY;
+  let mazePlayerX=mazeStartX;
+  let mazePlayerY=mazeStartY;
   const mazeSpeed=1.1;
 
   function isWall(px,py){
@@ -456,41 +498,39 @@ html,body{
   let currentIdx=0;
   let typing=false;
   let fullLine="";
-  let dialogMode='normal';
   let onDialogDone=null;
+  let gameState='introWalk';
+  let gameStarted=false;
+  let introStart=0;
   let currentBlobIndex=-1;
 
-  function clearChoices(){
-    dialogChoices.innerHTML="";
-    dialogChoices.classList.add('hidden');
-    dialogNextBtn.classList.remove('hidden');
+  async function typeLine(line){
+    typing=true;
+    dialogText.textContent="";
+    fullLine=line;
+    for(let i=0;i<line.length;i++){
+      dialogText.textContent+=line[i];
+      await sleep(40);
+      if(!typing) break;
+    }
+    typing=false;
+    dialogText.textContent=fullLine;
   }
 
-  async function showDialog(lines,cb=null){
+  async function showDialog(lines, cb=null){
     currentLines=lines;
     currentIdx=0;
     onDialogDone=cb;
     dialogBar.classList.remove('hidden');
-    clearChoices();
-    dialogTextElem.textContent="";
-    await typeCurrent();
+    dialogChoices.classList.add('hidden');
+    dialogNext.classList.remove('hidden');
+    await typeLine(currentLines[0]||"");
   }
 
-  async function typeCurrent(){
-    fullLine=currentLines[currentIdx]||"";
-    typing=true;
-    dialogTextElem.textContent="";
-    for(let i=0;i<fullLine.length;i++){
-      dialogTextElem.textContent+=fullLine[i];
-      await sleep(40);
-    }
-    typing=false;
-  }
-
-  dialogNextBtn.addEventListener('click',()=>{
+  dialogNext.addEventListener('click',()=>{
     if(typing){
       typing=false;
-      dialogTextElem.textContent=fullLine;
+      dialogText.textContent=fullLine;
       return;
     }
     currentIdx++;
@@ -499,19 +539,17 @@ html,body{
       if(onDialogDone) onDialogDone();
       return;
     }
-    typeCurrent();
+    typeLine(currentLines[currentIdx]);
   });
 
-  /* ==== 사이드뷰 루프 ==== */
-  let introStart=0;
-
+  /* ==== 상태 업데이트 ==== */
   function update(){
     if(!gameStarted) return;
 
     if(gameState==='introWalk'){
-      const t=clamp((performance.now()-introStart)/1200,0,1);
-      const start=-24, end=56;
-      playerX = start + (end-start)*t;
+      const t = clamp((performance.now()-introStart)/1200,0,1);
+      const sx=-24, ex=56;
+      playerX = sx + (ex-sx)*t;
       playerY = groundY-16;
       if(t>=1){
         gameState='introDialog';
@@ -535,6 +573,15 @@ html,body{
       playerVX*=0.85;
       playerX+=playerVX;
 
+      if(playerX<8){
+        playerX=8;
+        playerVX=0;
+      }
+      if(playerX>W-24){
+        playerX=W-24;
+        playerVX=0;
+      }
+
       if(playerX>sofaX-12 && actionPressed){
         sitSofa();
       }
@@ -548,7 +595,17 @@ html,body{
       playerVX+=ax;
       playerVX*=0.85;
       playerX+=playerVX;
-      if(Math.abs(playerX - (W/2)) <20 && actionPressed){
+
+      if(playerX<8){
+        playerX=8;
+        playerVX=0;
+      }
+      if(playerX>W-24){
+        playerX=W-24;
+        playerVX=0;
+      }
+
+      if(Math.abs(playerX - W/2) < 20 && actionPressed){
         enterBlob();
       }
       return;
@@ -563,32 +620,21 @@ html,body{
 
       const nx=mazePlayerX+dx;
       const ny=mazePlayerY+dy;
+
       if(!isWall(nx,mazePlayerY)) mazePlayerX=nx;
       if(!isWall(mazePlayerX,ny)) mazePlayerY=ny;
 
       checkMazeBlobs();
       return;
     }
+
+    if(gameState==='mazeDialog' || gameState==='blobVideo' || gameState==='blobVideoBlack'){
+      // 정지 상태
+      return;
+    }
   }
 
-  function draw(){
-    const ctx=gctx;
-    if(gameState==='maze'){
-      drawMaze();
-      return;
-    }
-    if(gameState==='blobVideo'){
-      drawBlobVideoFrame();
-      return;
-    }
-    if(gameState==='blobVideoBlack'){
-      ctx.fillStyle='#000';
-      ctx.fillRect(0,0,W,H);
-      return;
-    }
-    drawSide();
-  }
-
+  /* ==== 그리기 ==== */
   function drawSide(){
     const ctx=gctx;
     ctx.fillStyle='#05210f';
@@ -597,14 +643,14 @@ html,body{
     ctx.fillStyle='#0b2f18';
     ctx.fillRect(0,groundY,W,H-groundY);
 
-    // sofa
+    // 소파
     ctx.save();
-    ctx.translate(sofaX,groundY-sofaHeight);
+    ctx.translate(sofaX, groundY-sofaHeight);
     ctx.fillStyle='#e8c93b';
     ctx.fillRect(0,8,sofaWidth,sofaHeight-8);
     ctx.restore();
 
-    drawRedRabbit(ctx,playerX,playerY,3);
+    drawRedRabbit(ctx, playerX, playerY, 3);
   }
 
   function drawMaze(){
@@ -627,6 +673,7 @@ html,body{
       }
     }
 
+    // 블랙홀
     mazeBlobs.forEach(b=>{
       const cx=(b.tx+0.5)*tileSize;
       const cy=(b.ty+0.5)*tileSize;
@@ -638,9 +685,33 @@ html,body{
       ctx.stroke();
     });
 
-    drawRedRabbit(ctx,mazePlayerX-6,mazePlayerY-6,1.2);
+    drawRedRabbit(ctx, mazePlayerX-6, mazePlayerY-6, 1.2);
   }
 
+  function drawBlobVideoFrame(){
+    const ctx=gctx;
+    ctx.clearRect(0,0,W,H);
+    drawRedRabbit(ctx, W/2-12, H-40, 3);
+  }
+
+  function draw(){
+    if(gameState==='maze' || gameState==='mazeDialog'){
+      drawMaze();
+      return;
+    }
+    if(gameState==='blobVideo'){
+      drawBlobVideoFrame();
+      return;
+    }
+    if(gameState==='blobVideoBlack'){
+      gctx.fillStyle='#000';
+      gctx.fillRect(0,0,W,H);
+      return;
+    }
+    drawSide();
+  }
+
+  /* ==== 미로 블랙홀 처리 ==== */
   function checkMazeBlobs(){
     for(let i=0;i<mazeBlobs.length;i++){
       if(blobVisited[i]) continue;
@@ -649,8 +720,8 @@ html,body{
       const cy=(b.ty+0.5)*tileSize;
       const dx=mazePlayerX-cx;
       const dy=mazePlayerY-cy;
-      const d=Math.hypot(dx,dy);
-      if(d<10){
+      const dist=Math.hypot(dx,dy);
+      if(dist<10){
         blobVisited[i]=true;
         currentBlobIndex=i;
         showMazeBlobDialog(i);
@@ -662,43 +733,43 @@ html,body{
   function showMazeBlobDialog(i){
     gameState='mazeDialog';
     showDialog(["어어..? 소리가 들린다."],()=>{
-      showChoices(i);
+      showBlobChoices(i);
     });
   }
 
-  function showChoices(i){
-    dialogChoices.innerHTML="";
+  function showBlobChoices(i){
+    dialogChoices.innerHTML='';
     dialogChoices.classList.remove('hidden');
-    dialogNextBtn.classList.add('hidden');
+    dialogNext.classList.add('hidden');
 
-    const btn1=document.createElement('button');
-    btn1.className='uiBtn';
-    btn1.textContent="들어보기";
-    btn1.onclick=()=>playBlobStory(i);
+    const b1=document.createElement('button');
+    b1.className='uiBtn';
+    b1.textContent='들어보기';
+    b1.onclick=()=>playBlobStory(i);
 
-    const btn2=document.createElement('button');
-    btn2.className='uiBtn';
-    btn2.textContent="무시하기";
-    btn2.onclick=()=>{
+    const b2=document.createElement('button');
+    b2.className='uiBtn';
+    b2.textContent='무시하기';
+    b2.onclick=()=>{
       dialogBar.classList.add('hidden');
       gameState='maze';
     };
 
-    dialogChoices.appendChild(btn1);
-    dialogChoices.appendChild(btn2);
+    dialogChoices.appendChild(b1);
+    dialogChoices.appendChild(b2);
   }
 
   const blobStories=[
-    "이곳이 나를 원하지 않는다면...",
-    "표백공장의 더러운 물이 흘러든다...",
-    "쓰레기 산 위에 까마귀가 맴돌았다...",
-    "GPS 신발은 3500km를 이동했다...",
-    "붕대는 발가락 대신 균형을 잡아준다..."
+    "이곳이 나를 원하지 않는다면 어쩔 수 없어요. 하지만 저는 선택지가 없습니다. 이곳에 머무는 것밖에.",
+    "표백공장의 더러운 물이 방류되어 마을과 강으로 흘러든다.",
+    "거대한 쓰레기 산 위에 까마귀가 맴돌고 들개가 잔해를 물어뜯는다.",
+    "GPS를 넣은 신발은 3500km를 이동했다.",
+    "붕대는 발가락 대신 몸의 균형을 잡아준다."
   ];
 
   function playBlobStory(i){
     dialogChoices.classList.add('hidden');
-    dialogNextBtn.classList.remove('hidden');
+    dialogNext.classList.remove('hidden');
     showDialog([blobStories[i]],()=>{
       askEnter(i);
     });
@@ -706,18 +777,18 @@ html,body{
 
   function askEnter(i){
     showDialog(["들어가볼까?"],()=>{
-      dialogChoices.innerHTML="";
+      dialogChoices.innerHTML='';
       dialogChoices.classList.remove('hidden');
-      dialogNextBtn.classList.add('hidden');
+      dialogNext.classList.add('hidden');
 
       const b1=document.createElement('button');
       b1.className='uiBtn';
-      b1.textContent="들어가지";
-      b1.onclick=()=> startBlobVideo(i);
+      b1.textContent='들어가지';
+      b1.onclick=()=>startBlobVideo(i);
 
       const b2=document.createElement('button');
       b2.className='uiBtn';
-      b2.textContent="더 둘러보기";
+      b2.textContent='더 둘러보기';
       b2.onclick=()=>{
         dialogBar.classList.add('hidden');
         gameState='maze';
@@ -728,7 +799,6 @@ html,body{
     });
   }
 
-  /* ==== 비디오 ==== */
   function getBlobVideoSrc(i){
     return `video/blob${i+1}.mp4`;
   }
@@ -741,7 +811,8 @@ html,body{
     const src=getBlobVideoSrc(i);
     docVideo.src=src;
     docVideo.classList.remove('hidden');
-    ensureResumed().then(()=>docVideo.play().catch(()=>{}));
+
+    ensureResumed().then(()=> docVideo.play().catch(()=>{}));
 
     docVideo.onended=()=>{
       docVideo.classList.add('hidden');
@@ -752,28 +823,21 @@ html,body{
     gameState='blobVideo';
   }
 
-  function drawBlobVideoFrame(){
-    const ctx=gctx;
-    ctx.clearRect(0,0,W,H);
-    drawRedRabbit(ctx, W/2-12, H-40, 3);
-  }
-
   /* ==== 소파 ==== */
   function sitSofa(){
-    gameState='sofaTalk';
+    gameState='sofaDialog';
     showDialog([
       "좋아, 앉았네?",
-      "제2장에 들어가보자.",
+      "제 2장에 들어가보자.",
       "꿀렁이를 눌러줘."
     ],()=>{
       gameState='freeBlob';
     });
   }
 
-  /* ==== 꿀렁이 ==== */
+  /* ==== 꿀렁이 입장 ==== */
   function enterBlob(){
     dialogBar.classList.add('hidden');
-
     stageFade.classList.remove('hidden');
     requestAnimationFrame(()=> stageFade.style.opacity='1');
 
@@ -790,14 +854,14 @@ html,body{
     },900);
   }
 
-  /* ==== 루프 ==== */
+  /* ==== 메인 루프 ==== */
   function loop(){
     update();
     draw();
     requestAnimationFrame(loop);
   }
 
-  /* ==== 시작 ==== */
+  /* ==== 시작 세팅 ==== */
   window.addEventListener('load', async ()=>{
     ensureAudio();
     await ensureResumed();
@@ -806,10 +870,13 @@ html,body{
     hudLeft.classList.remove('hidden');
     hudRight.classList.remove('hidden');
 
-    introStart=performance.now();
-    gameStarted=true;
+    introStart = performance.now();
+    gameStarted = true;
     startBrightMusic();
   });
+
+  // 🔥 여기서 루프를 실제로 돌려줌
+  loop();
 
 })();
 </script>
