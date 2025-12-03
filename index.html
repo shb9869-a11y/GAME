@@ -594,6 +594,59 @@ input, textarea{
     }catch(e){}
   }
 
+  // 길고 잔향이 있는 에코 노트 (블랙홀 안 전용)
+  function playEchoNote(freq, baseDur=3.2, baseVol=0.12){
+    try{
+      ensureAudio();
+      const ctx = audioCtx;
+      const now = ctx.currentTime;
+
+      const osc = ctx.createOscillator();
+      const mainGain = ctx.createGain();
+
+      // 에코용 노드들
+      const delay = ctx.createDelay();
+      delay.delayTime.value = 0.45;         // 에코 간격
+
+      const feedback = ctx.createGain();
+      feedback.gain.value = 0.4;           // 에코 반복 세기
+
+      const wet = ctx.createGain();        // 에코 볼륨
+      wet.gain.value = 0.35;
+
+      const dry = ctx.createGain();        // 원본 볼륨
+      dry.gain.value = 0.9;
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, now);
+
+      // 메인 엔벨로프 (천천히 켜지고 천천히 사라짐)
+      mainGain.gain.setValueAtTime(0.0001, now);
+      mainGain.gain.exponentialRampToValueAtTime(baseVol, now + 0.4);
+      mainGain.gain.exponentialRampToValueAtTime(0.0001, now + baseDur);
+
+      // 신호 라우팅
+      osc.connect(mainGain);
+
+      // dry: mainGain -> dry -> destination
+      mainGain.connect(dry);
+      dry.connect(ctx.destination);
+
+      // wet: mainGain -> delay -> wet -> destination
+      mainGain.connect(delay);
+      delay.connect(wet);
+      wet.connect(ctx.destination);
+
+      // feedback loop: delay -> feedback -> delay
+      delay.connect(feedback);
+      feedback.connect(delay);
+
+      osc.start(now);
+      // 에코 꼬리가 조금 더 남게 stop 타이밍 뒤로
+      osc.stop(now + baseDur + 3.0);
+    }catch(e){}
+  }
+
   // 1) 밝고 귀여운 음악 (소파까지)
   function startBrightMusic(){
     if(musicRunning) return;
@@ -665,15 +718,14 @@ input, textarea{
     }, 400);
   }
 
-  // 4) 블랙홀 안에서 흐르는 잔잔하고 느린 우주 음악 (더 길고 느리게)
+  // 4) 블랙홀 안에서 흐르는 잔잔하고 느린 우주 음악 (길고 에코 잔향)
   function startCalmSpaceMusic(){
     musicRunning = false;
     setTimeout(()=>{
       if(musicRunning) return;
       musicRunning = true;
 
-      const base = 196.00; // G3 (조금 더 낮은 음역)
-      // 아주 느리게 떠다니는 톤 패턴
+      const base = 196.00; // G3 (낮은 음역)
       const pattern = [0, 7, 3, 10]; // G, D, Bb, F 느낌
       let idx = 0;
       const stepDur = 2600; // 2.6초에 한 번씩 음 전환
@@ -682,8 +734,8 @@ input, textarea{
         if(!musicRunning) return;
         const semi = pattern[idx % pattern.length];
         const f = base * Math.pow(2, semi/12);
-        // 길고 천천히 사라지는 사인파
-        playNote(f, 1.9, 0.13, 'sine');
+        // 에코 있는 긴 노트
+        playEchoNote(f, 3.2, 0.12);
         idx++;
         setTimeout(step, stepDur);
       }
@@ -692,7 +744,7 @@ input, textarea{
     }, 700); // 살짝 있다가 시작
   }
 
-  /* ===== 중앙 꿀렁이 (전체 배경, 더 크게) ===== */
+  /* ===== 중앙 꿀렁이 (전체 배경) ===== */
   const blobCanvas = qs('#blobCanvas');
   const blobCtx = blobCanvas.getContext('2d');
   let blobAlpha = 0;
@@ -774,7 +826,7 @@ input, textarea{
   const gameScreenWrap  = qs('#gameScreenWrap');
   const docVideo        = qs('#docVideo');
 
-  /* 닉네임 처리 (SLEEP 본편에서 localStorage.sleepNick 사용 가정) */
+  /* 닉네임 처리 */
   const nickRaw = (()=> {
     try{
       const v = localStorage.getItem('sleepNick');
@@ -843,22 +895,19 @@ input, textarea{
     "10001000000000100001",
     "11111111111111111111"
   ];
-  // 상/하/좌/우/중심 꿀렁이 위치 (타일 좌표)
   const mazeBlobs = [
-    {tx:10, ty:2}, // 1번 (상)
-    {tx:10, ty:8}, // 2번 (하)
-    {tx:4,  ty:5}, // 3번 (좌)
-    {tx:16, ty:5}, // 4번 (우)
-    {tx:10, ty:5}  // 5번 (중심)
+    {tx:10, ty:2}, // 1번 상
+    {tx:10, ty:8}, // 2번 하
+    {tx:4,  ty:5}, // 3번 좌
+    {tx:16, ty:5}, // 4번 우
+    {tx:10, ty:5}  // 5번 중심
   ];
   let blobVisited = [false,false,false,false,false];
 
-  // 미로 시작 위치: 왼쪽 복도( tx=1, ty=8 )
   const mazeStartTile = {tx:1, ty:8};
   const mazeStartTargetX = (mazeStartTile.tx + 0.5)*tileSize;
   const mazeStartY = (mazeStartTile.ty + 0.5)*tileSize;
 
-  // 미로에서의 플레이어 좌표 (픽셀)
   let mazePlayerX = mazeStartTargetX;
   let mazePlayerY = mazeStartY;
   const mazeSpeed = 1.1;
@@ -878,7 +927,7 @@ input, textarea{
   // 'blobVideo', 'blobVideoBlack'
   let gameState = 'introWalk';
 
-  /* 대화 시스템 (공통) */
+  /* 대화 시스템 */
   let currentLines = [];
   let currentIdx = 0;
   let typing = false;
@@ -939,7 +988,6 @@ input, textarea{
   dialogNextBtnEl.addEventListener('click', async ()=>{
     await ensureResumed();
 
-    // 미로 블랙홀 스토리 모드
     if(dialogMode === 'blobStory'){
       if(typing){
         typing = false;
@@ -969,7 +1017,8 @@ input, textarea{
   });
 
   /* HUD 입력 */
-  const dpad = hudLeftEl.querySelector('.dpad');
+  const hudLeftElDom = hudLeftEl;
+  const dpad = hudLeftElDom.querySelector('.dpad');
   if(dpad){
     dpad.addEventListener('pointerdown', (e)=>{
       const btn = e.target.closest('button[data-dir]');
@@ -1050,13 +1099,10 @@ input, textarea{
   /* ===== 업데이트 ===== */
   function update(){
     if(!gameStarted) return;
-
-    // 비디오 재생 중 / 비디오 블랙 화면일 때는 업데이트 X
     if(gameState === 'blobVideo' || gameState === 'blobVideoBlack'){
       return;
     }
 
-    // 인트로 걷기
     if(gameState === 'introWalk'){
       const elapsed = (performance.now() - introWalkStartTime) / 1000;
       const startX = -24;
@@ -1071,12 +1117,10 @@ input, textarea{
       return;
     }
 
-    // 블랙홀 대화 중에는 정지
     if(gameState === 'mazeDialog'){
       return;
     }
 
-    // 사이드뷰 자유 이동 (소파 / 꿀렁이까지)
     if(gameState === 'freeToSofa' || gameState === 'freeToBlob'){
       let ax = 0;
       if(moveLeft)  ax -= speed;
@@ -1118,7 +1162,6 @@ input, textarea{
       playerVY = 0;
     }
 
-    // 우주 씬
     if(gameState === 'cosmic'){
       const t = (performance.now() - cosmicStartTime) * 0.001;
       const cx = W/2;
@@ -1132,7 +1175,6 @@ input, textarea{
       if(t > 0.4 && t < 6){
         speechBubble.classList.remove('hidden');
       }
-      // 말풍선 위치 갱신
       const wrapRect = gameScreenWrap.getBoundingClientRect();
       const nx = (playerX / W) * wrapRect.width;
       const ny = (playerY / H) * wrapRect.height;
@@ -1146,7 +1188,6 @@ input, textarea{
       return;
     }
 
-    // 미로 입장: 왼쪽에서 걸어오는 연출
     if(gameState === 'mazeEnter'){
       const targetX = mazeStartTargetX;
       const dir = targetX > mazePlayerX ? 1 : -1;
@@ -1161,7 +1202,6 @@ input, textarea{
       return;
     }
 
-    // 미로 씬
     if(gameState === 'maze'){
       let dx = 0, dy = 0;
       if(moveLeft)  dx -= mazeSpeed;
@@ -1179,7 +1219,6 @@ input, textarea{
     }
   }
 
-  /* 미로에서 블랙홀 근접 체크 */
   function checkMazeBlobs(){
     for(let i=0;i<mazeBlobs.length;i++){
       if(blobVisited[i]) continue;
@@ -1244,7 +1283,6 @@ input, textarea{
     const cy = H/2;
     const t = (performance.now() - cosmicStartTime) * 0.001;
 
-    // 별점
     ctx.fillStyle = '#88ffee';
     for(let i=0;i<40;i++){
       const sAng = i*(Math.PI*2/40);
@@ -1254,7 +1292,6 @@ input, textarea{
       ctx.fillRect(x, y, 1, 1);
     }
 
-    // 꿀렁이 띠들
     for(let j=0;j<5;j++){
       const phase = t*0.5 + j*0.7;
       const baseR = 90 - j*10;
@@ -1274,7 +1311,6 @@ input, textarea{
       ctx.stroke();
     }
 
-    // 가운데 어두운 코어
     ctx.beginPath();
     ctx.arc(cx, cy, 10, 0, Math.PI*2);
     ctx.fillStyle = '#000';
@@ -1282,7 +1318,6 @@ input, textarea{
     ctx.strokeStyle = 'rgba(250,250,250,0.4)';
     ctx.stroke();
 
-    // 나선형 토끼
     const R0 = 70;
     const R = Math.max(6, R0 - t*10);
     const angle = t * 3.0 * Math.PI;
@@ -1291,7 +1326,6 @@ input, textarea{
     const scale = 3 * (R / R0);
     drawRedRabbit(ctx, px, py, scale <= 0.7 ? 0.7 : scale);
 
-    // playerX, playerY 동기화 (말풍선용)
     playerX = px;
     playerY = py;
   }
@@ -1320,12 +1354,11 @@ input, textarea{
       }
     }
 
-    // 작은 꿀렁이들
-    const t = performance.now()*0.001;
+    const tt = performance.now()*0.001;
     mazeBlobs.forEach(b=>{
       const cx = (b.tx+0.5)*tileSize;
       const cy = (b.ty+0.5)*tileSize;
-      const r = 4 + Math.sin(t*2 + b.tx*0.5 + b.ty*0.8)*1.5;
+      const r = 4 + Math.sin(tt*2 + b.tx*0.5 + b.ty*0.8)*1.5;
       ctx.beginPath();
       ctx.arc(cx,cy,r,0,Math.PI*2);
       ctx.fillStyle = '#000';
@@ -1335,25 +1368,20 @@ input, textarea{
       ctx.stroke();
     });
 
-    // 토끼 (탑다운이지만 그대로)
     const rx = mazePlayerX - 6;
     const ry = mazePlayerY - 6;
     drawRedRabbit(ctx, rx, ry, 1.2);
   }
 
-  // 다큐 비디오 씬: 영상 위에 토끼만 그리기
   function drawBlobVideoView(){
     const ctx = gctx;
     ctx.clearRect(0,0,W,H);
-    // canvas는 투명 → 뒤에 video가 보임
-
     const scale = 3;
     const px = W/2 - 4*scale;
     const py = H - 32 - 10;
     drawRedRabbit(ctx, px, py, scale);
   }
 
-  // 비디오 끝난 후 검정 화면
   function drawBlobVideoBlackView(){
     const ctx = gctx;
     ctx.clearRect(0,0,W,H);
@@ -1378,7 +1406,6 @@ input, textarea{
       drawMazeView();
       return;
     }
-    // 기본: 사이드뷰
     drawSideView();
   }
 
@@ -1509,7 +1536,6 @@ input, textarea{
     startDarkMusic();
 
     setTimeout(()=>{
-      // 미로 입장: 왼쪽 복도 바깥 쪽에서부터
       mazePlayerX = (mazeStartTile.tx - 1) * tileSize;
       mazePlayerY = mazeStartY;
 
@@ -1518,24 +1544,18 @@ input, textarea{
         stageFade.classList.add('hidden');
       }, 800);
 
-      gameState = 'mazeEnter';    // 여기서 자동으로 걸어 들어옴
+      gameState = 'mazeEnter';
       dialogBar.classList.add('hidden');
       hintBar.classList.add('hidden');
     }, 900);
   }
 
   /* ===== 미로 블랙홀 이벤트 ===== */
-
   const blobStories = [
-    // 1번
     "이곳이 나를 원하지 않는다면 어쩔 수 없어요. 하지만 저는 선택지가 없습니다. 이곳에 머무는 것밖에.",
-    // 2번
     "심라구지란 상류에 트럭이 섰다. 2개의 물탱크가 2분간 잿빛 오염수를 쏟아냈다. 30분 뒤 똑같은 장면이 반복됐다. 표백공장의 ‘더러운 물’은 방류되어 마을과 강으로 흐른다.",
-    // 3번
     "멀리서 볼 땐 동산이나 언덕처럼 보였다. ...가장 높은 곳은 높이가 10m를 넘고 면적은 5㎢가 된다. 거대한 쓰레기 산 위에 까마귀EP가 맴돌고 들개는 잔해물을 물어뜯는다.",
-    // 4번
     "GPS를 넣은 신발은 포천시 외곽지역으로 이동했다. 이틀 뒤 양주시로 보내졌다. 일주일 뒤 인천 항구에서 발견됐다. 약 4주 뒤, 타이 아란야쁘라텟 롱끌르아 시장에서 신호를 보냈다. 한국에서 약 3500km 떨어진 곳이다.",
-    // 5번
     "매일 아침 왼발 앞쪽에 붕대를 감는다. 2011년 산업재해로 왼쪽 발가락 5개 전부를 잃었다. 붕대는 발가락 대신 몸의 균형을 잡아준다. 하지만 얼마 못 가 모양이 흐트러진다."
   ];
 
@@ -1618,11 +1638,7 @@ input, textarea{
   }
 
   /* ===== 블랙홀 비디오 (다큐 영상) ===== */
-
   function getBlobVideoSrc(index){
-    // SLEEP 웹 작업 기준:
-    // web 폴더 안에 video 폴더 생성
-    // web/video/blob1.mp4 ~ blob5.mp4 로 파일 배치
     const i = index + 1;
     return `video/blob${i}.mp4`;
   }
@@ -1637,7 +1653,6 @@ input, textarea{
     musicRunning = false;
     startCalmSpaceMusic();
 
-    // 비디오 세팅
     const src = getBlobVideoSrc(index);
     docVideo.src = src;
     docVideo.currentTime = 0;
@@ -1647,14 +1662,12 @@ input, textarea{
       docVideo.play().catch(()=>{});
     });
 
-    // ended 이벤트에서 블랙 화면으로 전환
     const onEnded = ()=>{
       docVideo.removeEventListener('ended', onEnded);
       endBlobVideoToBlack();
     };
     docVideo.addEventListener('ended', onEnded);
 
-    // 혹시 모를 길이 문제 대비 타임아웃 (5분 후 강제 블랙)
     setTimeout(()=>{
       if(gameState === 'blobVideo'){
         endBlobVideoToBlack();
@@ -1683,7 +1696,6 @@ input, textarea{
     startGameScene();
   }
 
-  // 버튼 / 오버레이 어디를 눌러도 시작되게
   ['click'].forEach(ev=>{
     startBtn.addEventListener(ev, (e)=>{
       e.preventDefault();
@@ -1691,7 +1703,7 @@ input, textarea{
       startAll();
     });
     startOverlayEl.addEventListener(ev, (e)=>{
-      if(e.target === startBtn) return; // 버튼 핸들러가 처리
+      if(e.target === startBtn) return;
       e.preventDefault();
       if(startOverlayEl.style.display === 'none') return;
       startAll();
