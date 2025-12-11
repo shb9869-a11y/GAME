@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>SPACE SCAN – IN-APP 3D VIEW</title>
+<title>SLEEP SPACE SCAN – DREAM 3D</title>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <style>
   * { box-sizing:border-box; }
@@ -25,10 +25,11 @@
     display:flex;
     justify-content:space-between;
     align-items:center;
-    font-size:14px;
+    font-size:13px;
   }
-  #status{ color:#aaa; }
+  #status{ color:#aaa; max-width:70%; }
   #counter{ font-weight:bold; }
+
   #wrap{
     width:100%;
     max-width:480px;
@@ -40,7 +41,7 @@
   video{
     width:100%;
     border:2px solid #fff;
-    border-radius:8px;
+    border-radius:10px;
     background:#111;
   }
   #controls{
@@ -56,7 +57,8 @@
     font-weight:600;
   }
   #startBtn{ background:#fff; color:#000; }
-  #resetBtn{ background:#333; color:#fff; }
+  #stopBtn{ background:#333; color:#fff; }
+  #resetBtn{ background:#222; color:#aaa; }
 
   #viewerContainer{
     display:none;
@@ -67,6 +69,7 @@
     width:100%;
     height:100%;
     display:block;
+    touch-action:none;
   }
 </style>
 </head>
@@ -74,7 +77,7 @@
 
 <div id="topBar">
   <div id="status">카메라 준비 중…</div>
-  <div id="counter">0 / 100</div>
+  <div id="counter">0 / 60</div>
 </div>
 
 <div id="wrap">
@@ -82,12 +85,12 @@
   <canvas id="hiddenCanvas" style="display:none;"></canvas>
   <div id="controls">
     <button id="startBtn">스캔 시작</button>
+    <button id="stopBtn">멈추기</button>
     <button id="resetBtn">리셋</button>
   </div>
 </div>
 
 <div id="viewerContainer">
-  <!-- 3D 뷰 영역 (Three.js가 여기다 그림) -->
   <canvas id="threeCanvas"></canvas>
 </div>
 
@@ -103,14 +106,16 @@ const hiddenCanvas = document.getElementById("hiddenCanvas");
 const statusEl = document.getElementById("status");
 const counterEl = document.getElementById("counter");
 const startBtn = document.getElementById("startBtn");
+const stopBtn = document.getElementById("stopBtn");
 const resetBtn = document.getElementById("resetBtn");
 const viewerContainer = document.getElementById("viewerContainer");
+const wrap = document.getElementById("wrap");
 
 let stream = null;
 let intervalId = null;
 let captureCount = 0;
-const MAX_COUNT = 100;
-// 여기 저장된 이미지들로 3D 모델링 느낌 구현
+// 너무 많으면 메모리 많이 먹으니까 60장 정도로(원하면 100으로 바꿔도 됨)
+const MAX_COUNT = 60;
 let capturedImages = [];
 
 async function initCamera(){
@@ -120,7 +125,7 @@ async function initCamera(){
       audio:false
     });
     video.srcObject = stream;
-    statusEl.textContent = "카메라 준비 완료 – 공간을 천천히 훑어봐 주세요";
+    statusEl.textContent = "카메라 준비 완료 – 공간을 천천히 훑으면서 움직여 주세요";
   }catch(err){
     console.error(err);
     statusEl.textContent = "카메라 접근 실패 (권한을 확인하세요)";
@@ -131,14 +136,11 @@ function updateCounter(){
   counterEl.textContent = captureCount + " / " + MAX_COUNT;
 }
 
-function captureFrame(){
-  if(!video.videoWidth || !video.videoHeight){
-    console.log("비디오 크기 아직 안나옴");
-    return;
-  }
-  if(captureCount >= MAX_COUNT) return;
+// 그레이스케일 변환 후 dataURL 뽑기
+function grabFrameAsGrayDataURL(){
+  if(!video.videoWidth || !video.videoHeight) return null;
 
-  const cw = 320; // 캡처 해상도(너무 크면 메모리 터질 수 있음)
+  const cw = 320;
   const ch = Math.round(cw * video.videoHeight / video.videoWidth);
 
   hiddenCanvas.width = cw;
@@ -146,11 +148,39 @@ function captureFrame(){
   const ctx = hiddenCanvas.getContext("2d");
   ctx.drawImage(video, 0, 0, cw, ch);
 
-  const dataURL = hiddenCanvas.toDataURL("image/jpeg", 0.8);
-  capturedImages.push(dataURL);
+  // grayscale
+  const imageData = ctx.getImageData(0,0,cw,ch);
+  const data = imageData.data;
+  for(let i=0;i<data.length;i+=4){
+    const r = data[i];
+    const g = data[i+1];
+    const b = data[i+2];
+    const gray = (r*0.3 + g*0.59 + b*0.11);
+    data[i] = data[i+1] = data[i+2] = gray;
+  }
+  ctx.putImageData(imageData, 0, 0);
 
+  return hiddenCanvas.toDataURL("image/jpeg", 0.8);
+}
+
+function captureFrame(){
+  if(captureCount >= MAX_COUNT) {
+    finishScan();
+    return;
+  }
+  const dataURL = grabFrameAsGrayDataURL();
+  if(!dataURL) return;
+
+  capturedImages.push(dataURL);
   captureCount++;
   updateCounter();
+
+  // 조금씩 문구 업데이트
+  if(captureCount === 1){
+    statusEl.textContent = "스캔 중… 조금씩 몸을 돌려보세요";
+  }else if(captureCount === Math.floor(MAX_COUNT/2)){
+    statusEl.textContent = "반쯤 스캔했어요 – 더 깊숙이 들어가 보세요";
+  }
 
   if(captureCount >= MAX_COUNT){
     finishScan();
@@ -162,12 +192,22 @@ function startScan(){
     alert("카메라가 아직 준비되지 않았습니다.");
     return;
   }
+  if(intervalId) return;
+
   capturedImages = [];
   captureCount = 0;
   updateCounter();
-  statusEl.textContent = "자동 스캔 중… 공간을 천천히 돌면서 움직여 주세요.";
+  statusEl.textContent = "자동 스캔 중… 천천히 회전하면서 공간을 훑어주세요";
   startBtn.disabled = true;
-  intervalId = setInterval(captureFrame, 800); // 0.8초마다 한 장
+  intervalId = setInterval(captureFrame, 500); // 0.5초마다 한 장
+}
+
+function stopScan(){
+  if(intervalId){
+    clearInterval(intervalId);
+    intervalId = null;
+    statusEl.textContent = "스캔 일시 정지";
+  }
 }
 
 function stopCamera(){
@@ -178,135 +218,206 @@ function stopCamera(){
 }
 
 function finishScan(){
-  clearInterval(intervalId);
-  intervalId = null;
+  if(intervalId){
+    clearInterval(intervalId);
+    intervalId = null;
+  }
   stopCamera();
-  statusEl.textContent = "스캔 완료 – 3D 공간으로 변환 중…";
+  statusEl.textContent = "스캔 완료 – 꿈속 공간을 조립 중…";
+  startBtn.disabled = true;
+
   // 카메라 뷰 감추고 3D 뷰어로 전환
-  document.getElementById("wrap").style.display = "none";
+  wrap.style.display = "none";
   viewerContainer.style.display = "block";
-  // 3D 뷰어 시작
-  build3DViewFromImages(capturedImages);
+
+  buildDreamScanScene(capturedImages);
 }
 
 function resetAll(){
-  // 초기 상태로 리셋
-  clearInterval(intervalId);
-  intervalId = null;
-  captureCount = 0;
+  if(intervalId){
+    clearInterval(intervalId);
+    intervalId = null;
+  }
   capturedImages = [];
+  captureCount = 0;
   updateCounter();
-  statusEl.textContent = "카메라 재시작 중…";
-  document.getElementById("wrap").style.display = "block";
-  viewerContainer.style.display = "none";
-  // 기존 three.js 내용은 단순히 페이지 새로고침이 제일 깔끔
+  // 그냥 새로고침이 깔끔 (카메라/three.js 전부 리셋)
   location.reload();
 }
 
 startBtn.addEventListener("click", startScan);
+stopBtn.addEventListener("click", stopScan);
 resetBtn.addEventListener("click", resetAll);
 
 initCamera();
 
 /* ================================
-   2. 캡처된 이미지로 3D "공간 링" 만들기
-   - 완전한 포토그래메트리는 아니지만
-     이미지를 둘러놓은 3D 콜라주
+   2. 캡처된 이미지로 “꿈의 스캔 터널” 만들기
+   - 나선형/블랙홀처럼 공간 구성
 ================================ */
-
-function build3DViewFromImages(images){
+function buildDreamScanScene(images){
   const canvas = document.getElementById("threeCanvas");
   const renderer = new THREE.WebGLRenderer({ canvas, antialias:true });
+  renderer.setPixelRatio(window.devicePixelRatio || 1);
+
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x000000);
 
   const camera = new THREE.PerspectiveCamera(
-    60,
+    65,
     window.innerWidth / window.innerHeight,
     0.1,
-    1000
+    100
   );
-  camera.position.set(0, 0, 4);
+  camera.position.set(0, 0, 6);
 
   renderer.setSize(window.innerWidth, window.innerHeight);
 
-  // 라이트
-  const light = new THREE.AmbientLight(0xffffff, 1);
-  scene.add(light);
-
-  // 이미지들을 원형으로 배치
-  const radius = 4; // 공간 반경
-  const planeWidth = 1.5;
-  const planeHeight = 1.0;
+  // 약한 주변광 + 방향광
+  const ambient = new THREE.AmbientLight(0xffffff, 0.5);
+  scene.add(ambient);
+  const dir = new THREE.DirectionalLight(0xffffff, 0.8);
+  dir.position.set(3,3,5);
+  scene.add(dir);
 
   const loader = new THREE.TextureLoader();
+  const group = new THREE.Group();
+  scene.add(group);
+
   const count = images.length;
+  const turns = 3.0; // 나선 몇 바퀴
+  const baseRadius = 3.0;
+
   for(let i=0; i<count; i++){
-    const angle = (i / count) * Math.PI * 2;
+    const t = i / Math.max(1, count-1);   // 0 ~ 1
+    const angle = t * Math.PI * 2 * turns;
+    const radius = baseRadius * (1.0 - 0.6 * t); // 안으로 빨려들어감
     const x = Math.cos(angle) * radius;
     const z = Math.sin(angle) * radius;
+    const y = (t - 0.5) * 4; // 위아래로도 퍼지게
 
-    const texture = loader.load(images[i]);
-    texture.minFilter = THREE.LinearFilter;
+    const tex = loader.load(images[i]);
+    tex.minFilter = THREE.LinearFilter;
 
-    const geo = new THREE.PlaneGeometry(planeWidth, planeHeight);
-    const mat = new THREE.MeshBasicMaterial({ map:texture, side:THREE.DoubleSide });
+    const w = 1.6;
+    const h = 1.0;
+
+    const geo = new THREE.PlaneGeometry(w, h);
+    const mat = new THREE.MeshBasicMaterial({
+      map: tex,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.35 + 0.65 * (1.0 - t) // 안쪽으로 갈수록 희미하게/진하게 조정
+    });
+
     const mesh = new THREE.Mesh(geo, mat);
 
-    mesh.position.set(x, 0, z);
-    mesh.lookAt(0, 0, 0); // 중심을 바라보게
+    // 약간 랜덤 흔들림
+    mesh.position.set(
+      x + (Math.random()-0.5)*0.3,
+      y + (Math.random()-0.5)*0.3,
+      z + (Math.random()-0.5)*0.3
+    );
 
-    scene.add(mesh);
+    mesh.lookAt(0,0,0);
+    group.add(mesh);
   }
 
-  // 드래그로 회전할 수 있게 간단한 컨트롤
+  // 중앙에 아주 작은 “블랙홀” 구
+  const blackGeo = new THREE.SphereGeometry(0.3, 32, 32);
+  const blackMat = new THREE.MeshBasicMaterial({ color:0x000000 });
+  const blackHole = new THREE.Mesh(blackGeo, blackMat);
+  scene.add(blackHole);
+
+  // 약간의 노이즈 포인트(별 같은 느낌)
+  const starGeo = new THREE.BufferGeometry();
+  const starCount = 800;
+  const positions = new Float32Array(starCount*3);
+  for(let i=0;i<starCount;i++){
+    const r = 8 * Math.random() + 2;
+    const theta = Math.random() * Math.PI * 2;
+    const phi = Math.acos(2*Math.random()-1);
+    const sx = r * Math.sin(phi) * Math.cos(theta);
+    const sy = r * Math.sin(phi) * Math.sin(theta);
+    const sz = r * Math.cos(phi);
+    positions[i*3+0] = sx;
+    positions[i*3+1] = sy;
+    positions[i*3+2] = sz;
+  }
+  starGeo.setAttribute("position", new THREE.BufferAttribute(positions,3));
+  const starMat = new THREE.PointsMaterial({ color:0xffffff, size:0.03, transparent:true, opacity:0.6 });
+  const stars = new THREE.Points(starGeo, starMat);
+  scene.add(stars);
+
+  // 드래그로 회전
   let isDragging = false;
   let prevX = 0;
   let prevY = 0;
-  let rotY = 0;
   let rotX = 0;
+  let rotY = 0;
 
-  function onPointerDown(e){
-    isDragging = true;
-    prevX = e.clientX || e.touches?.[0]?.clientX || 0;
-    prevY = e.clientY || e.touches?.[0]?.clientY || 0;
+  function getXY(e){
+    if(e.touches && e.touches.length>0){
+      return { x:e.touches[0].clientX, y:e.touches[0].clientY };
+    }
+    return { x:e.clientX, y:e.clientY };
   }
-  function onPointerMove(e){
-    if(!isDragging) return;
-    const x = e.clientX || (e.touches && e.touches[0].clientX) || 0;
-    const y = e.clientY || (e.touches && e.touches[0].clientY) || 0;
-    const dx = x - prevX;
-    const dy = y - prevY;
-    prevX = x;
-    prevY = y;
 
+  function onDown(e){
+    isDragging = true;
+    const p = getXY(e);
+    prevX = p.x;
+    prevY = p.y;
+  }
+  function onMove(e){
+    if(!isDragging) return;
+    const p = getXY(e);
+    const dx = p.x - prevX;
+    const dy = p.y - prevY;
+    prevX = p.x;
+    prevY = p.y;
     rotY += dx * 0.005;
     rotX += dy * 0.005;
   }
-  function onPointerUp(){
+  function onUp(){
     isDragging = false;
   }
 
-  canvas.addEventListener("mousedown", onPointerDown);
-  canvas.addEventListener("mousemove", onPointerMove);
-  window.addEventListener("mouseup", onPointerUp);
-  canvas.addEventListener("touchstart", onPointerDown, {passive:true});
-  canvas.addEventListener("touchmove", onPointerMove, {passive:true});
-  window.addEventListener("touchend", onPointerUp);
+  canvas.addEventListener("mousedown", onDown);
+  canvas.addEventListener("mousemove", onMove);
+  window.addEventListener("mouseup", onUp);
+
+  canvas.addEventListener("touchstart", onDown, { passive:true });
+  canvas.addEventListener("touchmove", onMove, { passive:true });
+  window.addEventListener("touchend", onUp);
+
+  // 휠로 블랙홀 쪽으로 들어갔다 나왔다
+  canvas.addEventListener("wheel", (e)=>{
+    e.preventDefault();
+    camera.position.z += e.deltaY * 0.002;
+    camera.position.z = Math.min(10, Math.max(1.5, camera.position.z));
+  }, { passive:false });
+
+  let autoRot = 0;
 
   function animate(){
     requestAnimationFrame(animate);
-    // 카메라를 회전시키는 느낌
-    camera.position.x = Math.sin(rotY) * 4;
-    camera.position.z = Math.cos(rotY) * 4;
-    camera.position.y = THREE.MathUtils.clamp(rotX, -1.5, 1.5);
-    camera.lookAt(0,0,0);
+
+    autoRot += 0.0015;
+    const finalY = rotY + autoRot;
+    const finalX = THREE.MathUtils.clamp(rotX, -1.2, 1.2);
+
+    group.rotation.y = finalY;
+    group.rotation.x = finalX * 0.5;
+
+    stars.rotation.y += 0.0005;
+
     renderer.render(scene, camera);
   }
   animate();
 
   window.addEventListener("resize", ()=>{
-    camera.aspect = window.innerWidth/window.innerHeight;
+    camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
   });
