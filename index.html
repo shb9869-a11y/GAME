@@ -151,7 +151,7 @@
     border:1px solid rgba(255,255,255,.10);
     border-radius:10px;
     padding:8px;
-    max-height:170px;
+    max-height:190px;
     overflow:auto;
   }
 
@@ -174,9 +174,36 @@
     padding:10px;
     background:rgba(0,0,0,.20);
   }
-  .mini{
-    font-size:11px; color:#aab;
+
+  .pillBtn{
+    border-radius:999px;
+    padding:6px 10px;
+    font-size:12px;
+    border:1px solid rgba(255,255,255,.14);
+    background:rgba(255,255,255,.06);
+    cursor:pointer;
   }
+  .pillBtn.on{
+    border-color:rgba(255,255,255,.34);
+    background:rgba(255,255,255,.10);
+  }
+
+  /* tiny HUD for touch */
+  #touchHUD{
+    position:fixed; left:12px; bottom:12px;
+    z-index:39;
+    color:#ddd;
+    font-family:ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size:11px;
+    background:rgba(0,0,0,.28);
+    border:1px solid rgba(255,255,255,.10);
+    border-radius:12px;
+    padding:8px 10px;
+    backdrop-filter: blur(10px);
+    pointer-events:none;
+  }
+  #touchHUD .bar{height:8px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden;border:1px solid rgba(255,255,255,.10);margin-top:6px;}
+  #touchHUD .bar i{display:block;height:100%;width:0%;background:rgba(255,80,80,.90);}
 </style>
 </head>
 <body>
@@ -187,8 +214,8 @@
     <div class="small" style="margin-bottom:12px;">
       1) <b>Start Audio</b>로 오디오 잠금 해제<br/>
       2) <b>Mic ON</b> 또는 <b>File</b> 선택 후 AUDIO 탭에서 레벨 확인<br/>
-      3) MIDI는 <b>MIDI</b> 탭에서 <b>Input / CC</b> 선택 + 감도/커브 조절<br/>
-      4) 멈춤/렉 발생 시: 좌상단 <b>RESET ⟲</b> (완전 재시작) / 시스템이 자동으로 첫 화면 복귀
+      3) <b>TouchMe(미디)</b>는 MIDI 탭에서 <b>LEARN</b> 누르고 TouchMe 한번 터치하면 자동 매핑됩니다<br/>
+      4) 멈춤/렉 발생 시: 좌상단 <b>RESET ⟲</b> (완전 재시작) / 시스템이 자동으로 START 복귀
     </div>
     <div class="row">
       <button id="btnStartAudio">Start Audio</button>
@@ -202,6 +229,12 @@
 
 <canvas id="c"></canvas>
 
+<div id="touchHUD">
+  touch: <span id="hudTouch">0.000</span> | amp: <span id="hudAmp">0.000</span><br/>
+  <span id="hudMidi">midi: -</span>
+  <div class="bar"><i id="hudTouchBar"></i></div>
+</div>
+
 <!-- Left top quick -->
 <div id="topLeft">
   <div class="iconBtn danger" id="btnReset" title="RESET (Full Reboot to Start)">⟲</div>
@@ -210,7 +243,7 @@
 <!-- Top right quick -->
 <div id="topRight">
   <div class="iconBtn" id="btnGear" title="Settings">⚙️</div>
-  <div class="iconBtn" id="btnMuteQuick" title="Mute">🔇</div>
+  <div class="iconBtn" id="btnMuteQuick" title="Mute">🔈</div>
   <div class="iconBtn" id="btnFSQuick" title="Fullscreen">⛶</div>
 </div>
 
@@ -271,9 +304,8 @@
       <div class="row">
         <div class="label">Point color</div>
         <select id="selPointColor" class="grow">
-          <!-- ✅ 기본은 WHITE -->
-          <option value="white" selected>White</option>
-          <option value="red">Red</option>
+          <option value="red" selected>Red</option>
+          <option value="white">White</option>
         </select>
       </div>
 
@@ -335,7 +367,7 @@
 
       <div class="small">
         ✅ 렉/멈춤 오면 <b>Perf limit↓</b> → <b>Line density↓</b> → <b>Particles↓</b><br/>
-        ✅ 심하게 멈추면 시스템이 <b>자동으로 첫 화면(START)</b>로 복귀합니다.
+        ✅ 심하게 멈추면 시스템이 <b>자동으로 START</b>로 복귀합니다.
       </div>
     </div>
 
@@ -411,13 +443,20 @@
       </div>
 
       <div class="small">
-        ✅ <b>TouchMe(MIDI)</b>는 이제 FX뿐 아니라 <b>디지털 사운드(발진+노이즈)</b> 자체를 생성합니다.<br/>
-        (Mic/File 없어도 Touch만으로 소리남)
+        EQ는 <b>마이크/파일</b> 공통 적용. <b>TouchMe(MIDI)</b>는 FX/비주얼을 강하게 흔듭니다.
       </div>
     </div>
 
     <!-- MIDI -->
     <div class="panel" id="panel-midi">
+      <div class="row" style="justify-content:space-between;">
+        <div class="small" id="txtMIDISupport" style="opacity:.95"></div>
+        <div style="display:flex; gap:6px; flex-wrap:wrap;">
+          <button id="btnMIDIInit" class="pillBtn">Connect MIDI</button>
+          <button id="btnMIDILearn" class="pillBtn">LEARN</button>
+        </div>
+      </div>
+
       <div class="two">
         <div class="box">
           <div class="row">
@@ -470,24 +509,32 @@
           <div class="row">
             <div class="label">Gain</div>
             <div class="grow">
-              <input id="rngMIDIGain" type="range" min="0.3" max="3.0" step="0.01" value="1.35" style="width:100%;">
-              <div class="small" id="txtMIDIGain">gain: 1.35×</div>
+              <input id="rngMIDIGain" type="range" min="0.3" max="3.0" step="0.01" value="1.60" style="width:100%;">
+              <div class="small" id="txtMIDIGain">gain: 1.60×</div>
             </div>
           </div>
 
           <div class="row">
             <div class="label">Curve</div>
             <div class="grow">
-              <input id="rngMIDICurve" type="range" min="0.4" max="2.8" step="0.01" value="1.40" style="width:100%;">
-              <div class="small" id="txtMIDICurve">curve: 1.40 ( >1 = 더 예민 )</div>
+              <input id="rngMIDICurve" type="range" min="0.4" max="2.8" step="0.01" value="0.85" style="width:100%;">
+              <div class="small" id="txtMIDICurve">curve: 0.85 ( <1 = 더 예민 )</div>
             </div>
           </div>
 
           <div class="row">
             <div class="label">Smoothing</div>
             <div class="grow">
-              <input id="rngMIDISmooth" type="range" min="0.02" max="0.50" step="0.01" value="0.18" style="width:100%;">
-              <div class="small" id="txtMIDISmooth">smooth: 0.18</div>
+              <input id="rngMIDISmooth" type="range" min="0.02" max="0.50" step="0.01" value="0.22" style="width:100%;">
+              <div class="small" id="txtMIDISmooth">smooth: 0.22</div>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="label">Sim Touch</div>
+            <div class="grow">
+              <input id="rngSimTouch" type="range" min="0" max="1" step="0.001" value="0" style="width:100%;">
+              <div class="small">미디가 막힌 환경(특히 iOS Safari)에서 이 슬라이더로 FX/비주얼이 변하는지 테스트</div>
             </div>
           </div>
         </div>
@@ -499,8 +546,13 @@
           </div>
 
           <div class="row">
-            <div class="label">Raw</div>
+            <div class="label">Mapped</div>
             <div class="mono grow" id="txtMIDIRaw">raw: -</div>
+          </div>
+
+          <div class="row">
+            <div class="label">Last MIDI (raw)</div>
+            <div class="mono grow" id="txtMIDILast">Waiting…</div>
           </div>
 
           <div class="row">
@@ -509,8 +561,8 @@
           </div>
 
           <div class="small">
-            ✅ “CC / Note#”를 바꾸면 다른 노브/패드로 즉시 매핑 가능<br/>
-            ✅ Gain/Curve로 “살짝만 만져도 확 반응” 세팅 가능
+            ✅ <b>LEARN</b> 누르고 TouchMe 한번 터치 → 자동으로 CC/NOTE#, 채널이 설정됩니다<br/>
+            ✅ “Last MIDI(raw)”가 갱신되면 <b>미디는 들어오고 있는 것</b>입니다 (매핑만 잡으면 됨)
           </div>
         </div>
       </div>
@@ -575,7 +627,7 @@
       <div class="small" id="txtSupport"></div>
       <div class="small">
         ⟲ RESET은 “그냥 파라미터 리셋”이 아니라 <b>완전 재시작(START 화면 복귀)</b>입니다.<br/>
-        (멈춤 방지용으로 일부 상태만 유지합니다: 설정값(localStorage)은 그대로.)
+        (설정값(localStorage)은 그대로 유지)
       </div>
     </div>
   </div>
@@ -585,7 +637,7 @@
 /* ==========================================================
    SETTINGS PERSISTENCE (localStorage)
 ========================================================== */
-const STORE_KEY = "limen_workshop_settings_v1";
+const STORE_KEY = "limen_workshop_settings_v2";
 function loadSettings(){ try{ return JSON.parse(localStorage.getItem(STORE_KEY)||"{}"); }catch(e){ return {}; } }
 function saveSettings(obj){ localStorage.setItem(STORE_KEY, JSON.stringify(obj)); }
 const S = loadSettings();
@@ -655,10 +707,6 @@ let fileAudioEl = null;
 let fileNode = null;
 let currentSource = S.currentSource ?? "mic"; // "mic" | "file"
 
-/* ✅ TouchMe 디지털 사운드 (새로 추가) */
-let touchOsc=null, touchNoise=null, touchNoiseGain=null, touchSynthGain=null;
-let touchSynthOn=false;
-
 function makeWaveshaper(amount=20){
   const n=2048;
   const curve=new Float32Array(n);
@@ -668,19 +716,6 @@ function makeWaveshaper(amount=20){
     curve[i] = (1+k)*x/(1+k*Math.abs(x));
   }
   return curve;
-}
-
-/* ✅ 노이즈 버퍼 (한 번 만들고 재사용) */
-let NOISE_BUF=null;
-function ensureNoiseBuffer(ctx){
-  if(NOISE_BUF && NOISE_BUF.sampleRate===ctx.sampleRate) return NOISE_BUF;
-  const sr = ctx.sampleRate || 44100;
-  const len = Math.floor(sr*1.0);
-  const buf = ctx.createBuffer(1, len, sr);
-  const ch = buf.getChannelData(0);
-  for(let i=0;i<len;i++) ch[i] = (Math.random()*2-1);
-  NOISE_BUF = buf;
-  return buf;
 }
 
 function ensureAudio(){
@@ -751,7 +786,7 @@ function ensureAudio(){
   comp.attack.value = 0.003;
   comp.release.value = 0.14;
 
-  // chain: preGain → EQ → drive → filter → ring → widen → comp → analyser → master
+  // chain: input → preGain → EQ → drive → filter → ring → widen → comp → analyser → master
   preGain.connect(eqLow);
   eqLow.connect(eqMid);
   eqMid.connect(eqHigh);
@@ -773,33 +808,6 @@ function ensureAudio(){
   masterGain.connect(audioCtx.destination);
 
   ringOsc.start();
-
-  /* ✅ TouchMe 디지털 사운드 생성기: (osc + noise) → touchSynthGain → preGain 로 합류 */
-  touchSynthGain = audioCtx.createGain();
-  touchSynthGain.gain.value = 0.0; // 기본 무음
-
-  touchOsc = audioCtx.createOscillator();
-  touchOsc.type = "square";
-  touchOsc.frequency.value = 160;
-
-  touchNoiseGain = audioCtx.createGain();
-  touchNoiseGain.gain.value = 0.0;
-
-  touchNoise = audioCtx.createBufferSource();
-  touchNoise.buffer = ensureNoiseBuffer(audioCtx);
-  touchNoise.loop = true;
-
-  touchOsc.connect(touchSynthGain);
-  touchNoise.connect(touchNoiseGain);
-  touchNoiseGain.connect(touchSynthGain);
-
-  // 입력 합류 (Mic/File 없어도 preGain으로 들어감)
-  touchSynthGain.connect(preGain);
-
-  touchOsc.start();
-  touchNoise.start();
-  touchSynthOn = true;
-
   updateTopPill(1);
 }
 
@@ -999,7 +1007,6 @@ async function startMic(deviceId="default"){
   await audioCtx.resume();
   setupOutputRouting();
 
-  // 입력만 교체
   if(micStream){ micStream.getTracks().forEach(t=>t.stop()); micStream = null; }
   if(inputNode){ try{ inputNode.disconnect(); }catch(e){} inputNode = null; }
   if(fileNode){ try{ fileNode.disconnect(); }catch(e){} fileNode = null; }
@@ -1056,7 +1063,6 @@ function connectFileToChain(){
   ensureFileAudioEl();
   if(!fileAudioEl.src) return;
 
-  // 입력 교체
   if(micStream){ micStream.getTracks().forEach(t=>t.stop()); micStream = null; }
   if(inputNode){ try{ inputNode.disconnect(); }catch(e){} inputNode = null; }
   if(fileNode){ try{ fileNode.disconnect(); }catch(e){} fileNode = null; }
@@ -1065,7 +1071,6 @@ function connectFileToChain(){
     fileNode = audioCtx.createMediaElementSource(fileAudioEl);
     fileNode.connect(preGain);
   }catch(e){
-    // Safari에서 재연결 이슈 대비
     try{
       const oldSrc = fileAudioEl.src;
       fileAudioEl.pause();
@@ -1098,7 +1103,7 @@ function startStatus(msg){
 }
 
 /* ==========================================================
-   MIDI (selectable input + mapping + shaping)
+   MIDI (TouchMe) : LEARN + raw visibility + shaping
 ========================================================== */
 let midiAccess = null;
 let midiInput = null;
@@ -1106,9 +1111,13 @@ let midiInput = null;
 let touchRaw = 0;      // 0..1 (after map)
 let touch = 0;         // 0..1 (shaped)
 let touchSmooth = 0;   // smoothed
+let lastMidiAt = 0;
+let lastMidiRawText = "Waiting…";
 
 let midiName="MIDI: ?";
 let midiLog = [];
+let midiLearn = false;
+
 function pushMidiLog(line){
   midiLog.push(line);
   if(midiLog.length>18) midiLog.shift();
@@ -1127,25 +1136,27 @@ hookSelectSave('selMIDICh');
 hookSelectSave('selMIDIInvert');
 
 hookRangeSave('rngMIDIDead', 0.02);
-hookRangeSave('rngMIDIGain', 1.35);
-hookRangeSave('rngMIDICurve', 1.40);
-hookRangeSave('rngMIDISmooth', 0.18);
+hookRangeSave('rngMIDIGain', 1.60);
+hookRangeSave('rngMIDICurve', 0.85);
+hookRangeSave('rngMIDISmooth', 0.22);
 
 const rngMIDIDead = document.getElementById('rngMIDIDead');
 const rngMIDIGain = document.getElementById('rngMIDIGain');
 const rngMIDICurve = document.getElementById('rngMIDICurve');
 const rngMIDISmooth = document.getElementById('rngMIDISmooth');
-
 const txtMIDIDead = document.getElementById('txtMIDIDead');
 const txtMIDIGain = document.getElementById('txtMIDIGain');
 const txtMIDICurve = document.getElementById('txtMIDICurve');
 const txtMIDISmooth = document.getElementById('txtMIDISmooth');
 const txtMIDIRaw = document.getElementById('txtMIDIRaw');
+const txtMIDILast = document.getElementById('txtMIDILast');
+const txtMIDISupport = document.getElementById('txtMIDISupport');
+const rngSimTouch = document.getElementById('rngSimTouch');
 
 function refreshMIDILabels(){
   txtMIDIDead.textContent = `deadzone: ${parseFloat(rngMIDIDead.value).toFixed(3)}`;
   txtMIDIGain.textContent = `gain: ${parseFloat(rngMIDIGain.value).toFixed(2)}×`;
-  txtMIDICurve.textContent = `curve: ${parseFloat(rngMIDICurve.value).toFixed(2)} ( >1 = 더 예민 )`;
+  txtMIDICurve.textContent = `curve: ${parseFloat(rngMIDICurve.value).toFixed(2)} ( <1 = 더 예민 )`;
   txtMIDISmooth.textContent = `smooth: ${parseFloat(rngMIDISmooth.value).toFixed(2)}`;
 }
 ['input','change'].forEach(ev=>{
@@ -1155,11 +1166,10 @@ refreshMIDILabels();
 
 function getMIDIDead(){ return Math.max(0, Math.min(0.25, parseFloat(rngMIDIDead.value)||0)); }
 function getMIDIGain(){ return Math.max(0.3, Math.min(3.0, parseFloat(rngMIDIGain.value)||1)); }
-function getMIDICurve(){ return Math.max(0.4, Math.min(2.8, parseFloat(rngMIDICurve.value)||1.4)); }
+function getMIDICurve(){ return Math.max(0.4, Math.min(2.8, parseFloat(rngMIDICurve.value)||1)); }
 function getMIDISmooth(){ return Math.max(0.02, Math.min(0.50, parseFloat(rngMIDISmooth.value)||0.18)); }
 
 function shapeMIDI(x){
-  // x:0..1
   const inv = (selMIDIInvert.value==="1");
   if(inv) x = 1-x;
 
@@ -1171,13 +1181,35 @@ function shapeMIDI(x){
   x = Math.max(0, Math.min(1, x));
 
   const curve = getMIDICurve();
+  // curve < 1 => low에서도 빨리 올라가는 "예민"
   x = Math.pow(x, curve);
   return Math.max(0, Math.min(1, x));
 }
 
 function updateTouch(){
+  // smoothing: 값이 클수록 더 빨리 따라감
   const k = getMIDISmooth();
   touchSmooth += (touch - touchSmooth) * k;
+
+  // 미디가 끊기면 서서히 떨어지게(‘멈춘 값’ 고정 방지)
+  const now = performance.now();
+  const idleMs = now - lastMidiAt;
+  if(idleMs > 250 && !midiLearn){
+    touch *= 0.985;
+  }
+}
+
+function midiParseRaw(data){
+  const st = data[0] & 0xF0;
+  const ch = data[0] & 0x0F;
+  const d1 = data[1] ?? 0;
+  const d2 = data[2] ?? 0;
+
+  let type = "other";
+  if(st===0xB0) type="cc";
+  else if(st===0x90) type="noteon";
+  else if(st===0x80) type="noteoff";
+  return {st, ch, d1, d2, type};
 }
 
 function midiMsgToValue(data){
@@ -1207,6 +1239,7 @@ function midiMsgToValue(data){
 async function initMIDI(){
   if(!navigator.requestMIDIAccess){
     midiName="MIDI: not supported";
+    txtMIDISupport.textContent = "⚠️ 이 브라우저는 WebMIDI를 지원하지 않습니다. (iOS Safari는 대부분 불가) → Sim Touch로 테스트 가능";
     pushMidiLog("requestMIDIAccess 없음");
     return;
   }
@@ -1214,10 +1247,12 @@ async function initMIDI(){
     midiAccess = await navigator.requestMIDIAccess({sysex:false});
     midiAccess.onstatechange = ()=> rebuildMIDIInputs();
     rebuildMIDIInputs(true);
+    txtMIDISupport.textContent = "✅ WebMIDI OK. TouchMe 연결 후 LEARN 누르고 한 번 터치하세요.";
     pushMidiLog("MIDI ready.");
   }catch(e){
     console.error(e);
     midiName="MIDI: blocked";
+    txtMIDISupport.textContent = "⚠️ MIDI 접근이 차단됨. Chrome 권한/보안(https) 확인. 그래도 안되면 Sim Touch 사용.";
     pushMidiLog("MIDI access failed");
   }
 }
@@ -1232,6 +1267,7 @@ function rebuildMIDIInputs(autoselect=false){
   if(inputs.length===0){
     selMIDIIn.innerHTML = `<option value="">No MIDI inputs</option>`;
     midiName="MIDI: no inputs";
+    pushMidiLog("No MIDI devices. TouchMe USB/BT 확인.");
     return;
   }
 
@@ -1254,6 +1290,14 @@ function rebuildMIDIInputs(autoselect=false){
   }
 }
 
+function setLearn(on){
+  midiLearn = on;
+  const b = document.getElementById('btnMIDILearn');
+  b.classList.toggle('on', on);
+  b.textContent = on ? "LEARN (ON)" : "LEARN";
+  if(on) pushMidiLog("LEARN: TouchMe를 한 번 터치하세요 (CC/NOTE 자동 매핑).");
+}
+
 function attachMIDIInput(id){
   if(!midiAccess) return;
   const inp = [...midiAccess.inputs.values()].find(i=>i.id===id);
@@ -1269,8 +1313,47 @@ function attachMIDIInput(id){
 
   midiInput.onmidimessage = (e)=>{
     const data = e.data;
+    const r = midiParseRaw(data);
+    lastMidiAt = performance.now();
+    lastMidiRawText = `st:0x${r.st.toString(16)} | ch:${r.ch+1} | d1:${r.d1} | d2:${r.d2} | type:${r.type}`;
+    txtMIDILast.textContent = lastMidiRawText;
+
+    // LEARN: 첫 메시지로 자동 매핑
+    if(midiLearn){
+      if(r.st===0xB0){
+        selMIDIType.value = "cc";
+        numMIDINum.value = r.d1;
+        selMIDICh.value = String(r.ch); // channel fixed
+        saveSettings(Object.assign(S, {
+          selMIDIType:"cc",
+          numMIDINum: r.d1,
+          selMIDICh: String(r.ch)
+        }));
+        pushMidiLog(`LEARN OK: CC #${r.d1} ch:${r.ch+1}`);
+        setLearn(false);
+      }else if(r.st===0x90 || r.st===0x80){
+        selMIDIType.value = "note";
+        numMIDINum.value = r.d1;
+        selMIDICh.value = String(r.ch);
+        saveSettings(Object.assign(S, {
+          selMIDIType:"note",
+          numMIDINum: r.d1,
+          selMIDICh: String(r.ch)
+        }));
+        pushMidiLog(`LEARN OK: NOTE #${r.d1} ch:${r.ch+1}`);
+        setLearn(false);
+      }else{
+        // other ignore
+      }
+    }
+
+    // mapping (현재 설정과 일치하는 것만 touch로 반영)
     const parsed = midiMsgToValue(data);
-    if(!parsed) return;
+    if(!parsed){
+      // 들어오긴 들어오는데 매핑이 안 맞는 케이스도 사용자에게 보이게
+      if(Math.random() < 0.18) pushMidiLog(`raw=[${[...data].join(',')}] (not mapped)`);
+      return;
+    }
 
     touchRaw = parsed.raw01;
     touch = shapeMIDI(touchRaw);
@@ -1278,17 +1361,17 @@ function attachMIDIInput(id){
     txtMIDIRaw.textContent =
       `raw01:${touchRaw.toFixed(3)} -> touch:${touch.toFixed(3)} | ${parsed.type.toUpperCase()} #${parsed.num} ch:${parsed.ch+1} val:${parsed.val}`;
 
-    if(Math.random() < 0.25){
-      pushMidiLog(`msg=[${[...data].join(',')}] -> touch=${touch.toFixed(3)}`);
+    if(Math.random() < 0.22){
+      pushMidiLog(`mapped ${parsed.type} #${parsed.num} ch:${parsed.ch+1} -> touch=${touch.toFixed(3)}`);
     }
   };
 }
 
-selMIDIIn.addEventListener('change', ()=>{
-  attachMIDIInput(selMIDIIn.value);
-});
+selMIDIIn.addEventListener('change', ()=> attachMIDIInput(selMIDIIn.value));
+document.getElementById('btnMIDIInit').addEventListener('click', initMIDI);
+document.getElementById('btnMIDILearn').addEventListener('click', ()=> setLearn(!midiLearn));
 
-// restore midi controls
+/* restore midi controls */
 applySelectValue('selMIDIType', 'cc');
 applySelectValue('selMIDICh', '-1');
 applySelectValue('selMIDIInvert', '0');
@@ -1297,41 +1380,49 @@ hookSelectSave('selMIDICh');
 hookSelectSave('selMIDIInvert');
 hookNumberSave('numMIDINum', 1);
 
+/* Sim Touch: 미디가 안되는 환경에서 강제로 값 주입 */
+rngSimTouch.value = (S.rngSimTouch ?? 0);
+rngSimTouch.addEventListener('input', ()=>{
+  S.rngSimTouch = parseFloat(rngSimTouch.value);
+  saveSettings(S);
+});
+
 /* ==========================================================
-   FX MAPPING (Touch) + ✅ Touch Synth Gain Mapping
+   FX MAPPING (Touch)  -- TouchMe가 "디지털 사운드"를 확실히 내게 강화
 ========================================================== */
 function applyFX(){
   if(!audioCtx) return;
-  const t = touchSmooth;
 
-  const driveAmt = 6 + t*60;
+  // simTouch는 항상 더해진다(미디 죽었을 때도 테스트 가능)
+  const sim = Math.max(0, Math.min(1, parseFloat(rngSimTouch.value)||0));
+  const t = Math.max(touchSmooth, sim);
+
+  // 더 공격적으로: Touch가 있으면 ‘확’ 디지털 질감이 생기게
+  const driveAmt = 10 + t*95; // 이전보다 강함
   driveWS.curve = makeWaveshaper(driveAmt);
-  preGain.gain.setTargetAtTime(0.9 + t*1.1, audioCtx.currentTime, 0.03);
-  driveGain.gain.setTargetAtTime(1.0 + t*0.8, audioCtx.currentTime, 0.03);
 
-  const f = 250 + Math.pow(t, 1.8) * 5200;
-  const q = 1.2 + t*14;
+  // input gain도 같이 흔듦
+  preGain.gain.setTargetAtTime(0.85 + t*1.25, audioCtx.currentTime, 0.03);
+  driveGain.gain.setTargetAtTime(0.95 + t*1.10, audioCtx.currentTime, 0.03);
+
+  // bandpass sweeping
+  const f = 180 + Math.pow(t, 1.35) * 7200;
+  const q = 1.0 + t*18.0;
   filter.frequency.setTargetAtTime(f, audioCtx.currentTime, 0.03);
   filter.Q.setTargetAtTime(q, audioCtx.currentTime, 0.03);
 
-  const ringHz = 12 + t*220;
+  // ring mod (Touch가 있으면 확실히 들리게)
+  const ringHz = 10 + t*360;
   ringOsc.frequency.setTargetAtTime(ringHz, audioCtx.currentTime, 0.03);
-  ringGain.gain.setTargetAtTime(t*0.85, audioCtx.currentTime, 0.03);
+  ringGain.gain.setTargetAtTime(t*0.95, audioCtx.currentTime, 0.03);
 
-  const wob = (Math.sin(performance.now()*0.0015)*0.5+0.5);
-  dL.delayTime.setTargetAtTime(0.002 + t*0.010 + wob*0.0007, audioCtx.currentTime, 0.05);
-  dR.delayTime.setTargetAtTime(0.006 + t*0.015 + (1-wob)*0.0009, audioCtx.currentTime, 0.05);
-
-  /* ✅ TouchMe = 실제 소리 생성 (Mic/File 없어도 들림) */
-  if(touchSynthOn && touchSynthGain && touchOsc && touchNoiseGain){
-    const g = Math.min(0.95, Math.pow(t, 1.05) * 0.85);   // touch → loudness
-    touchSynthGain.gain.setTargetAtTime(g, audioCtx.currentTime, 0.02);
-    touchNoiseGain.gain.setTargetAtTime(Math.min(0.55, g*0.55), audioCtx.currentTime, 0.02);
-    touchOsc.frequency.setTargetAtTime(120 + Math.pow(t,1.4)*1400, audioCtx.currentTime, 0.02);
-  }
+  // widen (stereo delay)
+  const wob = (Math.sin(performance.now()*0.0017)*0.5+0.5);
+  dL.delayTime.setTargetAtTime(0.0015 + t*0.014 + wob*0.0012, audioCtx.currentTime, 0.05);
+  dR.delayTime.setTargetAtTime(0.0040 + t*0.020 + (1-wob)*0.0014, audioCtx.currentTime, 0.05);
 
   document.getElementById('txtFx').textContent =
-    `drive:${driveAmt.toFixed(1)} | filter:${f.toFixed(0)}Hz Q:${q.toFixed(1)} | ring:${ringHz.toFixed(1)}Hz depth:${(t*0.85).toFixed(2)} | widen:${t.toFixed(2)} | touchSynth:${(touchSynthGain?touchSynthGain.gain.value:0).toFixed(2)}`;
+    `drive:${driveAmt.toFixed(1)} | filter:${f.toFixed(0)}Hz Q:${q.toFixed(1)} | ring:${ringHz.toFixed(1)}Hz depth:${(t*0.95).toFixed(2)} | widen:${t.toFixed(2)}`;
 }
 
 /* ==========================================================
@@ -1345,8 +1436,7 @@ hookRangeSave('rngFade', 0.03);
 hookRangeSave('rngPointSize', 0.60);
 hookRangeSave('rngGlow', 0.45);
 
-/* ✅ 점 색은 무조건 white 기본 */
-applySelectValue('selPointColor', 'white');
+applySelectValue('selPointColor', 'red');
 hookSelectSave('selPointColor');
 
 const rngIdleDrama = document.getElementById('rngIdleDrama');
@@ -1490,8 +1580,9 @@ document.getElementById('btnMuteQuick').addEventListener('click', ()=>{
   if(!audioCtx) return;
   isMuted = !isMuted;
   masterGain.gain.setTargetAtTime(isMuted?0:0.9, audioCtx.currentTime, 0.02);
-  document.getElementById('btnMuteQuick').textContent = isMuted ? '🔈' : '🔇';
+  document.getElementById('btnMuteQuick').textContent = isMuted ? '🔇' : '🔈';
 });
+
 function toggleFullscreen(){
   const el = document.documentElement;
   if(!document.fullscreenElement) el.requestFullscreen?.();
@@ -1628,11 +1719,6 @@ applySelectValue('selBounds', 'soft');
 applySelectValue('selQuietLines', '1');
 applySelectValue('selAutoReboot', '1');
 
-/* ✅ point color 기본 강제: white (이전 red 저장돼도 덮어씀) */
-S.selPointColor = "white";
-saveSettings(S);
-document.getElementById('selPointColor').value = "white";
-
 ['selMode','selN','selBounds','selQuietLines','selAutoReboot'].forEach(hookSelectSave);
 
 document.getElementById('selN').addEventListener('change', (e)=>{
@@ -1664,7 +1750,8 @@ async function fullReboot(reason="manual"){
   inputNode = null;
 
   amp = 0; ampSmooth = 0; ampDelta = 0; prevAmp = 0;
-  touchRaw = 0; touch = 0; touchSmooth = 0;
+  touchRaw = 0; touch = 0; touchSmooth = 0; lastMidiAt = 0;
+  document.getElementById('hudMidi').textContent = "midi: -";
 
   energy = 0; burstEnergy = 0; rot = 0;
   initPoints();
@@ -1689,10 +1776,6 @@ async function fullReboot(reason="manual"){
       try{ filter.disconnect(); }catch(e){}
       try{ ringMult.disconnect(); }catch(e){}
       try{ ringGain.disconnect(); }catch(e){}
-      try{
-        if(touchSynthGain) touchSynthGain.disconnect();
-        if(touchNoiseGain) touchNoiseGain.disconnect();
-      }catch(e){}
       await audioCtx.close().catch(()=>{});
     }
   }catch(e){}
@@ -1714,15 +1797,11 @@ async function fullReboot(reason="manual"){
   comp = null;
   monitorDest = null;
 
-  // touch synth nodes clear
-  touchOsc=null; touchNoise=null; touchNoiseGain=null; touchSynthGain=null; touchSynthOn=false;
-
   setStartButtons(false);
   updateTopPill(1);
 
   showStartScreen(`START로 복귀 (reason: ${reason})`);
 }
-
 document.getElementById("btnReset").addEventListener("click", ()=> fullReboot("manual reset"));
 
 /* ==========================================================
@@ -1731,14 +1810,14 @@ document.getElementById("btnReset").addEventListener("click", ()=> fullReboot("m
 document.getElementById('btnStartAudio').addEventListener('click', async ()=>{
   ensureAudio();
   await audioCtx.resume();
-  await initMIDI();
   await listDevices();
+  await initMIDI(); // ✅ 오디오 언락 후 MIDI도 같이
 
   document.getElementById('btnStartMic').disabled = (currentSource!=="mic");
   document.getElementById('btnMicOn').disabled = (currentSource!=="mic");
   setStartButtons(!!micStream);
   updateTopPill(1);
-  startStatus("Audio unlocked. TouchMe만 만져도 소리남 / Mic ON 또는 SYSTEM에서 File 선택.");
+  startStatus("Audio unlocked. Mic ON 또는 SYSTEM에서 File 선택. TouchMe는 MIDI 탭에서 LEARN!");
 });
 
 document.getElementById('btnStartMic').addEventListener('click', async ()=>{
@@ -1762,7 +1841,7 @@ addEventListener('pointerdown', async ()=>{
 },{passive:true});
 
 /* ==========================================================
-   AUTO REBOOT ON LAG / FREEZE
+   AUTO REBOOT ON LAG / FREEZE (핵심!)
 ========================================================== */
 const selAutoReboot = document.getElementById('selAutoReboot');
 function autoRebootEnabled(){ return (selAutoReboot.value === "1"); }
@@ -1795,7 +1874,7 @@ function checkLag(dt){
 }
 
 /* ==========================================================
-   MAIN LOOP
+   MAIN LOOP (Adaptive Quality + User Tuning)
 ========================================================== */
 let lastUiT = 0;
 
@@ -1811,6 +1890,7 @@ function loop(){
 
   let qAuto = 1 - Math.max(0, (frameMsSmooth - 16) / 45);
   qAuto = Math.max(0.28, Math.min(1, qAuto));
+
   const q = Math.min(qAuto, getPerfLim());
 
   ctx.fillStyle = `rgba(0,0,0,${getFade().toFixed(3)})`;
@@ -1829,7 +1909,16 @@ function loop(){
     document.getElementById('meterIn').style.width = (inPct*100).toFixed(1)+"%";
     document.getElementById('txtAmp').textContent =
       `amp: ${amp.toFixed(4)} | dAmp: ${ampDelta.toFixed(4)} | frame:${frameMsSmooth.toFixed(1)}ms | q:${q.toFixed(2)}`;
-    document.getElementById('meterTouch').style.width = (touchSmooth*100).toFixed(1)+"%";
+
+    const sim = Math.max(0, Math.min(1, parseFloat(rngSimTouch.value)||0));
+    const tv = Math.max(touchSmooth, sim);
+    document.getElementById('meterTouch').style.width = (tv*100).toFixed(1)+"%";
+
+    document.getElementById('hudTouch').textContent = tv.toFixed(3);
+    document.getElementById('hudAmp').textContent = amp.toFixed(3);
+    document.getElementById('hudMidi').textContent = midiName;
+    document.getElementById('hudTouchBar').style.width = (tv*100).toFixed(1)+"%";
+
     updateTopPill(q);
   }
 
@@ -1858,11 +1947,21 @@ function loop(){
   const t = now*0.001;
   const breathe = 0.5 + 0.5*Math.sin(t*1.2);
 
+  const sim = Math.max(0, Math.min(1, parseFloat(rngSimTouch.value)||0));
+  const touchV = Math.max(touchSmooth, sim);
+
   const baseSpeedQuiet = 0.10 + idleDrama*0.05;
   const baseChaosQuiet = 0.55 + idleDrama*1.10;
 
   const baseSpeedActive = (0.12 + Math.min(0.30, amp*2.6)) * visSens;
-  const baseChaosActive = Math.min(22, (ampDelta*90) + (touchSmooth*34) + burstEnergy*42) * visSens;
+
+  // ✅ Touch 영향 더 크게(“반응이 보이지 않는다” 해결)
+  const baseChaosActive =
+    Math.min(30,
+      (ampDelta*110) +
+      (touchV*120) +          // <-- 크게 올림
+      burstEnergy*55
+    ) * visSens;
 
   let speed = baseSpeedQuiet*(1-energy) + baseSpeedActive*energy;
   let chaos = baseChaosQuiet*(1-energy) + baseChaosActive*energy;
@@ -1872,15 +1971,15 @@ function loop(){
 
   const lineMul = getLineMul();
   const linkDistQuiet = 26 + idleDrama*10;
-  const linkDistActiveRaw = (64 + amp*240 + touchSmooth*280 + burstEnergy*110) * lineMul * visSens;
-  const linkDistActive = Math.min(160, linkDistActiveRaw);
+  const linkDistActiveRaw = (64 + amp*240 + touchV*520 + burstEnergy*110) * lineMul * visSens;
+  const linkDistActive = Math.min(180, linkDistActiveRaw);
   const linkDist = linkDistQuiet*(1-energy) + linkDistActive*energy;
 
-  const centerPull = (0.008 + touchSmooth*0.018) * (1.0 - Math.min(1, amp*1.2)) * (0.75 + idleDrama*0.6);
-  const burst = (amp*0.017 + ampDelta*0.056 + touchSmooth*0.010 + burstEnergy*0.020) * visSens;
+  const centerPull = (0.008 + touchV*0.028) * (1.0 - Math.min(1, amp*1.2)) * (0.75 + idleDrama*0.6);
+  const burst = (amp*0.017 + ampDelta*0.060 + touchV*0.020 + burstEnergy*0.020) * visSens;
 
   const freeze = energy * Math.max(0, 1 - (ampDelta*20));
-  const rotSpeedBase = (0.0012 + energy*0.010 + burstEnergy*0.008) * (1 - 0.7*freeze);
+  const rotSpeedBase = (0.0012 + energy*0.010 + burstEnergy*0.008 + touchV*0.010) * (1 - 0.7*freeze);
   const rotSpeed = rotSpeedBase * (0.65 + idleDrama*0.8);
   rot += rotSpeed;
 
@@ -1912,6 +2011,7 @@ function loop(){
 
   const pr = pts.map(project);
 
+  // lines: grid bucket + cap (perf)
   if(energy > 0.05 || quietLines>0){
     const cell = Math.max(22, Math.floor(linkDist));
     const inv = 1 / cell;
@@ -1927,7 +2027,7 @@ function loop(){
       arr.push(i);
     }
 
-    const baseMax = (1100 + energy*850 + burstEnergy*750) * lineMul;
+    const baseMax = (1100 + energy*850 + burstEnergy*750 + touchV*700) * lineMul;
     const maxLines = Math.floor(baseMax * q);
 
     let linesDrawn = 0;
@@ -1958,7 +2058,7 @@ function loop(){
               const alpha = 1 - d/linkDist;
 
               const quietGain = (quietLines===0) ? 0 : (quietLines===1 ? 0.12 : 0.24);
-              const onGain = 0.34 + amp*1.5*visSens + burstEnergy*1.6*visSens;
+              const onGain = 0.34 + amp*1.5*visSens + burstEnergy*1.6*visSens + touchV*1.4;
               const punch = Math.min(1, alpha * (quietGain*(1-energy) + onGain*energy));
 
               ctx.globalAlpha = punch * getGlow();
@@ -1988,11 +2088,11 @@ function loop(){
 
     const baseR = (0.6 + p.k*0.3) * pSize;
     const rQuiet = Math.max(0.9, baseR * (1.05 + idleDrama*0.15));
-    const rActive = baseR * (1.15 + amp*2.2*visSens + touchSmooth*0.9 + burstEnergy*0.7);
+    const rActive = baseR * (1.15 + amp*2.2*visSens + touchV*1.6 + burstEnergy*0.9);
     const r = rQuiet*(1-energy) + rActive*energy;
 
     const aQuiet = 0.32 + idleDrama*0.12;
-    const aActive = Math.min(1, 0.40 + amp*0.95*visSens + touchSmooth*0.45 + burstEnergy*0.55);
+    const aActive = Math.min(1, 0.40 + amp*0.95*visSens + touchV*0.65 + burstEnergy*0.60);
     const a = aQuiet*(1-energy) + aActive*energy;
 
     ctx.globalAlpha = a * glow;
@@ -2015,6 +2115,9 @@ if(S.activeTab){
   if(tabEl) tabEl.click();
 }
 
+/* ==========================================================
+   STARTUP
+========================================================== */
 N = parseInt(document.getElementById('selN').value,10);
 initPoints();
 updateTopPill(1);
