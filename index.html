@@ -2,59 +2,87 @@
 <html lang="ko">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>TouchMe – Granular Voice Smear</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>TouchMe – Voice Granular Shatter (REC + MIDI)</title>
   <style>
+    :root{color-scheme:dark}
     body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:#0b0b0b;color:#eee;margin:0;padding:20px}
-    .card{max-width:860px;margin:0 auto;background:#141414;border:1px solid #2a2a2a;border-radius:14px;padding:16px}
+    .card{max-width:920px;margin:0 auto;background:#141414;border:1px solid #2a2a2a;border-radius:16px;padding:16px}
     h1{font-size:18px;margin:0 0 10px}
-    p{opacity:.9;line-height:1.5}
+    p{opacity:.9;line-height:1.55;margin:8px 0}
     label{display:block;margin-top:10px}
-    input,select,button{width:100%;margin-top:6px;padding:10px;border-radius:10px;border:1px solid #333;background:#0f0f0f;color:#eee}
+    input,select,button{width:100%;margin-top:6px;padding:12px;border-radius:12px;border:1px solid #333;background:#0f0f0f;color:#eee}
     button{cursor:pointer}
-    .row{display:flex;gap:10px}
-    .row > *{flex:1}
-    .hint{font-size:12px;opacity:.75;margin-top:8px}
-    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:12px;background:#0f0f0f;border:1px solid #2a2a2a;border-radius:10px;padding:10px;white-space:pre-wrap}
+    button:disabled{opacity:.5;cursor:not-allowed}
+    .row{display:flex;gap:10px;flex-wrap:wrap}
+    .row > *{flex:1;min-width:180px}
+    .hint{font-size:12px;opacity:.78;margin-top:10px}
+    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:12px;background:#0f0f0f;border:1px solid #2a2a2a;border-radius:12px;padding:12px;white-space:pre-wrap}
+    .tinyrow{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+    .tinyrow .mini{flex:1;min-width:210px}
+    .mini span{display:block;font-size:12px;opacity:.8;margin-top:10px}
+    .mini input[type="range"]{padding:0}
   </style>
 </head>
 <body>
   <div class="card">
-    <h1>TouchMe → “늘어지고 멀어지는” 그레뉼러 말소리 파편</h1>
+    <h1>TouchMe → “늘어지고 멀어지며 파편적으로 뭉그러진” 목소리 (REC + MIDI)</h1>
+
     <p>
-      1) <b>Start Audio</b> 누르고<br/>
-      2) 음원 업로드(말소리/숨/속삭임 추천)<br/>
-      3) MIDI 장치에서 TouchMe 선택 → 손대면 파편화 재생.
+      1) <b>Start Audio</b> → 2) <b>Record Voice</b>로 네 목소리 녹음(또는 파일 업로드) → 3) <b>MIDI Input</b>에서 TouchMe 선택 → 손대면 재생/변형.
+      <br/>※ WebMIDI는 보통 <b>Chrome</b>에서 가장 안정적.
     </p>
 
     <div class="row">
       <button id="startBtn">Start Audio (필수)</button>
-      <button id="panicBtn">Panic (Stop)</button>
+      <button id="recBtn" disabled>Record Voice</button>
+      <button id="stopRecBtn" disabled>Stop Record</button>
+      <button id="panicBtn" disabled>Panic (Stop)</button>
     </div>
 
-    <label>내 음원 업로드 (wav/mp3/ogg)</label>
-    <input id="file" type="file" accept="audio/*" />
+    <label>내 음원 업로드 (wav/mp3/ogg/webm)</label>
+    <input id="file" type="file" accept="audio/*" disabled />
 
-    <label>MIDI Input</label>
-    <select id="midiIn"><option>검색 중...</option></select>
+    <div class="row">
+      <div>
+        <label>MIDI Input (TouchMe)</label>
+        <select id="midiIn" disabled><option>Start Audio 후 활성화</option></select>
+      </div>
+      <div>
+        <label>캐릭터(프리셋)</label>
+        <select id="preset" disabled>
+          <option value="ghost" selected>유령/멀어짐 (늘어짐+잔향)</option>
+          <option value="shatter">파편/찢김 (더 조각+크러시)</option>
+          <option value="cute">귀엽게 뭉그러짐 (짧은 그레인)</option>
+        </select>
+      </div>
+    </div>
 
-    <label>캐릭터(프리셋)</label>
-    <select id="preset">
-      <option value="cute">귀엽게 뭉그러짐 (짧은 그레인 + 반짝)</option>
-      <option value="ghost" selected>유령/멀어짐 (늘어짐 + 리버브)</option>
-      <option value="shatter">파편/찢김 (비트크러시 + 짧은 딜레이)</option>
-    </select>
+    <div class="tinyrow">
+      <div class="mini">
+        <span>파편감 (Jitter)</span>
+        <input id="jitter" type="range" min="0" max="100" value="55" disabled />
+      </div>
+      <div class="mini">
+        <span>멀어짐 (Distance)</span>
+        <input id="distance" type="range" min="0" max="100" value="60" disabled />
+      </div>
+      <div class="mini">
+        <span>깨짐 (Crush)</span>
+        <input id="crush" type="range" min="0" max="100" value="50" disabled />
+      </div>
+    </div>
 
     <div class="hint">
-      - Chrome 권장(WebMIDI). TouchMe는 MIDI 컨트롤러로 인식돼요. :contentReference[oaicite:2]{index=2}<br/>
-      - “늘어짐/시간왜곡”은 GrainPlayer(Granular) 기반. :contentReference[oaicite:3]{index=3}
+      - 손을 더 “세게” 누를수록: 더 늘어짐/더 멀어짐/더 파편화(velocity 기반).<br/>
+      - “말의 결”을 남기고 싶으면: <b>Crush</b>를 낮추고, <b>Distance</b>를 올리는 게 자연스러움.
     </div>
 
     <label>로그</label>
     <div id="log" class="mono">대기 중…</div>
   </div>
 
-  <!-- Tone.js (Granular + FX) -->
+  <!-- Tone.js -->
   <script src="https://unpkg.com/tone@15.1.22/build/Tone.js"></script>
 
   <script>
@@ -62,76 +90,27 @@
     const logEl = $("log");
     const log = (msg) => { logEl.textContent = msg + "\n" + logEl.textContent; };
 
-    let midiAccess = null;
-    let currentInput = null;
+    // ---------- helpers ----------
+    function clamp(v, a, b){ return Math.max(a, Math.min(b, v)); }
+    function lerp(a,b,t){ return a + (b-a)*t; }
+    function norm01(v){ return clamp(v/127, 0, 1); }
 
-    // --- Audio graph (Tone.js) ---
-    // GrainPlayer (granular) -> bitcrusher -> delay -> reverb -> out
-    const crusher = new Tone.BitCrusher(4);           // bits: 1~8
-    const delay = new Tone.FeedbackDelay("8n", 0.35); // feedback: 0~0.9
-    const reverb = new Tone.Reverb({ decay: 6, preDelay: 0.02, wet: 0.35 });
-
-    // “멀어짐” 느낌용 필터(고역 깎기) + 볼륨
-    const lp = new Tone.Filter(12000, "lowpass");
-    const out = new Tone.Gain(0.9).toDestination();
+    // ---------- Audio graph ----------
+    // GrainPlayer -> Crusher -> Delay -> Reverb -> LPF -> Out
+    const crusher = new Tone.BitCrusher(5);
+    const delay = new Tone.FeedbackDelay("8n", 0.30);
+    const reverb = new Tone.Reverb({ decay: 6.0, preDelay: 0.02, wet: 0.35 });
+    const lp = new Tone.Filter(11000, "lowpass");
+    const out = new Tone.Gain(0.95).toDestination();
 
     crusher.connect(delay);
     delay.connect(reverb);
     reverb.connect(lp);
     lp.connect(out);
 
-    // GrainPlayer는 URL/Buffer 필요. 업로드 후 생성.
     let player = null;
     let bufferLoaded = false;
-
-    // 상태
-    let activeNotes = new Map(); // note -> started?
-
-    function clamp(v, a, b){ return Math.max(a, Math.min(b, v)); }
-    function normVelocity(v){ return clamp(v / 127, 0, 1); }
-
-    function applyPreset(name){
-      if(!player) return;
-
-      if(name === "cute"){
-        // 짧은 그레인 + 밝은 느낌
-        player.grainSize = 0.05;
-        player.overlap = 0.03;
-        player.playbackRate = 1.0;
-        player.detune = 0;
-        crusher.bits = 6;
-        delay.delayTime.value = 0.12;
-        delay.feedback.value = 0.18;
-        reverb.decay = 2.2;
-        reverb.wet.value = 0.22;
-        lp.frequency.value = 14000;
-      } else if(name === "ghost"){
-        // 늘어짐 + 멀어짐 + 잔향
-        player.grainSize = 0.12;
-        player.overlap = 0.08;
-        player.playbackRate = 0.85; // 살짝 느리게
-        player.detune = -120;       // 살짝 낮춰서 유령화
-        crusher.bits = 5;
-        delay.delayTime.value = 0.22;
-        delay.feedback.value = 0.35;
-        reverb.decay = 7.0;
-        reverb.wet.value = 0.42;
-        lp.frequency.value = 9000;
-      } else if(name === "shatter"){
-        // 파편/찢김(크러시+짧은 딜레이)
-        player.grainSize = 0.04;
-        player.overlap = 0.01;
-        player.playbackRate = 1.05;
-        player.detune = 80;
-        crusher.bits = 3;
-        delay.delayTime.value = 0.09;
-        delay.feedback.value = 0.55;
-        reverb.decay = 1.6;
-        reverb.wet.value = 0.18;
-        lp.frequency.value = 11000;
-      }
-      log(`preset: ${name}`);
-    }
+    let activeNotes = new Map(); // note -> true
 
     function ensurePlayer(){
       if(player) return player;
@@ -139,109 +118,197 @@
         url: null,
         loop: true,
         autostart: false,
-        grainSize: 0.12,
-        overlap: 0.08
+        grainSize: 0.10,
+        overlap: 0.06
       });
       player.connect(crusher);
       return player;
     }
 
-    // MIDI note -> sample position (0~1)로 매핑해서 "파편적으로" 다른 조각에서 재생
-    function noteToPosition(note){
-      // 0~127 => 0~1 (약간 비선형, 중간에 더 몰리게)
-      const x = clamp(note / 127, 0, 1);
-      return Math.pow(x, 1.2);
+    // ---------- Presets ----------
+    function applyPreset(name){
+      if(!player) return;
+
+      if(name === "cute"){
+        player.grainSize = 0.05;
+        player.overlap = 0.03;
+        player.playbackRate = 1.0;
+        player.detune = 0;
+        delay.delayTime.value = 0.12;
+        delay.feedback.value = 0.18;
+        reverb.decay = 2.2;
+        reverb.wet.value = 0.22;
+        lp.frequency.value = 14000;
+        crusher.bits = 6;
+      } else if(name === "ghost"){
+        player.grainSize = 0.12;
+        player.overlap = 0.08;
+        player.playbackRate = 0.85;
+        player.detune = -120;
+        delay.delayTime.value = 0.22;
+        delay.feedback.value = 0.35;
+        reverb.decay = 7.0;
+        reverb.wet.value = 0.42;
+        lp.frequency.value = 9000;
+        crusher.bits = 5;
+      } else if(name === "shatter"){
+        player.grainSize = 0.04;
+        player.overlap = 0.015;
+        player.playbackRate = 1.05;
+        player.detune = 80;
+        delay.delayTime.value = 0.09;
+        delay.feedback.value = 0.55;
+        reverb.decay = 1.6;
+        reverb.wet.value = 0.18;
+        lp.frequency.value = 11000;
+        crusher.bits = 3;
+      }
+      log(`preset: ${name}`);
     }
+
+    // ---------- Mapping (MIDI -> “파편/늘어짐/멀어짐”) ----------
+    function noteToPosition(note){
+      // 0..127 -> 0..1 (살짝 비선형)
+      const x = clamp(note / 127, 0, 1);
+      return Math.pow(x, 1.15);
+    }
+
+    function uiJitter(){ return clamp(Number($("jitter").value)/100, 0, 1); }
+    function uiDistance(){ return clamp(Number($("distance").value)/100, 0, 1); }
+    function uiCrush(){ return clamp(Number($("crush").value)/100, 0, 1); }
 
     function startGrains(note, velocity){
       if(!bufferLoaded || !player) return;
-      const v = normVelocity(velocity);
 
-      // 손 세기가 강할수록 더 “뭉그러짐/파편화/멀어짐”
-      // v: 0(약) ~ 1(강)
+      const v = norm01(velocity);
       const preset = $("preset").value;
 
-      // 공통: position 랜덤 흔들림(파편감)
-      const basePos = noteToPosition(note);
-      const jitter = (0.06 + 0.20*v) * (Math.random()*2 - 1); // 강할수록 더 흔들
-      player.loopStart = clamp(basePos + jitter, 0, 0.95);
-      player.loopEnd   = clamp(player.loopStart + (0.08 + 0.22*v), 0.05, 1.0);
+      // UI knobs (0..1)
+      const j = uiJitter();
+      const d = uiDistance();
+      const c = uiCrush();
 
-      // 시간/공간 왜곡
-      // 강할수록 playbackRate는 더 느려지거나 불안정
+      // Position jitter (파편감)
+      const basePos = noteToPosition(note);
+      const jitterAmt = lerp(0.02, 0.28, clamp(0.35*j + 0.65*v, 0, 1));
+      const jitter = jitterAmt * (Math.random()*2 - 1);
+
+      const segLen = lerp(0.10, 0.34, clamp(0.25 + 0.75*v, 0, 1)); // 강할수록 구간 길이 늘려 "늘어짐"
+      player.loopStart = clamp(basePos + jitter, 0, 0.97);
+      player.loopEnd   = clamp(player.loopStart + segLen, 0.03, 1.0);
+
+      // Grain params (강할수록 뭉개짐)
+      const gSize = lerp(0.03, 0.22, clamp(0.25 + 0.75*v, 0, 1));
+      const ovlp  = lerp(0.008, 0.16, clamp(0.20 + 0.80*v, 0, 1));
+
+      // 프리셋에 따라 질감 조금 다르게
       if(preset === "ghost"){
-        player.playbackRate = clamp(0.95 - 0.35*v, 0.35, 1.1);
-        player.detune = -80 - 380*v; // 강할수록 더 낮아짐
+        player.grainSize = clamp(gSize * lerp(0.9, 1.25, d), 0.02, 0.28);
+        player.overlap   = clamp(ovlp  * lerp(1.0, 1.35, d), 0.005, 0.22);
+
+        // playbackRate 느려짐(늘어짐) + detune 하강(유령화)
+        const slow = clamp(lerp(0.95, 0.40, 0.65*v + 0.35*d), 0.30, 1.10);
+        player.playbackRate = slow;
+        player.detune = -80 - (520*(0.55*v + 0.45*d));
+
       } else if(preset === "cute"){
-        player.playbackRate = clamp(1.0 - 0.12*v, 0.75, 1.1);
-        player.detune = 0 + 120*v;
+        player.grainSize = clamp(gSize * 0.7, 0.02, 0.18);
+        player.overlap   = clamp(ovlp  * 0.7, 0.005, 0.14);
+        player.playbackRate = clamp(1.0 - 0.12*(0.7*v), 0.78, 1.12);
+        player.detune = 0 + 140*(0.6*v);
+
       } else { // shatter
-        player.playbackRate = clamp(1.05 - 0.25*v, 0.55, 1.2);
-        player.detune = 120 + 520*v;
+        player.grainSize = clamp(gSize * lerp(0.55, 0.95, c), 0.02, 0.20);
+        player.overlap   = clamp(ovlp  * 0.55, 0.005, 0.10);
+        player.playbackRate = clamp(1.05 - 0.45*(0.8*v), 0.45, 1.2);
+        player.detune = 120 + 620*(0.55*v + 0.45*j);
       }
 
-      // 그레뉼러 파라미터(뭉그러짐)
-      player.grainSize = clamp(0.03 + 0.18*v, 0.02, 0.25);
-      player.overlap   = clamp(0.01 + 0.14*v, 0.005, 0.2);
+      // “멀어짐” (Distance): LPF, Reverb, Delay, Volume
+      const dist = clamp(0.35*d + 0.65*v, 0, 1);
+      lp.frequency.value = clamp(lerp(15000, 1600, dist), 800, 16000);
+      reverb.decay = lerp(1.6, 8.0, dist);
+      reverb.wet.value = clamp(lerp(0.10, 0.78, dist), 0, 0.95);
+      delay.feedback.value = clamp(lerp(0.10, 0.75, dist), 0, 0.92);
 
-      // FX (강할수록 멀어짐/깨짐)
-      crusher.bits = Math.round(clamp(7 - 5*v, 1, 8)); // 강하면 bits ↓ (더 깨짐)
-      delay.feedback.value = clamp(0.15 + 0.65*v, 0, 0.9);
-      reverb.wet.value = clamp(0.10 + 0.65*v, 0, 0.9);
-      lp.frequency.value = clamp(15000 - 9000*v, 1200, 16000);
+      // “깨짐” (Crush): Bit depth
+      const crushAmt = clamp(0.50*c + 0.50*v, 0, 1);
+      const bits = Math.round(clamp(lerp(7, 1.6, crushAmt), 1, 8));
+      crusher.bits = bits;
 
-      // 볼륨: 강할수록 조금 줄여서 "멀어지는" 느낌도 같이
-      player.volume.value = -10 - 18*v;
+      // “멀어짐” 볼륨(원본 결 유지하려면 너무 낮추지 말 것)
+      player.volume.value = -8 - 22*dist;
 
       if(!activeNotes.get(note)){
-        player.start();
+        try { player.start(); } catch(e){}
         activeNotes.set(note, true);
       }
 
-      log(`NOTE ON  note=${note} vel=${velocity}  pos=${player.loopStart.toFixed(2)}~${player.loopEnd.toFixed(2)}  bits=${crusher.bits}`);
+      log(`NOTE ON  note=${note} vel=${velocity}  seg=${(player.loopEnd-player.loopStart).toFixed(2)}  grain=${player.grainSize.toFixed(3)}  bits=${crusher.bits}  LPF=${Math.round(lp.frequency.value)}`);
     }
 
     function stopGrains(note){
-      // 멀티터치(폴리)라면 진짜로는 “모든 노트가 떼어졌을 때”만 stop 하는 편이 자연스러움
       activeNotes.delete(note);
       if(activeNotes.size === 0 && player){
-        // 살짝 잔향 남기고 멈춤
-        setTimeout(()=>{ try{ player.stop(); }catch(e){} }, 60);
+        setTimeout(()=>{ try{ player.stop(); }catch(e){} }, 70);
       }
       log(`NOTE OFF note=${note} (active=${activeNotes.size})`);
     }
 
-    // --- UI ---
-    $("preset").addEventListener("change", (e)=> applyPreset(e.target.value));
+    // ---------- Recorder (Mic -> Blob -> GrainPlayer) ----------
+    let mediaStream = null;
+    let mediaRecorder = null;
+    let chunks = [];
 
-    $("panicBtn").addEventListener("click", ()=>{
-      activeNotes.clear();
-      try { if(player) player.stop(); } catch(e){}
-      log("PANIC: stop");
-    });
-
-    $("startBtn").addEventListener("click", async ()=>{
-      await Tone.start();
-      log("Audio started ✅  (이제 MIDI/파일 업로드 가능)");
-      // 리버브 초기화는 약간 시간 걸릴 수 있음
-      reverb.generate();
-    });
-
-    $("file").addEventListener("change", async (e)=>{
-      const f = e.target.files?.[0];
-      if(!f) return;
-      const url = URL.createObjectURL(f);
+    async function startRecord(){
       ensurePlayer();
-      bufferLoaded = false;
+      chunks = [];
 
-      log(`Loading sample: ${f.name}`);
-      await player.load(url);
-      bufferLoaded = true;
-      applyPreset($("preset").value);
-      log(`Loaded ✅ duration ~ ${player.buffer.duration.toFixed(2)}s`);
-    });
+      mediaStream = await navigator.mediaDevices.getUserMedia({ audio:true });
 
-    // --- WebMIDI ---
+      // mimeType은 브라우저마다 다름: 가능한 값으로 fallback
+      let options = {};
+      if(MediaRecorder.isTypeSupported("audio/webm;codecs=opus")) options.mimeType = "audio/webm;codecs=opus";
+      else if(MediaRecorder.isTypeSupported("audio/webm")) options.mimeType = "audio/webm";
+      else if(MediaRecorder.isTypeSupported("audio/ogg;codecs=opus")) options.mimeType = "audio/ogg;codecs=opus";
+
+      mediaRecorder = new MediaRecorder(mediaStream, options);
+
+      mediaRecorder.ondataavailable = (e)=>{ if(e.data && e.data.size) chunks.push(e.data); };
+      mediaRecorder.onstop = async ()=>{
+        const blob = new Blob(chunks, { type: mediaRecorder.mimeType || "audio/webm" });
+        const url = URL.createObjectURL(blob);
+
+        bufferLoaded = false;
+        log("Loading recorded voice...");
+        try{
+          await player.load(url);
+          bufferLoaded = true;
+          applyPreset($("preset").value);
+          log(`Recorded voice loaded ✅ (dur ~ ${player.buffer.duration.toFixed(2)}s)`);
+        }catch(e){
+          log("Load recorded voice FAILED: " + e.message);
+        }
+
+        try { mediaStream.getTracks().forEach(t=>t.stop()); } catch(e){}
+        mediaStream = null;
+      };
+
+      mediaRecorder.start();
+      log("Recording... 🎙️ (말/호흡/속삭임 추천)");
+    }
+
+    function stopRecord(){
+      if(mediaRecorder && mediaRecorder.state !== "inactive"){
+        mediaRecorder.stop();
+        log("Stop recording.");
+      }
+    }
+
+    // ---------- WebMIDI ----------
+    let midiAccess = null;
+    let currentInput = null;
+
     async function initMIDI(){
       if(!navigator.requestMIDIAccess){
         $("midiIn").innerHTML = `<option>WebMIDI 미지원 브라우저</option>`;
@@ -263,14 +330,13 @@
         sel.innerHTML = `<option>연결된 MIDI 없음</option>`;
         return;
       }
-      inputs.forEach((inp, idx)=>{
+      inputs.forEach((inp)=>{
         const opt = document.createElement("option");
         opt.value = inp.id;
         opt.textContent = `${inp.name || "MIDI Input"}${inp.manufacturer ? " – " + inp.manufacturer : ""}`;
         sel.appendChild(opt);
       });
 
-      // 자동 첫 선택
       if(!currentInput){
         connectInput(inputs[0].id);
         sel.value = inputs[0].id;
@@ -283,29 +349,94 @@
       if(!currentInput) return;
 
       currentInput.onmidimessage = (msg)=>{
-        const [status, data1, data2] = msg.data;
+        const [status, d1, d2] = msg.data;
         const cmd = status & 0xF0;
 
-        // NoteOn (0x90) / NoteOff (0x80)
-        if(cmd === 0x90){
-          const note = data1;
-          const vel  = data2;
+        if(cmd === 0x90){ // note on
+          const note = d1;
+          const vel = d2;
           if(vel === 0) stopGrains(note);
           else startGrains(note, vel);
-        } else if(cmd === 0x80){
-          stopGrains(data1);
+        } else if(cmd === 0x80){ // note off
+          stopGrains(d1);
         }
-
-        // (선택) CC로 “손 세기”가 따로 오면 여기서 매핑 가능
-        // if(cmd === 0xB0){ ... }
       };
 
       log(`MIDI input connected: ${currentInput.name || id}`);
     }
 
+    // ---------- UI wiring ----------
+    function setEnabledAll(on){
+      $("recBtn").disabled = !on;
+      $("stopRecBtn").disabled = true;
+      $("panicBtn").disabled = !on;
+      $("file").disabled = !on;
+      $("midiIn").disabled = !on;
+      $("preset").disabled = !on;
+      $("jitter").disabled = !on;
+      $("distance").disabled = !on;
+      $("crush").disabled = !on;
+    }
+
+    $("startBtn").addEventListener("click", async ()=>{
+      await Tone.start();
+      ensurePlayer();
+      reverb.generate();
+      setEnabledAll(true);
+      await initMIDI();
+      log("Audio started ✅  (REC/파일/MIDI 사용 가능)");
+      $("startBtn").disabled = true;
+    });
+
+    $("preset").addEventListener("change", (e)=> applyPreset(e.target.value));
+
+    $("panicBtn").addEventListener("click", ()=>{
+      activeNotes.clear();
+      try { if(player) player.stop(); } catch(e){}
+      log("PANIC: stop");
+    });
+
     $("midiIn").addEventListener("change", (e)=> connectInput(e.target.value));
 
-    initMIDI();
+    $("file").addEventListener("change", async (e)=>{
+      const f = e.target.files?.[0];
+      if(!f) return;
+
+      ensurePlayer();
+      const url = URL.createObjectURL(f);
+      bufferLoaded = false;
+
+      log(`Loading sample: ${f.name}`);
+      try{
+        await player.load(url);
+        bufferLoaded = true;
+        applyPreset($("preset").value);
+        log(`Loaded ✅ duration ~ ${player.buffer.duration.toFixed(2)}s`);
+      }catch(err){
+        log("Load FAILED: " + err.message);
+      }
+    });
+
+    $("recBtn").addEventListener("click", async ()=>{
+      try{
+        $("recBtn").disabled = true;
+        $("stopRecBtn").disabled = false;
+        await startRecord();
+      }catch(e){
+        log("Record error: " + e.message);
+        $("recBtn").disabled = false;
+        $("stopRecBtn").disabled = true;
+      }
+    });
+
+    $("stopRecBtn").addEventListener("click", ()=>{
+      $("stopRecBtn").disabled = true;
+      $("recBtn").disabled = false;
+      stopRecord();
+    });
+
+    // start disabled until Start Audio
+    setEnabledAll(false);
   </script>
 </body>
 </html>
