@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>SLEEP – Sound / Touch Reactive Field</title>
+<title>Sound Reactive Field (MIC BASE)</title>
 <style>
 html,body{margin:0;height:100%;background:#000;overflow:hidden}
 canvas{display:block}
@@ -17,15 +17,12 @@ canvas{display:block}
 </head>
 <body>
 
-<div id="hint">화면을 한 번 터치 / 클릭</div>
+<div id="hint">화면을 한 번 클릭 / 터치</div>
 <canvas id="c"></canvas>
 
 <script>
-/* ======================
-   BASIC SETUP
-====================== */
 const canvas = document.getElementById("c");
-const ctx2d = canvas.getContext("2d");
+const ctx = canvas.getContext("2d");
 let w,h,dpr;
 
 function resize(){
@@ -36,11 +33,9 @@ function resize(){
 window.addEventListener("resize",resize);
 resize();
 
-/* ======================
-   AUDIO (AMPLITUDE ONLY)
-====================== */
+/* ===== MIC ===== */
 let audioCtx, analyser, data;
-let amp = 0, ampSmooth = 0, ampDelta = 0;
+let amp=0, ampSmooth=0, ampDelta=0;
 
 async function initMic(){
   audioCtx = new AudioContext();
@@ -53,7 +48,6 @@ async function initMic(){
 }
 
 function updateAmp(){
-  if(!analyser) return;
   analyser.getByteTimeDomainData(data);
   let sum=0;
   for(let i=0;i<data.length;i++){
@@ -66,31 +60,8 @@ function updateAmp(){
   amp = ampSmooth;
 }
 
-/* ======================
-   TOUCHME (MIDI FLOW)
-====================== */
-let touch=0, touchSmooth=0;
-
-if(navigator.requestMIDIAccess){
-  navigator.requestMIDIAccess().then(midi=>{
-    for(const input of midi.inputs.values()){
-      input.onmidimessage=e=>{
-        const [, ,v]=e.data;
-        touch = v/127;
-      };
-      break;
-    }
-  });
-}
-
-function updateTouch(){
-  touchSmooth += (touch-touchSmooth)*0.2;
-}
-
-/* ======================
-   POINT FIELD
-====================== */
-const N=180;
+/* ===== POINT FIELD ===== */
+const N=160;
 const pts=[];
 for(let i=0;i<N;i++){
   pts.push({
@@ -102,14 +73,13 @@ for(let i=0;i<N;i++){
 
 function draw(){
   updateAmp();
-  updateTouch();
 
-  ctx2d.fillStyle="rgba(0,0,0,0.15)";
-  ctx2d.fillRect(0,0,w,h);
+  ctx.fillStyle="rgba(0,0,0,0.18)";
+  ctx.fillRect(0,0,w,h);
 
-  const speed = 0.2 + amp*12;
-  const linkDist = 40 + amp*180 + touchSmooth*220;
-  const chaos = ampDelta*120 + touchSmooth*60;
+  const speed = 0.2 + amp*10;
+  const linkDist = 40 + amp*220;
+  const chaos = ampDelta*140;
 
   for(const p of pts){
     p.vx += (Math.random()-0.5)*chaos;
@@ -123,41 +93,35 @@ function draw(){
     if(p.y<0)p.y+=h; if(p.y>h)p.y-=h;
   }
 
-  // connections
-  ctx2d.strokeStyle="rgba(255,255,255,0.25)";
-  ctx2d.lineWidth=1*dpr;
+  ctx.strokeStyle="rgba(255,255,255,0.25)";
+  ctx.lineWidth=1*dpr;
 
   for(let i=0;i<N;i++){
     for(let j=i+1;j<N;j++){
       const a=pts[i], b=pts[j];
-      const dx=a.x-b.x, dy=a.y-b.y;
-      const d=Math.hypot(dx,dy);
+      const d=Math.hypot(a.x-b.x,a.y-b.y);
       if(d<linkDist){
-        ctx2d.globalAlpha = 1 - d/linkDist;
-        ctx2d.beginPath();
-        ctx2d.moveTo(a.x,a.y);
-        ctx2d.lineTo(b.x,b.y);
-        ctx2d.stroke();
+        ctx.globalAlpha = 1 - d/linkDist;
+        ctx.beginPath();
+        ctx.moveTo(a.x,a.y);
+        ctx.lineTo(b.x,b.y);
+        ctx.stroke();
       }
     }
   }
 
-  // points
-  ctx2d.fillStyle="#fff";
-  ctx2d.globalAlpha=0.8;
+  ctx.globalAlpha=1;
+  ctx.fillStyle="#fff";
   for(const p of pts){
-    ctx2d.beginPath();
-    ctx2d.arc(p.x,p.y,(1.5+amp*3)*dpr,0,Math.PI*2);
-    ctx2d.fill();
+    ctx.beginPath();
+    ctx.arc(p.x,p.y,(1.4+amp*3)*dpr,0,Math.PI*2);
+    ctx.fill();
   }
-  ctx2d.globalAlpha=1;
 
   requestAnimationFrame(draw);
 }
 
-/* ======================
-   START
-====================== */
+/* ===== START ===== */
 async function start(){
   document.getElementById("hint").remove();
   await initMic();
