@@ -240,14 +240,14 @@
   <div class="box">
     <div class="entryTitle">LIMEN WORKSHOP – Entry</div>
     <div class="small" style="margin-bottom:12px;">
-      1) **Start Audio (Unlock Only)** 버튼을 누르거나, **화면 아무 곳이나 클릭**하여 오디오 잠금 해제<br/>
+      1) **Start Audio (Unlock Only)** 버튼을 **가장 먼저** 누르거나, **화면 아무 곳이나 클릭**하여 오디오 잠금 해제<br/>
       2) 오디오가 준비되면 <b>Mic ON</b> 또는 <b>File Play</b> 버튼으로 입장합니다.<br/>
       3) <b>⚙️ 버튼을 누르면 설정 창이 새 팝업 창으로 열립니다.</b>
     </div>
 
     <div class="row" style="justify-content:space-between;">
       <div class="row" style="margin:0;">
-        <button id="btnStartAudio">Start Audio (Unlock Only)</button>
+        <button id="btnStartAudio" onclick="handleAudioUnlock(event)">Start Audio (Unlock Only)</button> 
         <button id="btnFS">Fullscreen</button>
       </div>
       <div class="small" id="startStatus" style="opacity:.9; margin-left:10px;">Audio Context Locked.</div>
@@ -1267,7 +1267,8 @@ function setMicButtons(micOn){
 
   // Entry UI
   const btnStartAudio = document.getElementById('btnStartAudio');
-  if(btnStartAudio) btnStartAudio.disabled = audioUnlocked; // Always enable if audio isn't running
+  // Unlock button is enabled only if audio is suspended
+  if(btnStartAudio) btnStartAudio.disabled = audioUnlocked; 
 
   const entryMicOn = document.getElementById('entryMicOn');
   const entryMicOff = document.getElementById('entryMicOff');
@@ -2008,6 +2009,7 @@ function applySourceUI(){
   const btnStartAudio = document.getElementById('btnStartAudio');
   if(btnStartAudio){
       btnStartAudio.textContent = "Start Audio (Unlock Only)";
+      // Audio is unlocked if context exists and is running
       btnStartAudio.disabled = !!audioCtx && audioCtx.state !== 'suspended';
   }
 
@@ -2194,14 +2196,30 @@ if(isMainWindow){
   });
 
   /* ==========================================================
+      SYSTEM mic buttons
+  ========================================================== */
+  if(document.getElementById('btnMicOn')) document.getElementById('btnMicOn').addEventListener('click', async ()=>{
+    if(currentSource!=="mic") return;
+    await startMic(currentMicDeviceId, false);
+  });
+  if(document.getElementById('btnMicOff')) document.getElementById('btnMicOff').addEventListener('click', ()=> stopMic());
+
+
+  /* ==========================================================
       AUDIO UNLOCK HANDLER (Final Attempt)
   ========================================================== */
   async function handleAudioUnlock(e){
+    // 만약 이미 오디오가 실행 중이거나, AudioContext가 아직 정의되지 않았다면 초기화 시도
+    if (audioCtx && audioCtx.state !== 'suspended') return;
+    
     // 이 이벤트가 버튼 클릭 이벤트로부터 시작되었는지 확인 (중복 실행 방지)
-    if(e && e.target && e.target.tagName !== 'BUTTON' && e.target.id !== 'hint' && e.target.id !== 'c' && audioCtx && audioCtx.state !== 'suspended') return;
-
-    // 만약 버튼이나 화면 배경 클릭이 아니라면, 내부의 입력 필드 클릭일 수 있으므로 무시
-    if (e && e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT')) return;
+    if(e && e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT')) return;
+    
+    // 버튼을 제외한 힌트 박스 자체를 클릭했을 경우, 버튼 이벤트를 막지 않도록 처리
+    if (e && e.target.tagName !== 'BUTTON' && e.target.id !== 'hint') {
+         // 힌트 박스 내의 텍스트나 div를 클릭한 경우, 잠금 해제를 시도합니다.
+         // 하지만 버튼 클릭이 아닌 경우, e.preventDefault();를 호출하지 않도록 주의합니다.
+    }
       
     ensureAudio();
     
@@ -2234,16 +2252,18 @@ if(isMainWindow){
     }
   }
   
-  // 1. Button Click Listener (Primary method, direct click)
-  document.getElementById('btnStartAudio').addEventListener('click', handleAudioUnlock, false);
-  
-  // 2. Hint Area Click Listener (Fallback for mobile/iOS touch)
-  // `pointer-events: auto;` 덕분에 버튼 클릭은 이 리스너를 거치지 않습니다.
+  // 1. Button Click Listener (Primary method, used via inline onclick="handleAudioUnlock(event)")
+  // event.preventDefault()는 인라인에서 처리되지 않도록 주의
+
+  // 2. Hint Area Click Listener (Fallback for touch gestures on mobile)
   document.getElementById('hint').addEventListener('click', handleAudioUnlock, false);
 
   // 3. Global Fallback Listener (Most robust attempt)
   // Use capture phase (true) to ensure it runs *before* other elements consume it
   window.addEventListener('pointerdown', handleAudioUnlock, true); 
+  
+  // Make the function globally accessible for the inline handler
+  window.handleAudioUnlock = handleAudioUnlock;
 }
 
 /* ==========================================================
@@ -2389,6 +2409,11 @@ async function entryReboot(reason="lag"){
   // Re-enable the main Start Audio button
   const btnStartAudio = document.getElementById('btnStartAudio');
   if(btnStartAudio) btnStartAudio.disabled = false;
+  
+  // Re-add global listeners if they were removed
+  window.handleAudioUnlock = handleAudioUnlock;
+  document.getElementById('hint').addEventListener('click', handleAudioUnlock, false);
+  window.addEventListener('pointerdown', handleAudioUnlock, true); 
 }
 if(isMainWindow) window.entryReboot = entryReboot;
 
