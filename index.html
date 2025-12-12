@@ -1,294 +1,311 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ko">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
-<title>Wireframe Space Scan</title>
-<style>
-  body{margin:0;overflow:hidden;background:#000;font-family:sans-serif;}
-  #video{
-    position:fixed;inset:0;width:100vw;height:100vh;object-fit:cover;z-index:0;
-  }
-  #scanCanvas{
-    position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:1;
-  }
-  #modelCanvas{
-    position:fixed;inset:0;width:100vw;height:100vh;display:none;z-index:2;
-  }
-  #startBtn,#confirmBtn{
-    position:fixed;bottom:40px;padding:18px 26px;border-radius:30px;border:none;
-    font-size:17px;z-index:10;
-  }
-  #startBtn{left:50%;transform:translateX(-50%);background:#fff;color:#000;}
-  #confirmBtn{right:40px;background:#3a7bff;color:#fff;display:none;}
-  #status{
-    position:fixed;top:20px;left:50%;transform:translateX(-50%);
-    background:rgba(0,0,0,0.4);padding:8px 18px;border-radius:20px;color:#fff;z-index:10;
-  }
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>TouchMe – Granular Voice Smear</title>
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:#0b0b0b;color:#eee;margin:0;padding:20px}
+    .card{max-width:860px;margin:0 auto;background:#141414;border:1px solid #2a2a2a;border-radius:14px;padding:16px}
+    h1{font-size:18px;margin:0 0 10px}
+    p{opacity:.9;line-height:1.5}
+    label{display:block;margin-top:10px}
+    input,select,button{width:100%;margin-top:6px;padding:10px;border-radius:10px;border:1px solid #333;background:#0f0f0f;color:#eee}
+    button{cursor:pointer}
+    .row{display:flex;gap:10px}
+    .row > *{flex:1}
+    .hint{font-size:12px;opacity:.75;margin-top:8px}
+    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:12px;background:#0f0f0f;border:1px solid #2a2a2a;border-radius:10px;padding:10px;white-space:pre-wrap}
+  </style>
 </head>
 <body>
-<video id="video" autoplay playsinline muted></video>
-<canvas id="scanCanvas"></canvas>
-<canvas id="modelCanvas"></canvas>
+  <div class="card">
+    <h1>TouchMe → “늘어지고 멀어지는” 그레뉼러 말소리 파편</h1>
+    <p>
+      1) <b>Start Audio</b> 누르고<br/>
+      2) 음원 업로드(말소리/숨/속삭임 추천)<br/>
+      3) MIDI 장치에서 TouchMe 선택 → 손대면 파편화 재생.
+    </p>
 
-<div id="status">스캔 준비 중...</div>
-<button id="startBtn">전체화면 시작</button>
-<button id="confirmBtn">확인</button>
+    <div class="row">
+      <button id="startBtn">Start Audio (필수)</button>
+      <button id="panicBtn">Panic (Stop)</button>
+    </div>
 
-<script>
-/* ========= UI + fullscreen ========= */
-const startBtn = document.getElementById('startBtn');
-const confirmBtn = document.getElementById('confirmBtn');
-const statusDiv = document.getElementById('status');
+    <label>내 음원 업로드 (wav/mp3/ogg)</label>
+    <input id="file" type="file" accept="audio/*" />
 
-startBtn.onclick = async ()=>{
-  try{ await document.documentElement.requestFullscreen(); }catch(e){}
-  startBtn.style.display='none';
-  statusDiv.textContent='스캔 중...';
-  if(audioCtx.state==='suspended') audioCtx.resume();
-};
+    <label>MIDI Input</label>
+    <select id="midiIn"><option>검색 중...</option></select>
 
-/* ========= Camera ========= */
-const video = document.getElementById('video');
-navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false})
-  .then(stream=>video.srcObject=stream)
-  .catch(()=>statusDiv.textContent='카메라 접근 실패');
+    <label>캐릭터(프리셋)</label>
+    <select id="preset">
+      <option value="cute">귀엽게 뭉그러짐 (짧은 그레인 + 반짝)</option>
+      <option value="ghost" selected>유령/멀어짐 (늘어짐 + 리버브)</option>
+      <option value="shatter">파편/찢김 (비트크러시 + 짧은 딜레이)</option>
+    </select>
 
-/* ========= Canvas ========= */
-const scanCanvas = document.getElementById('scanCanvas');
-const sCtx = scanCanvas.getContext('2d');
-const modelCanvas = document.getElementById('modelCanvas');
-const mCtx = modelCanvas.getContext('2d');
+    <div class="hint">
+      - Chrome 권장(WebMIDI). TouchMe는 MIDI 컨트롤러로 인식돼요. :contentReference[oaicite:2]{index=2}<br/>
+      - “늘어짐/시간왜곡”은 GrainPlayer(Granular) 기반. :contentReference[oaicite:3]{index=3}
+    </div>
 
-function resize(){
-  scanCanvas.width = innerWidth; scanCanvas.height = innerHeight;
-  modelCanvas.width = innerWidth; modelCanvas.height = innerHeight;
-}
-resize(); addEventListener('resize', resize);
+    <label>로그</label>
+    <div id="log" class="mono">대기 중…</div>
+  </div>
 
-/* ========= Click sound (no mp3) ========= */
-const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-const audioCtx = new AudioContextClass();
-function playClick(){
-  try{
-    const o = audioCtx.createOscillator();
-    const g = audioCtx.createGain();
-    o.type='square';
-    o.frequency.setValueAtTime(2200, audioCtx.currentTime);
-    g.gain.setValueAtTime(0.45, audioCtx.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime+0.05);
-    o.connect(g).connect(audioCtx.destination);
-    o.start(); o.stop(audioCtx.currentTime+0.05);
-  }catch(e){}
-}
+  <!-- Tone.js (Granular + FX) -->
+  <script src="https://unpkg.com/tone@15.1.22/build/Tone.js"></script>
 
-/* ========= Point/Line cloud =========
-   포인트는 "윤곽선에서 샘플링된 꼭짓점들"을 누적
-*/
-let points = [];     // {x,y,z,r,g,b}
-const MAX_POINTS = 5000;
-let scanning = true;
-let lastEdgeScore = 0;
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const logEl = $("log");
+    const log = (msg) => { logEl.textContent = msg + "\n" + logEl.textContent; };
 
-/* ---------- edge detector (Sobel magnitude) ---------- */
-function toGrayscale(img){
-  const {data,w,h} = img;
-}
-function sobelEdgePoints(imgData, tw, th, step=3, threshold=120){
-  // imgData: ImageData
-  const d = imgData.data;
-  const gray = new Uint8Array(tw*th);
+    let midiAccess = null;
+    let currentInput = null;
 
-  for(let i=0;i<tw*th;i++){
-    const idx=i*4;
-    gray[i] = (d[idx]*0.299 + d[idx+1]*0.587 + d[idx+2]*0.114) | 0;
-  }
+    // --- Audio graph (Tone.js) ---
+    // GrainPlayer (granular) -> bitcrusher -> delay -> reverb -> out
+    const crusher = new Tone.BitCrusher(4);           // bits: 1~8
+    const delay = new Tone.FeedbackDelay("8n", 0.35); // feedback: 0~0.9
+    const reverb = new Tone.Reverb({ decay: 6, preDelay: 0.02, wet: 0.35 });
 
-  const pts=[];
-  let edgeScore = 0;
+    // “멀어짐” 느낌용 필터(고역 깎기) + 볼륨
+    const lp = new Tone.Filter(12000, "lowpass");
+    const out = new Tone.Gain(0.9).toDestination();
 
-  // Sobel kernels
-  // gx = [-1 0 1; -2 0 2; -1 0 1]
-  // gy = [-1 -2 -1; 0 0 0; 1 2 1]
-  for(let y=1;y<th-1;y+=step){
-    for(let x=1;x<tw-1;x+=step){
-      const i = y*tw + x;
+    crusher.connect(delay);
+    delay.connect(reverb);
+    reverb.connect(lp);
+    lp.connect(out);
 
-      const g00 = gray[i - tw - 1], g01 = gray[i - tw], g02 = gray[i - tw + 1];
-      const g10 = gray[i - 1],      g12 = gray[i + 1];
-      const g20 = gray[i + tw - 1], g21 = gray[i + tw], g22 = gray[i + tw + 1];
+    // GrainPlayer는 URL/Buffer 필요. 업로드 후 생성.
+    let player = null;
+    let bufferLoaded = false;
 
-      const gx = (-g00 + g02) + (-2*g10 + 2*g12) + (-g20 + g22);
-      const gy = (-g00 -2*g01 - g02) + (g20 + 2*g21 + g22);
+    // 상태
+    let activeNotes = new Map(); // note -> started?
 
-      const mag = Math.abs(gx) + Math.abs(gy); // 빠른 근사
-      edgeScore += mag;
+    function clamp(v, a, b){ return Math.max(a, Math.min(b, v)); }
+    function normVelocity(v){ return clamp(v / 127, 0, 1); }
 
-      if(mag > threshold){
-        // “꼭짓점”처럼 보이도록 엣지 포인트 샘플링
-        const idx=i*4;
-        pts.push({
-          x, y,
-          r:d[idx], g:d[idx+1], b:d[idx+2],
-          mag
-        });
+    function applyPreset(name){
+      if(!player) return;
+
+      if(name === "cute"){
+        // 짧은 그레인 + 밝은 느낌
+        player.grainSize = 0.05;
+        player.overlap = 0.03;
+        player.playbackRate = 1.0;
+        player.detune = 0;
+        crusher.bits = 6;
+        delay.delayTime.value = 0.12;
+        delay.feedback.value = 0.18;
+        reverb.decay = 2.2;
+        reverb.wet.value = 0.22;
+        lp.frequency.value = 14000;
+      } else if(name === "ghost"){
+        // 늘어짐 + 멀어짐 + 잔향
+        player.grainSize = 0.12;
+        player.overlap = 0.08;
+        player.playbackRate = 0.85; // 살짝 느리게
+        player.detune = -120;       // 살짝 낮춰서 유령화
+        crusher.bits = 5;
+        delay.delayTime.value = 0.22;
+        delay.feedback.value = 0.35;
+        reverb.decay = 7.0;
+        reverb.wet.value = 0.42;
+        lp.frequency.value = 9000;
+      } else if(name === "shatter"){
+        // 파편/찢김(크러시+짧은 딜레이)
+        player.grainSize = 0.04;
+        player.overlap = 0.01;
+        player.playbackRate = 1.05;
+        player.detune = 80;
+        crusher.bits = 3;
+        delay.delayTime.value = 0.09;
+        delay.feedback.value = 0.55;
+        reverb.decay = 1.6;
+        reverb.wet.value = 0.18;
+        lp.frequency.value = 11000;
+      }
+      log(`preset: ${name}`);
+    }
+
+    function ensurePlayer(){
+      if(player) return player;
+      player = new Tone.GrainPlayer({
+        url: null,
+        loop: true,
+        autostart: false,
+        grainSize: 0.12,
+        overlap: 0.08
+      });
+      player.connect(crusher);
+      return player;
+    }
+
+    // MIDI note -> sample position (0~1)로 매핑해서 "파편적으로" 다른 조각에서 재생
+    function noteToPosition(note){
+      // 0~127 => 0~1 (약간 비선형, 중간에 더 몰리게)
+      const x = clamp(note / 127, 0, 1);
+      return Math.pow(x, 1.2);
+    }
+
+    function startGrains(note, velocity){
+      if(!bufferLoaded || !player) return;
+      const v = normVelocity(velocity);
+
+      // 손 세기가 강할수록 더 “뭉그러짐/파편화/멀어짐”
+      // v: 0(약) ~ 1(강)
+      const preset = $("preset").value;
+
+      // 공통: position 랜덤 흔들림(파편감)
+      const basePos = noteToPosition(note);
+      const jitter = (0.06 + 0.20*v) * (Math.random()*2 - 1); // 강할수록 더 흔들
+      player.loopStart = clamp(basePos + jitter, 0, 0.95);
+      player.loopEnd   = clamp(player.loopStart + (0.08 + 0.22*v), 0.05, 1.0);
+
+      // 시간/공간 왜곡
+      // 강할수록 playbackRate는 더 느려지거나 불안정
+      if(preset === "ghost"){
+        player.playbackRate = clamp(0.95 - 0.35*v, 0.35, 1.1);
+        player.detune = -80 - 380*v; // 강할수록 더 낮아짐
+      } else if(preset === "cute"){
+        player.playbackRate = clamp(1.0 - 0.12*v, 0.75, 1.1);
+        player.detune = 0 + 120*v;
+      } else { // shatter
+        player.playbackRate = clamp(1.05 - 0.25*v, 0.55, 1.2);
+        player.detune = 120 + 520*v;
+      }
+
+      // 그레뉼러 파라미터(뭉그러짐)
+      player.grainSize = clamp(0.03 + 0.18*v, 0.02, 0.25);
+      player.overlap   = clamp(0.01 + 0.14*v, 0.005, 0.2);
+
+      // FX (강할수록 멀어짐/깨짐)
+      crusher.bits = Math.round(clamp(7 - 5*v, 1, 8)); // 강하면 bits ↓ (더 깨짐)
+      delay.feedback.value = clamp(0.15 + 0.65*v, 0, 0.9);
+      reverb.wet.value = clamp(0.10 + 0.65*v, 0, 0.9);
+      lp.frequency.value = clamp(15000 - 9000*v, 1200, 16000);
+
+      // 볼륨: 강할수록 조금 줄여서 "멀어지는" 느낌도 같이
+      player.volume.value = -10 - 18*v;
+
+      if(!activeNotes.get(note)){
+        player.start();
+        activeNotes.set(note, true);
+      }
+
+      log(`NOTE ON  note=${note} vel=${velocity}  pos=${player.loopStart.toFixed(2)}~${player.loopEnd.toFixed(2)}  bits=${crusher.bits}`);
+    }
+
+    function stopGrains(note){
+      // 멀티터치(폴리)라면 진짜로는 “모든 노트가 떼어졌을 때”만 stop 하는 편이 자연스러움
+      activeNotes.delete(note);
+      if(activeNotes.size === 0 && player){
+        // 살짝 잔향 남기고 멈춤
+        setTimeout(()=>{ try{ player.stop(); }catch(e){} }, 60);
+      }
+      log(`NOTE OFF note=${note} (active=${activeNotes.size})`);
+    }
+
+    // --- UI ---
+    $("preset").addEventListener("change", (e)=> applyPreset(e.target.value));
+
+    $("panicBtn").addEventListener("click", ()=>{
+      activeNotes.clear();
+      try { if(player) player.stop(); } catch(e){}
+      log("PANIC: stop");
+    });
+
+    $("startBtn").addEventListener("click", async ()=>{
+      await Tone.start();
+      log("Audio started ✅  (이제 MIDI/파일 업로드 가능)");
+      // 리버브 초기화는 약간 시간 걸릴 수 있음
+      reverb.generate();
+    });
+
+    $("file").addEventListener("change", async (e)=>{
+      const f = e.target.files?.[0];
+      if(!f) return;
+      const url = URL.createObjectURL(f);
+      ensurePlayer();
+      bufferLoaded = false;
+
+      log(`Loading sample: ${f.name}`);
+      await player.load(url);
+      bufferLoaded = true;
+      applyPreset($("preset").value);
+      log(`Loaded ✅ duration ~ ${player.buffer.duration.toFixed(2)}s`);
+    });
+
+    // --- WebMIDI ---
+    async function initMIDI(){
+      if(!navigator.requestMIDIAccess){
+        $("midiIn").innerHTML = `<option>WebMIDI 미지원 브라우저</option>`;
+        log("WebMIDI 미지원: Chrome 권장");
+        return;
+      }
+      midiAccess = await navigator.requestMIDIAccess({ sysex:false });
+      refreshInputs();
+      midiAccess.onstatechange = refreshInputs;
+      log("MIDI ready ✅");
+    }
+
+    function refreshInputs(){
+      const sel = $("midiIn");
+      sel.innerHTML = "";
+      const inputs = Array.from(midiAccess.inputs.values());
+
+      if(inputs.length === 0){
+        sel.innerHTML = `<option>연결된 MIDI 없음</option>`;
+        return;
+      }
+      inputs.forEach((inp, idx)=>{
+        const opt = document.createElement("option");
+        opt.value = inp.id;
+        opt.textContent = `${inp.name || "MIDI Input"}${inp.manufacturer ? " – " + inp.manufacturer : ""}`;
+        sel.appendChild(opt);
+      });
+
+      // 자동 첫 선택
+      if(!currentInput){
+        connectInput(inputs[0].id);
+        sel.value = inputs[0].id;
       }
     }
-  }
 
-  return {pts, edgeScore};
-}
+    function connectInput(id){
+      if(currentInput) currentInput.onmidimessage = null;
+      currentInput = midiAccess.inputs.get(id);
+      if(!currentInput) return;
 
-/* ---------- add points with meaningful z ---------- */
-function addEdgePoints(edgePts, tw, th){
-  // z는 "엣지 강도" + "밝기" 기반으로 덩어리 만들기
-  for(let k=0;k<edgePts.length;k++){
-    const p=edgePts[k];
+      currentInput.onmidimessage = (msg)=>{
+        const [status, data1, data2] = msg.data;
+        const cmd = status & 0xF0;
 
-    // 화면 정규화
-    const nx = (p.x/tw - 0.5)*2;
-    const ny = (p.y/th - 0.5)*2;
-
-    // 깊이: 엣지 강도(mag)가 크면 앞으로, 약하면 뒤로 (형태가 더 살아남)
-    const magNorm = Math.min(1, p.mag/700);
-    const depth = (magNorm*2 - 1); // -1~1
-
-    points.push({x:nx,y:ny,z:depth,r:p.r,g:p.g,b:p.b});
-    if(points.length>MAX_POINTS) points.shift();
-  }
-}
-
-/* ---------- draw scan overlay: vertices + lines ---------- */
-function drawOverlay(){
-  const W=scanCanvas.width, H=scanCanvas.height;
-  sCtx.clearRect(0,0,W,H);
-
-  // 꼭짓점(점)
-  for(const p of points){
-    const sx=(p.x*0.5+0.5)*W;
-    const sy=(p.y*0.5+0.5)*H;
-    sCtx.fillStyle=`rgba(${p.r},${p.g},${p.b},0.95)`;
-    sCtx.fillRect(sx,sy,2,2);
-  }
-
-  // 라인(근접 연결)
-  sCtx.strokeStyle='rgba(0,255,255,0.55)';
-  for(let i=0;i<points.length;i+=4){
-    const p1=points[i];
-    for(let j=i+1;j<i+10 && j<points.length;j++){
-      const p2=points[j];
-      const dx=p1.x-p2.x, dy=p1.y-p2.y, dz=p1.z-p2.z;
-      const dist=dx*dx+dy*dy+dz*dz;
-      if(dist<0.18){
-        sCtx.beginPath();
-        sCtx.moveTo((p1.x*0.5+0.5)*W,(p1.y*0.5+0.5)*H);
-        sCtx.lineTo((p2.x*0.5+0.5)*W,(p2.y*0.5+0.5)*H);
-        sCtx.stroke();
-      }
-    }
-  }
-}
-
-/* ========= main scan loop ========= */
-function scanLoop(){
-  if(!scanning) return;
-
-  if(video.readyState>=2){
-    // downsample frame
-    const tw=240, th=180;
-    const temp=document.createElement('canvas');
-    temp.width=tw; temp.height=th;
-    const tctx=temp.getContext('2d');
-    tctx.drawImage(video,0,0,tw,th);
-    const frame=tctx.getImageData(0,0,tw,th);
-
-    const {pts:edgePts, edgeScore} = sobelEdgePoints(frame, tw, th, 3, 120);
-
-    // "새로운 구조가 많이 잡힐 때" 찰칵
-    const delta = Math.abs(edgeScore - lastEdgeScore) / 100000;
-    if(delta > 3.0 && edgePts.length>60){
-      playClick();
-      addEdgePoints(edgePts, tw, th);
-    }else{
-      // 변화가 적어도 조금씩은 쌓이게 (느린 스캔)
-      if(edgePts.length>80) addEdgePoints(edgePts.slice(0,80), tw, th);
-    }
-
-    lastEdgeScore = edgeScore;
-
-    drawOverlay();
-    confirmBtn.style.display='block';
-  }
-
-  requestAnimationFrame(scanLoop);
-}
-requestAnimationFrame(scanLoop);
-
-/* ========= confirm → 3D viewer ========= */
-confirmBtn.onclick = ()=>{
-  scanning=false;
-  scanCanvas.style.display='none';
-  modelCanvas.style.display='block';
-  statusDiv.textContent='스캔 결과(와이어프레임)';
-  show3D();
-};
-
-let ang=0;
-function show3D(){
-  function loop(){
-    const W=modelCanvas.width, H=modelCanvas.height;
-    const cx=W/2, cy=H/2;
-    const scale=Math.min(W,H)*0.5;
-    const cosA=Math.cos(ang), sinA=Math.sin(ang);
-
-    mCtx.clearRect(0,0,W,H);
-    mCtx.fillStyle='#000'; mCtx.fillRect(0,0,W,H);
-
-    // 점
-    for(const p of points){
-      const x = p.x*cosA - p.z*sinA;
-      const z = p.x*sinA + p.z*cosA;
-      const y = p.y;
-
-      const depth = (z + 2.8)/2.0;
-      const sx = cx + x*scale/depth;
-      const sy = cy + y*scale/depth;
-
-      mCtx.fillStyle = `rgba(${p.r},${p.g},${p.b},0.9)`;
-      mCtx.fillRect(sx,sy,2.2/depth,2.2/depth);
-    }
-
-    // 선
-    mCtx.strokeStyle='rgba(0,255,255,0.25)';
-    for(let i=0;i<points.length;i+=6){
-      const p1=points[i];
-      for(let j=i+1;j<i+10 && j<points.length;j++){
-        const p2=points[j];
-        const dx=p1.x-p2.x, dy=p1.y-p2.y, dz=p1.z-p2.z;
-        if(dx*dx+dy*dy+dz*dz<0.18){
-          const x1 = (p1.x*cosA - p1.z*sinA);
-          const z1 = (p1.x*sinA + p1.z*cosA);
-          const y1 = p1.y;
-
-          const x2 = (p2.x*cosA - p2.z*sinA);
-          const z2 = (p2.x*sinA + p2.z*cosA);
-          const y2 = p2.y;
-
-          const d1=(z1+2.8)/2.0, d2=(z2+2.8)/2.0;
-          mCtx.beginPath();
-          mCtx.moveTo(cx + x1*scale/d1, cy + y1*scale/d1);
-          mCtx.lineTo(cx + x2*scale/d2, cy + y2*scale/d2);
-          mCtx.stroke();
+        // NoteOn (0x90) / NoteOff (0x80)
+        if(cmd === 0x90){
+          const note = data1;
+          const vel  = data2;
+          if(vel === 0) stopGrains(note);
+          else startGrains(note, vel);
+        } else if(cmd === 0x80){
+          stopGrains(data1);
         }
-      }
+
+        // (선택) CC로 “손 세기”가 따로 오면 여기서 매핑 가능
+        // if(cmd === 0xB0){ ... }
+      };
+
+      log(`MIDI input connected: ${currentInput.name || id}`);
     }
 
-    ang += 0.0035;
-    requestAnimationFrame(loop);
-  }
-  requestAnimationFrame(loop);
-}
-</script>
+    $("midiIn").addEventListener("change", (e)=> connectInput(e.target.value));
+
+    initMIDI();
+  </script>
 </body>
 </html>
