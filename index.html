@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-<title>TouchMe + Mic THRU + Press-to-FX (Chrome Debug)</title>
+<title>TouchMe + Mic Visualizer (Wave + Reactive Particles)</title>
 <style>
   :root{color-scheme:dark}
   html,body{height:100%;margin:0}
@@ -20,18 +20,15 @@
     background:radial-gradient(circle, rgba(255,255,255,0.06), transparent 55%);
   }
   #hint .box{
-    pointer-events:none;
+    max-width:760px;
     padding:18px 16px;
     border:1px solid #333;border-radius:16px;
-    background:rgba(15,15,15,.85);
-    max-width:720px; text-align:center;
+    background:rgba(15,15,15,.86);
+    text-align:center;
+    pointer-events:none;
   }
-  #panel{
-    max-width:1100px; margin:0 auto; padding:18px;
-  }
-  .card{
-    background:#141414;border:1px solid #2a2a2a;border-radius:16px;padding:16px;
-  }
+  #wrap{max-width:1200px;margin:0 auto;padding:18px}
+  .card{background:#141414;border:1px solid #2a2a2a;border-radius:16px;padding:16px}
   .row{display:flex; gap:10px; flex-wrap:wrap; margin-top:10px}
   .row>*{flex:1; min-width:220px}
   button,input{
@@ -41,37 +38,45 @@
   }
   button{cursor:pointer}
   button:disabled{opacity:.55; cursor:not-allowed}
-  .mono{
+  label{display:block;margin-top:10px;font-size:13px;opacity:.9}
+  .meter{height:10px;border-radius:999px;background:#1a1a1a;border:1px solid #2a2a2a;overflow:hidden}
+  .meter>div{height:100%;width:0%;background:#eaeaea;opacity:.9}
+  .grid{display:grid;grid-template-columns:1fr;gap:10px;margin-top:12px}
+  @media(min-width:980px){ .grid{grid-template-columns:1fr 1fr} }
+  .viz{background:#0f0f0f;border:1px solid #2a2a2a;border-radius:14px;padding:10px}
+  canvas{width:100%;height:220px;display:block;border-radius:10px;background:#0a0a0a}
+  #log{
     margin-top:12px;
     font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;
     font-size:12px;
-    background:#0f0f0f; border:1px solid #2a2a2a; border-radius:12px;
-    padding:12px; white-space:pre-wrap;
+    background:#0f0f0f;border:1px solid #2a2a2a;border-radius:12px;
+    padding:12px;white-space:pre-wrap;
   }
-  .meter{height:10px;border-radius:999px;background:#1a1a1a;border:1px solid #2a2a2a;overflow:hidden}
-  .meter>div{height:100%;width:0%;background:#eaeaea;opacity:.9}
-  label{display:block; margin-top:10px; font-size:13px; opacity:.9}
+  .hint{font-size:12px;opacity:.75;line-height:1.5}
 </style>
 </head>
 <body>
 
 <div id="hint">
   <div class="box">
-    <h2 style="margin:0 0 8px">Chrome: TouchMe + Mic</h2>
-    <div style="opacity:.9;line-height:1.5">
-      <b>화면 아무 곳이나 한 번 클릭/터치</b> → 오디오 시작<br/>
-      그 다음 <b>Test Beep</b>로 출력 확인 → <b>Mic On</b><br/>
-      TouchMe 누르는 동안만 FX가 올라감
+    <h2 style="margin:0 0 8px">TouchMe + Mic Visualizer</h2>
+    <div style="opacity:.92;line-height:1.55">
+      <b>화면 아무 곳 1회 클릭/터치</b> → 오디오/MIDI 준비<br/>
+      그 다음 <b>Mic On</b> → 원음(dry) 들림 + 파형 표시<br/>
+      <b>TouchMe</b> 누르는 동안 → FX(wet) + 비주얼 파편/진동 증가
+    </div>
+    <div class="hint" style="margin-top:8px">
+      ※ 하울링 방지로 이어폰/헤드폰 추천. (HTTPS/localhost가 제일 안정적)
     </div>
   </div>
 </div>
 
-<div id="panel">
+<div id="wrap">
   <div class="card">
     <div class="row">
-      <button id="beepBtn" disabled>Test Beep (출력 확인)</button>
       <button id="micBtn" disabled>Mic On</button>
       <button id="micOffBtn" disabled>Mic Off</button>
+      <button id="beepBtn" disabled>Test Beep</button>
       <button id="panicBtn" disabled>Panic (Mute)</button>
     </div>
 
@@ -87,25 +92,24 @@
     </div>
 
     <div class="row">
-      <div>
-        <label>DRY (원음)</label>
-        <input id="dry" type="range" min="0" max="100" value="85" disabled />
+      <div><label>DRY (원음)</label><input id="dry" type="range" min="0" max="100" value="82" disabled></div>
+      <div><label>WET MAX (TouchMe 누를 때 FX)</label><input id="wetmax" type="range" min="0" max="100" value="88" disabled></div>
+      <div><label>Smear (Delay/Blur)</label><input id="smear" type="range" min="0" max="100" value="62" disabled></div>
+      <div><label>Muffle (LPF)</label><input id="muffle" type="range" min="0" max="100" value="70" disabled></div>
+    </div>
+
+    <div class="grid">
+      <div class="viz">
+        <label>MIC WAVE (수음 파형)</label>
+        <canvas id="waveMic"></canvas>
       </div>
-      <div>
-        <label>WET MAX (TouchMe 누를 때 FX)</label>
-        <input id="wetmax" type="range" min="0" max="100" value="90" disabled />
-      </div>
-      <div>
-        <label>Smear (Delay/Blur)</label>
-        <input id="smear" type="range" min="0" max="100" value="65" disabled />
-      </div>
-      <div>
-        <label>Muffle (LPF)</label>
-        <input id="muffle" type="range" min="0" max="100" value="70" disabled />
+      <div class="viz">
+        <label>REACTIVE FIELD (TouchMe + Mic 반응)</label>
+        <canvas id="field"></canvas>
       </div>
     </div>
 
-    <div id="log" class="mono">waiting…</div>
+    <div id="log">waiting…</div>
   </div>
 </div>
 
@@ -114,41 +118,66 @@
   const $=id=>document.getElementById(id);
   const logEl=$("log");
   const log=(m)=>{ logEl.textContent = m + "\n" + logEl.textContent; };
+
   const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
   const lerp=(a,b,t)=>a+(b-a)*t;
   const norm=(x)=>clamp(x/100,0,1);
 
+  // ===== Audio state
   let ctx=null;
-
-  // mic
   let micStream=null, micSrc=null;
 
-  // mixer
   let dryGain=null, wetGain=null, master=null;
-
-  // FX chain (simple but audible)
   let lp=null, delay=null, fb=null, shaper=null;
 
-  // analyser (meter)
-  let an=null;
+  // analysers
+  let anMic=null;     // mic waveform
+  let anOut=null;     // optional output meter
 
-  // MIDI (TouchMe)
+  // MIDI state (TouchMe)
   let midiVel=0;     // 0..1
-  let pressed=0;     // note on count
-  let wetGate=0;     // smoothed
+  let pressed=0;
+  let wetGate=0;
 
+  // ===== Canvas
+  const cvMic=$("waveMic");
+  const cvField=$("field");
+  const gMic=cvMic.getContext("2d");
+  const gField=cvField.getContext("2d");
+
+  let dpr=1;
+  function resizeCanvas(){
+    dpr=Math.max(1,window.devicePixelRatio||1);
+    [cvMic,cvField].forEach(cv=>{
+      const r=cv.getBoundingClientRect();
+      cv.width=Math.floor(r.width*dpr);
+      cv.height=Math.floor(r.height*dpr);
+    });
+  }
+
+  // ===== UI enable
   function enableUI(on){
-    ["beepBtn","micBtn","micOffBtn","panicBtn","dry","wetmax","smear","muffle"]
+    ["micBtn","micOffBtn","beepBtn","panicBtn","dry","wetmax","smear","muffle"]
       .forEach(id=>$(id).disabled=!on);
   }
 
+  // ===== DSP helpers
+  function makeCurve(amount){
+    const n=4096;
+    const curve=new Float32Array(n);
+    const k=amount*40;
+    for(let i=0;i<n;i++){
+      const x=(i/(n-1))*2-1;
+      curve[i]=(1+k)*x/(1+k*Math.abs(x));
+    }
+    return curve;
+  }
+
   function buildAudioGraph(){
-    // master out
     master = ctx.createGain();
     master.gain.value = 0.95;
     master.connect(ctx.destination);
 
-    // dry / wet
     dryGain = ctx.createGain();
     wetGain = ctx.createGain();
     dryGain.gain.value = norm($("dry").value);
@@ -157,13 +186,13 @@
     dryGain.connect(master);
     wetGain.connect(master);
 
-    // FX: mic -> shaper -> lp -> delay -> wetGain
+    // FX chain: mic -> shaper -> lp -> delay -> wetGain
     shaper = ctx.createWaveShaper();
     shaper.curve = makeCurve(0.8);
     shaper.oversample = "4x";
 
     lp = ctx.createBiquadFilter();
-    lp.type="lowpass";
+    lp.type = "lowpass";
     lp.frequency.value = 2000;
     lp.Q.value = 0.7;
 
@@ -173,90 +202,84 @@
     fb = ctx.createGain();
     fb.gain.value = 0.35;
 
-    // feedback loop: delay -> fb -> delay
     delay.connect(fb);
     fb.connect(delay);
 
-    // analyser for mic level
-    an = ctx.createAnalyser();
-    an.fftSize = 2048;
-    an.smoothingTimeConstant = 0.85;
-  }
+    anMic = ctx.createAnalyser();
+    anMic.fftSize = 2048;
+    anMic.smoothingTimeConstant = 0.85;
 
-  function makeCurve(amount){
-    // simple distortion curve
-    const n = 4096;
-    const curve = new Float32Array(n);
-    const k = amount * 40;
-    for(let i=0;i<n;i++){
-      const x = (i/(n-1))*2 - 1;
-      curve[i] = (1 + k) * x / (1 + k * Math.abs(x));
-    }
-    return curve;
+    anOut = ctx.createAnalyser();
+    anOut.fftSize = 2048;
+    anOut.smoothingTimeConstant = 0.85;
+
+    master.connect(anOut);
   }
 
   function updateParams(){
     if(!ctx) return;
+
     dryGain.gain.value = norm($("dry").value);
 
-    const smear = norm($("smear").value);   // 0..1
-    const muffle= norm($("muffle").value);  // 0..1
+    const smear = norm($("smear").value);
+    const muffle= norm($("muffle").value);
 
-    lp.frequency.value = lerp(14000, 700, muffle);
+    lp.frequency.value    = lerp(14000, 700, muffle);
     delay.delayTime.value = lerp(0.04, 0.28, smear);
-    fb.gain.value = clamp(lerp(0.05, 0.88, smear), 0, 0.92);
+    fb.gain.value         = clamp(lerp(0.05, 0.88, smear), 0, 0.92);
   }
 
   function updateWetGate(){
     const wetMax = norm($("wetmax").value);
-    const isOn = pressed>0 ? 1 : 0;
-    const target = isOn ? clamp(wetMax*(0.20 + 0.95*midiVel), 0, 1) : 0;
+    const on = pressed>0 ? 1 : 0;
+    const target = on ? clamp(wetMax*(0.20 + 0.95*midiVel), 0, 1) : 0;
 
-    wetGate = lerp(wetGate, target, isOn ? 0.18 : 0.10);
+    wetGate = lerp(wetGate, target, on ? 0.18 : 0.10);
     wetGain.gain.value = wetGate;
 
-    if(!isOn) midiVel *= 0.985;
+    if(!on) midiVel *= 0.985;
     $("midiBar").style.width = `${Math.round(midiVel*100)}%`;
   }
 
-  async function startAll(ev){
-    if(ctx) return;
-    ev.preventDefault?.();
-    ev.stopPropagation?.();
+  // ===== Mic
+  async function micOn(){
+    micStream = await navigator.mediaDevices.getUserMedia({
+      audio:{ echoCancellation:false, noiseSuppression:false, autoGainControl:false }
+    });
 
-    // 안내 제거
-    const hint=$("hint");
-    if(hint) hint.remove();
+    const t = micStream.getAudioTracks()[0];
+    log("Mic track: " + (t?.readyState||"n/a") + " / " + (t?.label||"no label"));
 
-    ctx = new (window.AudioContext||window.webkitAudioContext)();
-    await ctx.resume();
+    micSrc = ctx.createMediaStreamSource(micStream);
 
-    buildAudioGraph();
-    enableUI(true);
-    updateParams();
+    // analyser tap
+    micSrc.connect(anMic);
 
-    log("STARTED ✅  AudioContext state=" + ctx.state + "  sr=" + ctx.sampleRate);
+    // DRY always
+    micSrc.connect(dryGain);
 
-    // MIDI: TouchMe "무조건" 연결 시도 (첫 입력 하나만)
-    initMIDI();
+    // WET
+    micSrc.connect(shaper);
+    shaper.connect(lp);
+    lp.connect(delay);
+    delay.connect(wetGain);
 
-    // meter loop
-    requestAnimationFrame(loopMeter);
-    requestAnimationFrame(loopFX);
+    log("Mic ON ✅ (원음 + 비주얼)");
   }
 
-  // 크롬에서도 절대 안 씹히는 캡처
-  ["pointerdown","touchstart","mousedown"].forEach(t=>{
-    window.addEventListener(t, startAll, {capture:true, passive:false});
-  });
+  function micOff(){
+    if(micSrc){ try{ micSrc.disconnect(); }catch(e){} micSrc=null; }
+    if(micStream){ try{ micStream.getTracks().forEach(tr=>tr.stop()); }catch(e){} micStream=null; }
+    log("Mic OFF");
+  }
 
+  // ===== Beep / Panic
   function testBeep(){
     const osc=ctx.createOscillator();
     const g=ctx.createGain();
     osc.type="sine";
     osc.frequency.value=880;
     g.gain.value=0;
-
     g.connect(master);
 
     const t=ctx.currentTime;
@@ -268,51 +291,20 @@
     osc.start(t);
     osc.stop(t+0.26);
 
-    log("BEEP 🔈 (이게 안 들리면: 탭 음소거/사이트 소리 차단/OS 출력 장치 문제)");
-  }
-
-  async function micOn(){
-    micStream = await navigator.mediaDevices.getUserMedia({
-      audio:{ echoCancellation:false, noiseSuppression:false, autoGainControl:false }
-    });
-
-    const tracks = micStream.getAudioTracks();
-    log("Mic tracks=" + tracks.length + " live=" + (tracks[0]?.readyState || "n/a") + " label=" + (tracks[0]?.label || "no label"));
-
-    micSrc = ctx.createMediaStreamSource(micStream);
-
-    // analyser tap
-    micSrc.connect(an);
-
-    // DRY always (원음)
-    micSrc.connect(dryGain);
-
-    // WET FX path
-    micSrc.connect(shaper);
-    shaper.connect(lp);
-    lp.connect(delay);
-    delay.connect(wetGain);
-
-    log("Mic ON ✅ (원음은 항상 들려야 정상)");
-  }
-
-  function micOff(){
-    if(micSrc){ try{ micSrc.disconnect(); }catch(e){} micSrc=null; }
-    if(micStream){ try{ micStream.getTracks().forEach(t=>t.stop()); }catch(e){} micStream=null; }
-    log("Mic OFF");
+    log("BEEP 🔈 (안 들리면: 탭 음소거/사이트 소리 차단/OS 출력 장치 확인)");
   }
 
   function panic(){
-    if(!master) return;
     const prev=master.gain.value;
     master.gain.value=0;
     setTimeout(()=>master.gain.value=prev, 250);
     log("PANIC");
   }
 
+  // ===== MIDI (TouchMe)
   async function initMIDI(){
     if(!navigator.requestMIDIAccess){
-      log("MIDI ❌ WebMIDI 미지원(크롬이면 보통 됨)");
+      log("MIDI ❌ (WebMIDI 미지원)");
       return;
     }
     const access = await navigator.requestMIDIAccess({sysex:false});
@@ -321,62 +313,204 @@
       log("MIDI 입력 없음 (TouchMe 연결 확인)");
       return;
     }
-    // 첫 입력에만 연결
+
+    // 첫 입력에 연결 (필요하면 여기서 name 필터링 가능)
     const inp = inputs[0];
     inp.onmidimessage = (msg)=>{
-      const [st, , vel] = msg.data;
+      const [st,,vel]=msg.data;
       const cmd = st & 0xF0;
 
       if(cmd===0x90 && vel>0){
         pressed++;
         midiVel = clamp(vel/127,0,1);
-        log("MIDI note ON vel=" + midiVel.toFixed(2));
-      }else if(cmd===0x80 || (cmd===0x90 && vel===0)){
+      } else if(cmd===0x80 || (cmd===0x90 && vel===0)){
         pressed = Math.max(0, pressed-1);
-        log("MIDI note OFF");
       }
-      updateParams();
     };
+
     log("MIDI ✅ connected: " + (inp.name || "input"));
   }
 
-  function loopFX(){
-    if(ctx){
-      // 혹시 state가 돌아가다 suspended로 떨어지면 로깅
-      if(ctx.state !== "running") log("AudioContext state=" + ctx.state);
-      updateWetGate();
-    }
-    requestAnimationFrame(loopFX);
-  }
+  // ===== Visuals
+  function drawMicWave(){
+    const W=cvMic.width, H=cvMic.height;
+    gMic.clearRect(0,0,W,H);
 
-  function loopMeter(){
-    if(!an){
-      requestAnimationFrame(loopMeter);
-      return;
-    }
-    const data=new Uint8Array(an.fftSize);
-    an.getByteTimeDomainData(data);
+    // grid faint
+    gMic.globalAlpha=0.25;
+    gMic.strokeStyle="#ffffff";
+    gMic.lineWidth=1*dpr;
+    gMic.beginPath();
+    gMic.moveTo(0,H/2); gMic.lineTo(W,H/2);
+    gMic.stroke();
+    gMic.globalAlpha=1;
+
+    if(!anMic) return {rms:0};
+
+    const data=new Uint8Array(anMic.fftSize);
+    anMic.getByteTimeDomainData(data);
+
+    // waveform
+    gMic.strokeStyle="#eaeaea";
+    gMic.lineWidth=2*dpr;
+    gMic.beginPath();
+    const mid=H/2;
+
     let rms=0;
     for(let i=0;i<data.length;i++){
-      const v=(data[i]-128)/128;
+      const x = (i/(data.length-1))*W;
+      const v = (data[i]-128)/128;
+      const y = mid + v*(H*0.42);
+      if(i===0) gMic.moveTo(x,y); else gMic.lineTo(x,y);
       rms += v*v;
     }
+    gMic.stroke();
+
     rms = Math.sqrt(rms/data.length);
-    const level = clamp(rms*3.0, 0, 1);
-    $("micBar").style.width = Math.round(level*100) + "%";
-    requestAnimationFrame(loopMeter);
+    return {rms};
   }
 
-  // UI bindings
-  enableUI(false);
+  // particle field reacting to mic rms + midiVel
+  const P = [];
+  const N = 220;
 
-  $("beepBtn").addEventListener("click", ()=>{ if(ctx) testBeep(); });
+  function initParticles(){
+    P.length=0;
+    const W=cvField.width, H=cvField.height;
+    for(let i=0;i<N;i++){
+      P.push({
+        x: Math.random()*W,
+        y: Math.random()*H,
+        vx:(Math.random()*2-1)*0.6*dpr,
+        vy:(Math.random()*2-1)*0.6*dpr,
+        a: Math.random()*1.0
+      });
+    }
+  }
+
+  function drawField(micRms){
+    const W=cvField.width, H=cvField.height;
+
+    // trail
+    gField.fillStyle="rgba(10,10,10,0.20)";
+    gField.fillRect(0,0,W,H);
+
+    // center pulse by midi + mic
+    const energy = clamp(micRms*3.0,0,1);
+    const touch  = clamp(midiVel,0,1);
+    const press  = pressed>0 ? 1 : 0;
+    const k = clamp(0.15 + 0.85*(0.55*energy + 0.45*touch), 0, 1);
+
+    // subtle “gravity” to center when pressed (gathering / crumbling voice)
+    const cx=W/2, cy=H/2;
+    const gather = press ? (0.6 + 1.8*touch) : 0.2;
+
+    // draw
+    gField.globalAlpha = 0.9;
+    gField.strokeStyle = "#eaeaea";
+    gField.lineWidth = 1*dpr;
+
+    // update particles
+    for(const p of P){
+      // turbulence from mic energy
+      const n1 = (Math.random()*2-1) * (0.8 + 6.0*energy) * dpr;
+      const n2 = (Math.random()*2-1) * (0.8 + 6.0*energy) * dpr;
+
+      // pull to center when touch pressed (fragment voice 느낌)
+      const dx=cx-p.x, dy=cy-p.y;
+      p.vx += (dx/W) * gather * (0.6 + 1.4*k);
+      p.vy += (dy/H) * gather * (0.6 + 1.4*k);
+
+      // shatter kick when touch on
+      if(press){
+        p.vx += n1*(0.30 + 0.90*touch);
+        p.vy += n2*(0.30 + 0.90*touch);
+      }else{
+        p.vx += n1*(0.10 + 0.35*k);
+        p.vy += n2*(0.10 + 0.35*k);
+      }
+
+      // damping
+      const damp = press ? (0.86 - 0.10*touch) : 0.90;
+      p.vx *= damp;
+      p.vy *= damp;
+
+      p.x += p.vx;
+      p.y += p.vy;
+
+      // wrap
+      if(p.x<0) p.x+=W; else if(p.x>W) p.x-=W;
+      if(p.y<0) p.y+=H; else if(p.y>H) p.y-=H;
+
+      // draw points
+      const r = (0.8 + 2.6*(0.6*energy + 0.4*touch))*dpr;
+      gField.globalAlpha = 0.18 + 0.72*(0.35*energy + 0.65*touch);
+      gField.beginPath();
+      gField.arc(p.x,p.y,r,0,Math.PI*2);
+      gField.stroke();
+    }
+
+    // center ring
+    gField.globalAlpha = 0.25 + 0.55*k;
+    gField.lineWidth = (1 + 2.0*k)*dpr;
+    const R = (18 + 140*k)*dpr;
+    gField.beginPath();
+    gField.arc(cx,cy,R,0,Math.PI*2);
+    gField.stroke();
+    gField.globalAlpha = 1;
+  }
+
+  // ===== Main loops
+  function loop(){
+    if(ctx){
+      // keep updating
+      updateWetGate();
+      const {rms} = drawMicWave();
+      $("micBar").style.width = `${Math.round(clamp(rms*3.0,0,1)*100)}%`;
+      drawField(rms);
+    }
+    requestAnimationFrame(loop);
+  }
+
+  // ===== Start: “화면 아무 곳 1회 클릭”로 강제 오픈
+  async function startAll(ev){
+    if(ctx) return;
+    ev.preventDefault?.();
+    ev.stopPropagation?.();
+
+    // remove hint
+    const hint=$("hint"); if(hint) hint.remove();
+
+    ctx = new (window.AudioContext||window.webkitAudioContext)();
+    await ctx.resume();
+
+    buildAudioGraph();
+    enableUI(true);
+    updateParams();
+
+    resizeCanvas();
+    initParticles();
+    window.addEventListener("resize", ()=>{ resizeCanvas(); initParticles(); });
+
+    // MIDI init (touchme)
+    initMIDI();
+
+    log("STARTED ✅  state=" + ctx.state + "  sr=" + ctx.sampleRate);
+    requestAnimationFrame(loop);
+  }
+
+  ["pointerdown","touchstart","mousedown"].forEach(t=>{
+    window.addEventListener(t, startAll, {capture:true, passive:false});
+  });
+
+  // ===== UI events
+  enableUI(false);
 
   $("micBtn").addEventListener("click", async ()=>{
     try{
       await micOn();
-      $("micBtn").disabled = true;
-      $("micOffBtn").disabled = false;
+      $("micBtn").disabled=true;
+      $("micOffBtn").disabled=false;
     }catch(e){
       log("Mic error: " + e.message);
     }
@@ -384,11 +518,12 @@
 
   $("micOffBtn").addEventListener("click", ()=>{
     micOff();
-    $("micBtn").disabled = false;
-    $("micOffBtn").disabled = true;
+    $("micBtn").disabled=false;
+    $("micOffBtn").disabled=true;
   });
 
-  $("panicBtn").addEventListener("click", panic);
+  $("beepBtn").addEventListener("click", ()=>{ if(ctx) testBeep(); });
+  $("panicBtn").addEventListener("click", ()=>{ if(ctx) panic(); });
 
   ["dry","wetmax","smear","muffle"].forEach(id=>{
     $(id).addEventListener("input", updateParams);
