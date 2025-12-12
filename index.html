@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>TouchMe – RAW Mic vs TRANSFORMED (Viz)</title>
+  <title>TouchMe – Mic Thru + TouchMe FX (RAW vs FX Viz)</title>
   <style>
     :root{color-scheme:dark}
     body{margin:0;padding:18px;background:#0b0b0b;color:#eee;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
@@ -31,10 +31,11 @@
 <body>
 <div class="wrap">
   <div class="card">
-    <h1>RAW 마이크 파장 vs TouchMe로 변형된 파장 (실시간 시각화)</h1>
+    <h1>마이크 ON = 원음 모니터링 / TouchMe 누르면 = 그 소리가 변형 (RAW vs FX 시각화)</h1>
     <p>
-      1) <b>Start</b> → 2) <b>Mic On</b> → 왼쪽이 “원본 마이크”, 오른쪽이 “변형 출력”.<br/>
-      3) TouchMe 선택 후 손대면(노트/벨로시티) 변형 강도가 올라가고, 오른쪽 파형/스펙트럼이 즉시 달라짐.
+      ✅ <b>Mic On</b> 하면 기본 마이크 소리가 그대로 들려오고(원음 THRU),<br/>
+      ✅ TouchMe를 <b>누르고 있는 동안만</b> 변형된 소리가 섞여서 나오도록 만들었어(떼면 원음으로 복귀).<br/>
+      ※ 스피커로 하면 하울링 날 수 있으니 <b>이어폰/헤드폰</b> 추천.
     </p>
 
     <div class="row">
@@ -48,7 +49,7 @@
       <div>
         <label>MIDI Input (TouchMe)</label>
         <select id="midiIn" disabled><option>Start 후 활성화</option></select>
-        <div class="hint">※ WebMIDI는 보통 Chrome 권장</div>
+        <div class="hint">TouchMe 누르면(노트온) FX가 켜지고, 떼면(노트오프) FX가 꺼짐.</div>
       </div>
       <div>
         <label>Preset</label>
@@ -57,17 +58,17 @@
           <option value="shatter">Shatter (파편+깨짐)</option>
           <option value="cute">Cute (짧은 그레인)</option>
         </select>
-        <div class="hint">Preset은 UI 슬라이더 값도 같이 세팅됨</div>
+        <div class="hint">Preset은 슬라이더 기본값을 같이 세팅</div>
       </div>
     </div>
 
     <div class="row">
       <div>
-        <label class="small">TouchMe Intensity (velocity)</label>
+        <label class="small">TouchMe Pressure (velocity)</label>
         <div class="meter"><div id="midiBar"></div></div>
       </div>
       <div>
-        <label class="small">Input Level (mic)</label>
+        <label class="small">Mic Level</label>
         <div class="meter"><div id="micBar"></div></div>
       </div>
     </div>
@@ -76,14 +77,13 @@
       <div class="viz">
         <label>RAW MIC – Waveform</label>
         <canvas id="waveIn"></canvas>
-        <div class="hint">마이크 원본 파형</div>
+        <div class="hint">원본 마이크 파형</div>
       </div>
       <div class="viz">
         <label>TRANSFORMED – Waveform</label>
         <canvas id="waveOut"></canvas>
-        <div class="hint">TouchMe/슬라이더에 의해 변형된 출력 파형</div>
+        <div class="hint">TouchMe 눌렀을 때 변형된 출력 파형</div>
       </div>
-
       <div class="viz">
         <label>RAW MIC – Spectrum</label>
         <canvas id="specIn"></canvas>
@@ -96,7 +96,7 @@
 
     <div class="row" style="margin-top:12px">
       <div>
-        <label class="small">Intensity (전체 강도)</label>
+        <label class="small">Intensity (변형 강도)</label>
         <input id="intensity" type="range" min="0" max="100" value="55" disabled />
       </div>
       <div>
@@ -116,19 +116,19 @@
     <div class="row">
       <div>
         <label class="small">Grain ms (그레인 길이)</label>
-        <input id="grainMs" type="range" min="15" max="240" value="110" disabled />
+        <input id="grainMs" type="range" min="15" max="240" value="120" disabled />
       </div>
       <div>
         <label class="small">Voices (겹침 개수)</label>
         <input id="voices" type="range" min="1" max="6" value="4" disabled />
       </div>
       <div>
-        <label class="small">Dry (원본 섞기)</label>
-        <input id="dryMix" type="range" min="0" max="100" value="35" disabled />
+        <label class="small">THRU Volume (원음 볼륨)</label>
+        <input id="thruVol" type="range" min="0" max="100" value="75" disabled />
       </div>
       <div>
-        <label class="small">Wet (변형 섞기)</label>
-        <input id="wetMix" type="range" min="0" max="100" value="75" disabled />
+        <label class="small">FX Max Mix (TouchMe 눌렀을 때 FX 최대치)</label>
+        <input id="fxMax" type="range" min="0" max="100" value="85" disabled />
       </div>
     </div>
 
@@ -161,15 +161,18 @@
   // ring buffer
   let ring=null, ringLen=0, ringWrite=0;
 
-  // processing nodes
-  let proc=null;
-  let dry=null, wet=null, sum=null;
+  // nodes
+  let proc=null;                 // FX generator (uses mic ring)
+  let thruGain=null;             // raw mic monitoring
+  let fxGain=null;               // fx output gain (auto by TouchMe)
+  let sum=null;                  // sum -> analysers -> out
   let delay=null, fb=null, lp=null, outGain=null;
 
-  // MIDI
+  // MIDI (TouchMe)
   let midiAccess=null, currentInput=null;
-  let midiIntensity = 0; // 0..1
+  let midiIntensity = 0;         // 0..1 (velocity)
   let activeNotes = 0;
+  let fxGate = 0;                // 0..1 (smoothed on/off)
 
   // granular voices
   let voices = [];
@@ -177,7 +180,7 @@
 
   function enableUI(on){
     ["micBtn","micOffBtn","panicBtn","midiIn","preset",
-     "intensity","distance","shatter","crush","grainMs","voices","dryMix","wetMix"
+     "intensity","distance","shatter","crush","grainMs","voices","thruVol","fxMax"
     ].forEach(id=> $(id).disabled = !on);
   }
 
@@ -201,14 +204,13 @@
   }
 
   function scheduleGrain(v, grainSamples, intensity, dist, shat){
-    const backMs = lerp(60, 800, clamp(0.35*intensity + 0.65*shat,0,1));
-    const jitterMs = lerp(6, 280, clamp(0.25*intensity + 0.75*shat,0,1));
-
+    const backMs   = lerp(60, 900, clamp(0.35*intensity + 0.65*shat,0,1));
+    const jitterMs = lerp(6,  320, clamp(0.25*intensity + 0.75*shat,0,1));
     const backS = backMs * ctx.sampleRate / 1000;
-    const jitS = (Math.random()*2-1) * (jitterMs * ctx.sampleRate / 1000);
+    const jitS  = (Math.random()*2-1) * (jitterMs * ctx.sampleRate / 1000);
 
-    const slow = lerp(1.0, 0.42, dist);
-    const wobble = lerp(0.00, 0.07, intensity);
+    const slow   = lerp(1.0, 0.40, dist);          // distance↑ => 늘어짐
+    const wobble = lerp(0.00, 0.08, intensity);    // intensity↑ => 불안정
     v.inc = slow + (Math.random()*2-1)*wobble;
 
     v.grainLen = grainSamples;
@@ -219,27 +221,27 @@
 
   function applyPreset(name){
     if(name==="ghost"){
-      $("intensity").value=55; $("distance").value=72; $("shatter").value=42; $("crush").value=30;
-      $("grainMs").value=130; $("voices").value=4; $("dryMix").value=25; $("wetMix").value=82;
+      $("intensity").value=55; $("distance").value=75; $("shatter").value=40; $("crush").value=28;
+      $("grainMs").value=140; $("voices").value=4;
     } else if(name==="shatter"){
-      $("intensity").value=68; $("distance").value=45; $("shatter").value=80; $("crush").value=72;
-      $("grainMs").value=65; $("voices").value=3; $("dryMix").value=18; $("wetMix").value=88;
+      $("intensity").value=70; $("distance").value=45; $("shatter").value=85; $("crush").value=72;
+      $("grainMs").value=65; $("voices").value=3;
     } else { // cute
-      $("intensity").value=45; $("distance").value=30; $("shatter").value=42; $("crush").value=22;
-      $("grainMs").value=55; $("voices").value=2; $("dryMix").value=40; $("wetMix").value=65;
+      $("intensity").value=45; $("distance").value=30; $("shatter").value=45; $("crush").value=22;
+      $("grainMs").value=55; $("voices").value=2;
     }
     resetVoices(Number($("voices").value));
-    updateMix();
+    updateParams();
     log("preset: " + name);
   }
 
   function buildGraph(){
     // mixers
-    dry = ctx.createGain();
-    wet = ctx.createGain();
-    sum = ctx.createGain();
+    thruGain = ctx.createGain(); // raw mic -> thruGain -> sum
+    fxGain   = ctx.createGain(); // fx proc -> fxGain -> sum (TouchMe gate)
+    sum      = ctx.createGain();
 
-    // space + distance
+    // space + distance (FX path only)
     delay = ctx.createDelay(1.0);
     delay.delayTime.value = 0.18;
 
@@ -254,54 +256,35 @@
     outGain = ctx.createGain();
     outGain.gain.value = 0.92;
 
-    // analysers (separate for time/freq)
+    // analysers
     anInTime = ctx.createAnalyser(); anInTime.fftSize = 2048; anInTime.smoothingTimeConstant = 0.85;
     anInFreq = ctx.createAnalyser(); anInFreq.fftSize = 2048; anInFreq.smoothingTimeConstant = 0.85;
 
     anOutTime = ctx.createAnalyser(); anOutTime.fftSize = 2048; anOutTime.smoothingTimeConstant = 0.85;
     anOutFreq = ctx.createAnalyser(); anOutFreq.fftSize = 2048; anOutFreq.smoothingTimeConstant = 0.85;
 
-    // wet feedback loop: wet -> delay -> lp -> fb -> wet
-    wet.connect(delay);
-    delay.connect(lp);
-    lp.connect(fb);
-    fb.connect(wet);
+    // FX chain: (proc) -> lp -> delay -> fb -> delay ... then to fxGain -> sum
+    // We'll build: proc -> lp -> delay ; delay -> fb -> delay (feedback) ; delay -> fxGain -> sum
+    // (lp sits before delay so "distance" cuts high freq)
+    lp.connect(delay);
+    delay.connect(fb);
+    fb.connect(delay);
 
-    // sum
-    dry.connect(sum);
-    wet.connect(sum);
+    // sum: raw thru + fx
+    thruGain.connect(sum);
+    fxGain.connect(sum);
 
-    // OUT analysers tap after sum
+    // tap output for viz
     sum.connect(anOutTime);
     sum.connect(anOutFreq);
+
+    // to speakers
     anOutFreq.connect(outGain);
     outGain.connect(ctx.destination);
 
-    updateMix();
-  }
-
-  function updateMix(){
-    if(!ctx) return;
-    const uiInt = norm($("intensity").value);
-    const uiDist = norm($("distance").value);
-
-    const dist = clamp(uiDist*0.70 + midiIntensity*0.55, 0, 1);
-    const intensity = clamp(uiInt*0.65 + midiIntensity*0.85, 0, 1);
-
-    const dryMix = norm($("dryMix").value);
-    const wetMix = norm($("wetMix").value);
-
-    // mix
-    dry.gain.value = lerp(0.0, 1.0, dryMix) * lerp(1.0, 0.22, dist);
-    wet.gain.value = lerp(0.0, 1.0, wetMix) * lerp(0.55, 1.0, intensity);
-
-    // distance shaping
-    delay.delayTime.value = lerp(0.06, 0.30, dist);
-    fb.gain.value = clamp(lerp(0.12, 0.86, dist), 0, 0.92);
-    lp.frequency.value = lerp(15000, 1400, dist);
-
-    // overall output
-    outGain.gain.value = lerp(0.95, 0.75, dist);
+    // init gains
+    thruGain.gain.value = 0.75;
+    fxGain.gain.value = 0.0; // TouchMe 없으면 FX 0
   }
 
   function buildProcessor(){
@@ -312,12 +295,7 @@
       const input = e.inputBuffer.getChannelData(0);
       const output = e.outputBuffer.getChannelData(0);
 
-      if(!ring){
-        output.fill(0);
-        return;
-      }
-
-      // write mic into ring
+      // write mic into ring (for FX only)
       for(let i=0;i<input.length;i++){
         ring[ringWrite] = input[i];
         ringWrite = (ringWrite + 1) % ringLen;
@@ -330,20 +308,22 @@
       const uiCrush = norm($("crush").value);
       const gMs = Number($("grainMs").value);
 
-      const intensity = clamp(uiInt*0.65 + midiIntensity*0.90, 0, 1);
-      const dist = clamp(uiDist*0.70 + midiIntensity*0.55, 0, 1);
-      const shat = clamp(uiShat*0.75 + midiIntensity*0.60, 0, 1);
-      const crush = clamp(uiCrush*0.85 + midiIntensity*0.35, 0, 1);
+      // TouchMe velocity boosts
+      const intensity = clamp(uiInt*0.65 + midiIntensity*0.95, 0, 1);
+      const dist      = clamp(uiDist*0.70 + midiIntensity*0.60, 0, 1);
+      const shat      = clamp(uiShat*0.75 + midiIntensity*0.65, 0, 1);
+      const crush     = clamp(uiCrush*0.85 + midiIntensity*0.40, 0, 1);
 
       const grainSamples = Math.max(16, (gMs * ctx.sampleRate / 1000) | 0);
 
-      // synth
+      // generate FX signal
       for(let i=0;i<output.length;i++){
         let s = 0;
 
         for(const v of voices){
           if(v.remain <= 0){
-            const density = lerp(0.12, 0.96, intensity);
+            // density: intensity↑ => 더 자주 생성
+            const density = lerp(0.10, 0.96, intensity);
             if(Math.random() < density) scheduleGrain(v, grainSamples, intensity, dist, shat);
           }
 
@@ -356,10 +336,9 @@
           }
         }
 
-        // normalize
         s *= (voices.length ? 1.0 / Math.sqrt(voices.length) : 0);
 
-        // crush: sample&hold (time-quantize)
+        // crush (sample&hold)
         const holdN = Math.max(1, (1 + (crush * 30))|0);
         if(crushCounter <= 0){
           crushHold = s;
@@ -373,18 +352,36 @@
       }
     };
 
-    // connect processor output to dry/wet (but NOT to destination directly)
-    proc.connect(dry);
-    proc.connect(wet);
+    // FX path wiring: proc -> lp -> delay -> fxGain -> sum
+    proc.connect(lp);
+    delay.connect(fxGain);
 
-    // react UI changes
-    ["intensity","distance","shatter","crush","grainMs","dryMix","wetMix"].forEach(id=>{
-      $(id).addEventListener("input", updateMix);
+    // IMPORTANT: proc input comes from micSrc (set in micOn)
+
+    // UI change hooks
+    ["intensity","distance","shatter","crush","grainMs","thruVol","fxMax"].forEach(id=>{
+      $(id).addEventListener("input", updateParams);
     });
     $("voices").addEventListener("input", ()=>{
       resetVoices(Number($("voices").value));
       log("voices: " + $("voices").value);
     });
+  }
+
+  function updateParams(){
+    if(!ctx) return;
+
+    // raw thru volume
+    thruGain.gain.value = norm($("thruVol").value);
+
+    // distance affects filter + delay feedback
+    const dist = clamp(norm($("distance").value)*0.70 + midiIntensity*0.60, 0, 1);
+    lp.frequency.value = lerp(15000, 1400, dist);
+    delay.delayTime.value = lerp(0.06, 0.30, dist);
+    fb.gain.value = clamp(lerp(0.10, 0.88, dist), 0, 0.92);
+
+    // output overall (optional)
+    outGain.gain.value = lerp(0.95, 0.78, dist);
   }
 
   // ---------- mic ----------
@@ -397,14 +394,17 @@
 
     micSrc = ctx.createMediaStreamSource(micStream);
 
-    // RAW taps (원본 시각화)
+    // RAW analyzers + THRU monitoring
     micSrc.connect(anInTime);
     micSrc.connect(anInFreq);
 
-    // feed mic into processor input
+    // THRU path (원음이 바로 들리게)
+    micSrc.connect(thruGain);
+
+    // FX processor input
     micSrc.connect(proc);
 
-    log("Mic ON ✅");
+    log("Mic ON ✅ (원음 들림 / TouchMe 누르면 FX 섞임)");
   }
 
   function micOff(){
@@ -423,12 +423,12 @@
     if(outGain){
       const prev = outGain.gain.value;
       outGain.gain.value = 0.0;
-      setTimeout(()=>{ outGain.gain.value = prev; }, 200);
+      setTimeout(()=>{ outGain.gain.value = prev; }, 220);
     }
     log("PANIC");
   }
 
-  // ---------- MIDI ----------
+  // ---------- MIDI (TouchMe gate: 누르면 FX 올라가고 떼면 내려감) ----------
   async function initMIDI(){
     const sel = $("midiIn");
     sel.innerHTML = "";
@@ -484,12 +484,8 @@
         activeNotes = Math.max(0, activeNotes-1);
       }
 
-      if(activeNotes === 0){
-        // 자연스럽게 서서히 떨어지게
-        midiIntensity *= 0.92;
-      }
-
-      updateMix();
+      // if holding at least 1 note, keep intensity; else it will decay in loop()
+      updateParams();
     };
 
     log("MIDI input connected: " + (currentInput.name || id));
@@ -526,7 +522,7 @@
       ctx2d.fillStyle = "#eaeaea";
       ctx2d.fillText("no signal", 12*dpr, 22*dpr);
       ctx2d.globalAlpha = 1;
-      return;
+      return 0;
     }
 
     const data = new Uint8Array(analyser.fftSize);
@@ -545,14 +541,13 @@
     }
     ctx2d.stroke();
 
-    // level meter helper
+    // RMS for mic meter
     let rms = 0;
     for(let i=0;i<data.length;i++){
       const v = (data[i]-128)/128;
       rms += v*v;
     }
-    rms = Math.sqrt(rms / data.length);
-    return rms;
+    return Math.sqrt(rms / data.length);
   }
 
   function drawSpec(ctx2d, analyser){
@@ -590,24 +585,44 @@
     ctx2d.globalAlpha = 1;
   }
 
+  function updateFxGain(){
+    // TouchMe 누르고 있을 때만 FX가 올라가게(게이트)
+    const fxMax = norm($("fxMax").value); // 0..1
+    const uiInt = norm($("intensity").value);
+
+    // target: activeNotes>0 이면 올라감, 아니면 내려감
+    const pressed = activeNotes > 0 ? 1 : 0;
+
+    // pressed일 때도 velocity로 강도 가중
+    const target = pressed
+      ? clamp(fxMax * (0.35 + 0.85*(uiInt*0.55 + midiIntensity*0.85)), 0, 1)
+      : 0;
+
+    // smooth
+    fxGate = lerp(fxGate, target, pressed ? 0.12 : 0.06);
+
+    // set
+    if(fxGain) fxGain.gain.value = fxGate;
+  }
+
   let raf = null;
   function loop(){
-    // RAW
+    // meters and viz
     const rmsIn = drawWave(g.waveIn, anInTime) || 0;
     drawSpec(g.specIn, anInFreq);
 
-    // OUT
     drawWave(g.waveOut, anOutTime);
     drawSpec(g.specOut, anOutFreq);
+
+    // decay midiIntensity when not pressed
+    if(activeNotes === 0) midiIntensity *= 0.985;
+
+    // update FX gate
+    updateFxGain();
 
     // meters
     $("midiBar").style.width = `${Math.round(midiIntensity*100)}%`;
     $("micBar").style.width = `${Math.round(clamp(rmsIn*3.0,0,1)*100)}%`;
-
-    // smooth decay of midiIntensity when not holding notes
-    if(activeNotes === 0){
-      midiIntensity *= 0.985;
-    }
 
     raf = requestAnimationFrame(loop);
   }
@@ -637,6 +652,7 @@
     raf = requestAnimationFrame(loop);
 
     applyPreset($("preset").value);
+    updateParams();
 
     log("Start ✅");
     $("startBtn").disabled = true;
