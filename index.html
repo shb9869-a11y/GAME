@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>TouchMe – Mic THRU + Press-to-FX (RAW vs FX Viz)</title>
+  <title>TouchMe – Mic THRU + Press-to-FX + Output Select</title>
   <style>
     :root{color-scheme:dark}
     body{margin:0;padding:18px;background:#0b0b0b;color:#eee;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
@@ -20,21 +20,22 @@
     .grid{display:grid;grid-template-columns:1fr;gap:10px;margin-top:12px}
     @media(min-width:980px){ .grid{grid-template-columns:1fr 1fr} }
     .viz{background:#0f0f0f;border:1px solid #2a2a2a;border-radius:14px;padding:10px}
-    canvas{width:100%;height:220px;display:block;border-radius:10px;background:#0a0a0a}
+    canvas{width:100%;height:200px;display:block;border-radius:10px;background:#0a0a0a}
     .hint{font-size:12px;opacity:.78;margin-top:8px}
     .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:12px;background:#0f0f0f;border:1px solid #2a2a2a;border-radius:12px;padding:12px;white-space:pre-wrap}
     .small{font-size:12px;opacity:.82}
     .meter{height:10px;border-radius:999px;background:#1a1a1a;border:1px solid #2a2a2a;overflow:hidden}
     .meter > div{height:100%;width:0%;background:#eaeaea;opacity:.9}
+    audio{width:100%; margin-top:8px}
   </style>
 </head>
 <body>
 <div class="wrap">
   <div class="card">
-    <h1>Mic On = 원음 들림 / TouchMe 누르면 = FX 섞임 (RAW vs FX 시각화)</h1>
+    <h1>Mic THRU(원음) + TouchMe 누르면 FX + 출력 장치 선택(Output)</h1>
     <p>
-      순서: <b>Start → Mic On</b>. Mic On 했는데도 무음이면 브라우저 마이크 권한을 확인해줘.
-      <br/>※ 하울링 방지로 <b>이어폰/헤드폰</b> 권장.
+      순서: <b>Start → Mic On</b>. 그 뒤에 Output Device에서 스피커/헤드폰 선택 가능.
+      <br/>※ 출력 선택은 <b>HTTPS 또는 localhost</b>에서 더 잘 동작함.
     </p>
 
     <div class="row">
@@ -46,19 +47,20 @@
 
     <div class="row">
       <div>
-        <label>MIDI Input (TouchMe)</label>
-        <select id="midiIn" disabled><option>Start 후 활성화</option></select>
-        <div class="hint">TouchMe 누르면 FX가 올라가고, 떼면 FX가 내려감.</div>
+        <label>Output Device (스피커/헤드폰)</label>
+        <select id="outSel" disabled>
+          <option value="">(기본 출력)</option>
+        </select>
+        <div class="hint">출력 선택이 안 되면 HTTPS/localhost인지 확인.</div>
       </div>
       <div>
-        <label>Preset</label>
-        <select id="preset" disabled>
-          <option value="ghost" selected>Ghost</option>
-          <option value="shatter">Shatter</option>
-          <option value="cute">Cute</option>
-        </select>
+        <label>MIDI Input (TouchMe)</label>
+        <select id="midiIn" disabled><option>Start 후 활성화</option></select>
       </div>
     </div>
+
+    <label class="small">Audio Monitor (이 오디오 태그로 출력이 나감)</label>
+    <audio id="monitor" controls autoplay playsinline></audio>
 
     <div class="row">
       <div>
@@ -73,59 +75,35 @@
 
     <div class="grid">
       <div class="viz">
-        <label>RAW MIC – Waveform</label>
+        <label>RAW MIC – Wave</label>
         <canvas id="waveIn"></canvas>
       </div>
       <div class="viz">
-        <label>OUTPUT (THRU + FX) – Waveform</label>
+        <label>OUTPUT – Wave</label>
         <canvas id="waveOut"></canvas>
       </div>
       <div class="viz">
-        <label>RAW MIC – Spectrum</label>
+        <label>RAW MIC – Spec</label>
         <canvas id="specIn"></canvas>
       </div>
       <div class="viz">
-        <label>OUTPUT (THRU + FX) – Spectrum</label>
+        <label>OUTPUT – Spec</label>
         <canvas id="specOut"></canvas>
       </div>
     </div>
 
     <div class="row" style="margin-top:12px">
-      <div>
-        <label class="small">THRU Volume (원음)</label>
-        <input id="thruVol" type="range" min="0" max="100" value="85" disabled />
-      </div>
-      <div>
-        <label class="small">FX Max (누를 때 FX 최대)</label>
-        <input id="fxMax" type="range" min="0" max="100" value="85" disabled />
-      </div>
-      <div>
-        <label class="small">Distance (LPF/Delay)</label>
-        <input id="distance" type="range" min="0" max="100" value="65" disabled />
-      </div>
-      <div>
-        <label class="small">Grain ms</label>
-        <input id="grainMs" type="range" min="20" max="220" value="120" disabled />
-      </div>
+      <div><label class="small">THRU</label><input id="thruVol" type="range" min="0" max="100" value="85" disabled /></div>
+      <div><label class="small">FX Max</label><input id="fxMax" type="range" min="0" max="100" value="85" disabled /></div>
+      <div><label class="small">Distance</label><input id="distance" type="range" min="0" max="100" value="65" disabled /></div>
+      <div><label class="small">Grain ms</label><input id="grainMs" type="range" min="20" max="220" value="120" disabled /></div>
     </div>
 
     <div class="row">
-      <div>
-        <label class="small">Shatter (점프)</label>
-        <input id="shatter" type="range" min="0" max="100" value="55" disabled />
-      </div>
-      <div>
-        <label class="small">Crush (뭉개짐)</label>
-        <input id="crush" type="range" min="0" max="100" value="35" disabled />
-      </div>
-      <div>
-        <label class="small">Voices</label>
-        <input id="voices" type="range" min="1" max="6" value="4" disabled />
-      </div>
-      <div>
-        <label class="small">Output</label>
-        <input id="outVol" type="range" min="0" max="100" value="85" disabled />
-      </div>
+      <div><label class="small">Shatter</label><input id="shatter" type="range" min="0" max="100" value="55" disabled /></div>
+      <div><label class="small">Crush</label><input id="crush" type="range" min="0" max="100" value="35" disabled /></div>
+      <div><label class="small">Voices</label><input id="voices" type="range" min="1" max="6" value="4" disabled /></div>
+      <div><label class="small">Output</label><input id="outVol" type="range" min="0" max="100" value="85" disabled /></div>
     </div>
 
     <label>Log</label>
@@ -135,9 +113,9 @@
 
 <script>
 (() => {
-  const $ = (id)=>document.getElementById(id);
-  const logEl = $("log");
-  const log = (m)=>{ logEl.textContent = m + "\n" + logEl.textContent; };
+  const $=(id)=>document.getElementById(id);
+  const logEl=$("log");
+  const log=(m)=>{ logEl.textContent = m + "\n" + logEl.textContent; };
 
   const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
   const lerp=(a,b,t)=>a+(b-a)*t;
@@ -153,35 +131,37 @@
 
   // nodes
   let thruGain=null, fxGain=null, outGain=null;
-  let fxProc=null, fxIn=null;
+  let fxProc=null;
   let lp=null, delay=null, fb=null;
+
+  // output routing (IMPORTANT)
+  let mediaDest=null;     // MediaStreamDestination
+  let monitor=$("monitor");
 
   // analysers
   let anInTime=null, anInFreq=null, anOutTime=null, anOutFreq=null;
 
   // MIDI
   let midiAccess=null, currentInput=null;
-  let midiVel=0;         // 0..1
-  let active=0;          // pressed count
-  let fxGate=0;          // smoothed gain
+  let midiVel=0;
+  let active=0;
+  let fxGate=0;
 
   // voices
   let voices=[];
   let crushHold=0, crushCounter=0;
 
   function enableUI(on){
-    ["micBtn","micOffBtn","panicBtn","midiIn","preset",
+    ["micBtn","micOffBtn","panicBtn","midiIn","outSel",
      "thruVol","fxMax","distance","grainMs","shatter","crush","voices","outVol"
-    ].forEach(id=> $(id).disabled = !on);
+    ].forEach(id=> $(id).disabled=!on);
   }
 
   function windowHann(t){ return 0.5 - 0.5*Math.cos(2*Math.PI*t); }
-
   function resetVoices(n){
     voices=[];
     for(let i=0;i<n;i++) voices.push({readPos:0, remain:0, grainLen:0, inc:1.0});
   }
-
   function readRing(pos){
     let p=pos;
     while(p<0)p+=ringLen;
@@ -190,7 +170,6 @@
     const f=p-i0;
     return ring[i0]*(1-f)+ring[i1]*f;
   }
-
   function scheduleGrain(v, grainSamples, dist, shat, intensity){
     const backMs   = lerp(50, 900, clamp(0.35*intensity + 0.65*shat,0,1));
     const jitterMs = lerp(6,  340, clamp(0.25*intensity + 0.75*shat,0,1));
@@ -206,21 +185,7 @@
     v.readPos = ringWrite - backS + jitS + (Math.random()*2-1)*(ctx.sampleRate*0.02);
   }
 
-  function applyPreset(name){
-    if(name==="ghost"){
-      $("distance").value=75; $("grainMs").value=140; $("shatter").value=42; $("crush").value=28; $("voices").value=4;
-    } else if(name==="shatter"){
-      $("distance").value=45; $("grainMs").value=65;  $("shatter").value=85; $("crush").value=72; $("voices").value=3;
-    } else {
-      $("distance").value=30; $("grainMs").value=55;  $("shatter").value=45; $("crush").value=22; $("voices").value=2;
-    }
-    resetVoices(Number($("voices").value));
-    updateParams();
-    log("preset: "+name);
-  }
-
   function buildGraph(){
-    // gains
     thruGain = ctx.createGain();
     fxGain   = ctx.createGain();
     outGain  = ctx.createGain();
@@ -229,11 +194,8 @@
     fxGain.gain.value = 0.0;
     outGain.gain.value = 0.85;
 
-    // FX chain
     lp = ctx.createBiquadFilter();
-    lp.type="lowpass";
-    lp.frequency.value=9000;
-    lp.Q.value=0.7;
+    lp.type="lowpass"; lp.frequency.value=9000; lp.Q.value=0.7;
 
     delay = ctx.createDelay(1.0);
     delay.delayTime.value=0.18;
@@ -241,27 +203,29 @@
     fb = ctx.createGain();
     fb.gain.value=0.35;
 
-    // feedback: lp -> delay -> fb -> delay
     lp.connect(delay);
     delay.connect(fb);
     fb.connect(delay);
 
-    // analysers
     anInTime = ctx.createAnalyser(); anInTime.fftSize=2048; anInTime.smoothingTimeConstant=0.85;
     anInFreq = ctx.createAnalyser(); anInFreq.fftSize=2048; anInFreq.smoothingTimeConstant=0.85;
     anOutTime= ctx.createAnalyser(); anOutTime.fftSize=2048; anOutTime.smoothingTimeConstant=0.85;
     anOutFreq= ctx.createAnalyser(); anOutFreq.fftSize=2048; anOutFreq.smoothingTimeConstant=0.85;
 
-    // output sum
     const sum = ctx.createGain();
     thruGain.connect(sum);
     fxGain.connect(sum);
 
-    // tap + out
     sum.connect(anOutTime);
     sum.connect(anOutFreq);
+
+    // >>> route to MediaStreamDestination instead of direct speakers
+    mediaDest = ctx.createMediaStreamDestination();
     sum.connect(outGain);
-    outGain.connect(ctx.destination);
+    outGain.connect(mediaDest);
+
+    // audio element plays the stream (and we can setSinkId on it)
+    monitor.srcObject = mediaDest.stream;
   }
 
   function buildProcessor(){
@@ -272,7 +236,6 @@
       const input = e.inputBuffer.getChannelData(0);
       const out   = e.outputBuffer.getChannelData(0);
 
-      // write mic into ring
       for(let i=0;i<input.length;i++){
         ring[ringWrite]=input[i];
         ringWrite=(ringWrite+1)%ringLen;
@@ -281,15 +244,12 @@
       const dist = clamp(norm($("distance").value)*0.70 + midiVel*0.60, 0, 1);
       const shat = clamp(norm($("shatter").value)*0.75 + midiVel*0.65, 0, 1);
       const crush= clamp(norm($("crush").value)*0.85 + midiVel*0.40, 0, 1);
-
-      // intensity is basically "how hard you're pressing" (midi + fxGate)
       const intensity = clamp(0.35 + 0.65*midiVel, 0, 1);
 
       const grainSamples = Math.max(16, (Number($("grainMs").value) * ctx.sampleRate / 1000) | 0);
 
       for(let i=0;i<out.length;i++){
         let s=0;
-
         for(const v of voices){
           if(v.remain<=0){
             const density = lerp(0.10, 0.96, intensity);
@@ -302,10 +262,8 @@
             v.remain--;
           }
         }
-
         s *= voices.length ? 1.0/Math.sqrt(voices.length) : 0;
 
-        // crush sample&hold
         const holdN = Math.max(1, (1 + crush*30)|0);
         if(crushCounter<=0){ crushHold=s; crushCounter=holdN; }
         else crushCounter--;
@@ -315,7 +273,6 @@
       }
     };
 
-    // FX routing: fxProc output -> lp -> delay -> fxGain
     fxProc.connect(lp);
     delay.connect(fxGain);
   }
@@ -334,35 +291,29 @@
   function updateFxGate(){
     const fxMax = norm($("fxMax").value);
     const pressed = active>0 ? 1 : 0;
-
-    // pressed: velocity로 강도
     const target = pressed ? clamp(fxMax*(0.20 + 0.95*midiVel), 0, 1) : 0;
-
-    // smooth
     fxGate = lerp(fxGate, target, pressed ? 0.18 : 0.08);
-
-    // apply
     fxGain.gain.value = fxGate;
+
+    // decay velocity if not pressed
+    if(active===0) midiVel *= 0.985;
+    $("midiBar").style.width = `${Math.round(midiVel*100)}%`;
   }
 
-  // ---------- mic ----------
+  // mic
   async function micOn(){
     micStream = await navigator.mediaDevices.getUserMedia({
       audio:{echoCancellation:false, noiseSuppression:false, autoGainControl:false}
     });
     micSrc = ctx.createMediaStreamSource(micStream);
 
-    // RAW analyzers
     micSrc.connect(anInTime);
     micSrc.connect(anInFreq);
 
-    // THRU: mic -> thruGain -> output
-    micSrc.connect(thruGain);
+    micSrc.connect(thruGain); // THRU
+    micSrc.connect(fxProc);   // FX input
 
-    // FX input: mic -> fxProc (captures input)
-    micSrc.connect(fxProc);
-
-    log("Mic ON ✅ (원음 THRU 연결됨)");
+    log("Mic ON ✅ (THRU 연결됨)");
   }
 
   function micOff(){
@@ -378,10 +329,9 @@
     log("PANIC");
   }
 
-  // ---------- MIDI ----------
+  // MIDI
   async function initMIDI(){
-    const sel=$("midiIn");
-    sel.innerHTML="";
+    const sel=$("midiIn"); sel.innerHTML="";
     if(!navigator.requestMIDIAccess){
       sel.innerHTML = `<option>WebMIDI 미지원</option>`;
       log("WebMIDI 미지원(Chrome 권장)");
@@ -394,54 +344,77 @@
   }
 
   function refreshInputs(){
-    const sel=$("midiIn");
-    sel.innerHTML="";
+    const sel=$("midiIn"); sel.innerHTML="";
     const inputs = midiAccess ? Array.from(midiAccess.inputs.values()) : [];
-    if(inputs.length===0){
-      sel.innerHTML=`<option>연결된 MIDI 없음</option>`;
-      return;
-    }
+    if(inputs.length===0){ sel.innerHTML=`<option>연결된 MIDI 없음</option>`; return; }
     inputs.forEach(inp=>{
       const opt=document.createElement("option");
       opt.value=inp.id;
       opt.textContent=`${inp.name || "MIDI Input"}${inp.manufacturer ? " – "+inp.manufacturer : ""}`;
       sel.appendChild(opt);
     });
-    if(!currentInput){
-      connectInput(inputs[0].id);
-      sel.value=inputs[0].id;
-    }
+    if(!currentInput){ connectInput(inputs[0].id); sel.value=inputs[0].id; }
   }
 
   function connectInput(id){
     if(currentInput) currentInput.onmidimessage=null;
     currentInput = midiAccess.inputs.get(id);
     if(!currentInput) return;
-
     currentInput.onmidimessage = (msg)=>{
-      const [status, d1, d2]=msg.data;
-      const cmd = status & 0xF0;
-
+      const [status, , d2]=msg.data;
+      const cmd=status & 0xF0;
       if(cmd===0x90){
         const vel=d2;
-        if(vel===0){
-          active=Math.max(0,active-1);
-        }else{
-          active++;
-          midiVel = clamp(vel/127,0,1);
-        }
+        if(vel===0) active=Math.max(0,active-1);
+        else { active++; midiVel = clamp(vel/127,0,1); }
       } else if(cmd===0x80){
         active=Math.max(0,active-1);
       }
       updateParams();
     };
-
     log("MIDI connected: "+(currentInput.name||id));
   }
 
-  // ---------- viz ----------
-  const cvs = {waveIn:$("waveIn"), waveOut:$("waveOut"), specIn:$("specIn"), specOut:$("specOut")};
-  const g = {
+  // Output device selection
+  async function populateOutputs(){
+    const sel = $("outSel");
+    sel.innerHTML = `<option value="">(기본 출력)</option>`;
+
+    if(!navigator.mediaDevices?.enumerateDevices){
+      log("enumerateDevices 미지원");
+      return;
+    }
+
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const outs = devices.filter(d=>d.kind==="audiooutput");
+
+    outs.forEach((d, idx)=>{
+      const opt = document.createElement("option");
+      opt.value = d.deviceId;
+      opt.textContent = d.label || `Output ${idx+1}`;
+      sel.appendChild(opt);
+    });
+
+    log(`Output devices: ${outs.length}`);
+  }
+
+  async function setOutputDevice(deviceId){
+    // setSinkId exists on HTMLMediaElement in Chrome
+    if(typeof monitor.setSinkId !== "function"){
+      log("이 Chrome에서는 setSinkId 미지원(또는 비보안 컨텍스트)");
+      return;
+    }
+    try{
+      await monitor.setSinkId(deviceId || "");
+      log(deviceId ? "Output set ✅" : "Output: default ✅");
+    }catch(e){
+      log("setSinkId error: " + e.message);
+    }
+  }
+
+  // viz
+  const cvs={waveIn:$("waveIn"), waveOut:$("waveOut"), specIn:$("specIn"), specOut:$("specOut")};
+  const gg={
     waveIn:cvs.waveIn.getContext("2d"),
     waveOut:cvs.waveOut.getContext("2d"),
     specIn:cvs.specIn.getContext("2d"),
@@ -462,7 +435,6 @@
     const W=ctx2d.canvas.width, H=ctx2d.canvas.height;
     ctx2d.clearRect(0,0,W,H);
     if(!analyser) return 0;
-
     const data=new Uint8Array(analyser.fftSize);
     analyser.getByteTimeDomainData(data);
 
@@ -478,7 +450,6 @@
     }
     ctx2d.stroke();
 
-    // rms
     let rms=0;
     for(let i=0;i<data.length;i++){
       const v=(data[i]-128)/128;
@@ -492,22 +463,18 @@
     const W=ctx2d.canvas.width, H=ctx2d.canvas.height;
     ctx2d.clearRect(0,0,W,H);
     if(!analyser) return;
-
     const data=new Uint8Array(analyser.frequencyBinCount);
     analyser.getByteFrequencyData(data);
 
     const bars=96;
     const step=Math.max(1,Math.floor(data.length/bars));
     const bw=W/bars;
-
     for(let i=0;i<bars;i++){
       let sum=0;
       for(let k=0;k<step;k++) sum+=data[i*step+k];
       const v=sum/(step*255);
       const h=v*H*0.95;
-      const x=i*bw;
-      const y=H-h;
-
+      const x=i*bw, y=H-h;
       ctx2d.fillStyle="#eaeaea";
       ctx2d.globalAlpha=0.16+0.78*v;
       ctx2d.fillRect(x+1*dpr,y,Math.max(1,bw-2*dpr),h);
@@ -517,33 +484,28 @@
 
   let raf=null;
   function loop(){
-    const rmsIn = drawWave(g.waveIn, anInTime) || 0;
-    drawSpec(g.specIn, anInFreq);
+    const rmsIn = drawWave(gg.waveIn, anInTime) || 0;
+    drawSpec(gg.specIn, anInFreq);
 
-    drawWave(g.waveOut, anOutTime);
-    drawSpec(g.specOut, anOutFreq);
+    drawWave(gg.waveOut, anOutTime);
+    drawSpec(gg.specOut, anOutFreq);
 
-    // decay velocity when not pressed
-    if(active===0) midiVel *= 0.985;
+    $("micBar").style.width = `${Math.round(clamp(rmsIn*3.0,0,1)*100)}%`;
 
-    // gate
     updateFxGate();
-
-    // meters
-    $("midiBar").style.width = `${Math.round(midiVel*100)}%`;
-    $("micBar").style.width  = `${Math.round(clamp(rmsIn*3.0,0,1)*100)}%`;
-
     raf=requestAnimationFrame(loop);
   }
 
-  // ---------- UI ----------
+  // UI events
   $("startBtn").addEventListener("click", async ()=>{
     ctx = new (window.AudioContext||window.webkitAudioContext)();
 
-    // ring buffer 4 seconds
+    // IMPORTANT: monitor autoplay needs a user gesture
+    try{ await monitor.play(); }catch(e){ /* ignore */ }
+
     ringLen = Math.floor(ctx.sampleRate*4.0);
     ring = new Float32Array(ringLen);
-    ringWrite = 0;
+    ringWrite=0;
 
     buildGraph();
     resetVoices(Number($("voices").value));
@@ -556,14 +518,15 @@
 
     await initMIDI();
 
+    // populate outputs AFTER permissions (label shows after getUserMedia often)
+    await populateOutputs();
+
     resizeCanvas();
     if(raf) cancelAnimationFrame(raf);
     raf=requestAnimationFrame(loop);
 
-    applyPreset($("preset").value);
     updateParams();
-
-    log("Start ✅  (다음: Mic On)");
+    log("Start ✅ (다음: Mic On)");
     $("startBtn").disabled=true;
   });
 
@@ -572,6 +535,9 @@
       await micOn();
       $("micBtn").disabled=true;
       $("micOffBtn").disabled=false;
+
+      // outputs label becomes available after mic permission sometimes
+      await populateOutputs();
     }catch(e){
       log("Mic error: "+e.message);
     }
@@ -585,8 +551,9 @@
 
   $("panicBtn").addEventListener("click", panic);
 
-  $("midiIn").addEventListener("change", (e)=> connectInput(e.target.value));
-  $("preset").addEventListener("change", ()=> applyPreset($("preset").value));
+  $("outSel").addEventListener("change", async (e)=>{
+    await setOutputDevice(e.target.value);
+  });
 
   ["thruVol","fxMax","distance","grainMs","shatter","crush","outVol"].forEach(id=>{
     $(id).addEventListener("input", updateParams);
