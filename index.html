@@ -271,8 +271,9 @@
       <div class="row">
         <div class="label">Point color</div>
         <select id="selPointColor" class="grow">
-          <option value="red" selected>Red</option>
-          <option value="white">White</option>
+          <!-- ✅ 기본은 WHITE -->
+          <option value="white" selected>White</option>
+          <option value="red">Red</option>
         </select>
       </div>
 
@@ -410,7 +411,8 @@
       </div>
 
       <div class="small">
-        EQ는 <b>마이크/파일</b> 공통 적용. MIDI(터치값)는 FX/비주얼을 흔듭니다.
+        ✅ <b>TouchMe(MIDI)</b>는 이제 FX뿐 아니라 <b>디지털 사운드(발진+노이즈)</b> 자체를 생성합니다.<br/>
+        (Mic/File 없어도 Touch만으로 소리남)
       </div>
     </div>
 
@@ -653,6 +655,10 @@ let fileAudioEl = null;
 let fileNode = null;
 let currentSource = S.currentSource ?? "mic"; // "mic" | "file"
 
+/* ✅ TouchMe 디지털 사운드 (새로 추가) */
+let touchOsc=null, touchNoise=null, touchNoiseGain=null, touchSynthGain=null;
+let touchSynthOn=false;
+
 function makeWaveshaper(amount=20){
   const n=2048;
   const curve=new Float32Array(n);
@@ -662,6 +668,19 @@ function makeWaveshaper(amount=20){
     curve[i] = (1+k)*x/(1+k*Math.abs(x));
   }
   return curve;
+}
+
+/* ✅ 노이즈 버퍼 (한 번 만들고 재사용) */
+let NOISE_BUF=null;
+function ensureNoiseBuffer(ctx){
+  if(NOISE_BUF && NOISE_BUF.sampleRate===ctx.sampleRate) return NOISE_BUF;
+  const sr = ctx.sampleRate || 44100;
+  const len = Math.floor(sr*1.0);
+  const buf = ctx.createBuffer(1, len, sr);
+  const ch = buf.getChannelData(0);
+  for(let i=0;i<len;i++) ch[i] = (Math.random()*2-1);
+  NOISE_BUF = buf;
+  return buf;
 }
 
 function ensureAudio(){
@@ -754,6 +773,33 @@ function ensureAudio(){
   masterGain.connect(audioCtx.destination);
 
   ringOsc.start();
+
+  /* ✅ TouchMe 디지털 사운드 생성기: (osc + noise) → touchSynthGain → preGain 로 합류 */
+  touchSynthGain = audioCtx.createGain();
+  touchSynthGain.gain.value = 0.0; // 기본 무음
+
+  touchOsc = audioCtx.createOscillator();
+  touchOsc.type = "square";
+  touchOsc.frequency.value = 160;
+
+  touchNoiseGain = audioCtx.createGain();
+  touchNoiseGain.gain.value = 0.0;
+
+  touchNoise = audioCtx.createBufferSource();
+  touchNoise.buffer = ensureNoiseBuffer(audioCtx);
+  touchNoise.loop = true;
+
+  touchOsc.connect(touchSynthGain);
+  touchNoise.connect(touchNoiseGain);
+  touchNoiseGain.connect(touchSynthGain);
+
+  // 입력 합류 (Mic/File 없어도 preGain으로 들어감)
+  touchSynthGain.connect(preGain);
+
+  touchOsc.start();
+  touchNoise.start();
+  touchSynthOn = true;
+
   updateTopPill(1);
 }
 
@@ -1125,37 +1171,32 @@ function shapeMIDI(x){
   x = Math.max(0, Math.min(1, x));
 
   const curve = getMIDICurve();
-  x = Math.pow(x, curve); // curve>1 => low쪽 더 눌림? / 여기선 "예민"을 위해 1~2.8에서 반응 커지게
+  x = Math.pow(x, curve);
   return Math.max(0, Math.min(1, x));
 }
 
 function updateTouch(){
-  // smoothing: 0.02..0.50 (값이 클수록 더 빨리 따라감)
   const k = getMIDISmooth();
   touchSmooth += (touch - touchSmooth) * k;
 }
 
 function midiMsgToValue(data){
-  // returns null or {raw01, ch, type}
   const st = data[0] & 0xF0;
   const ch = data[0] & 0x0F;
   const d1 = data[1] ?? 0;
   const d2 = data[2] ?? 0;
 
-  const wantCh = parseInt(selMIDICh.value,10); // -1 any, else 0..15
+  const wantCh = parseInt(selMIDICh.value,10); // -1 any
   if(wantCh !== -1 && ch !== wantCh) return null;
 
   const mode = selMIDIType.value; // cc | note
   const num = Math.max(0, Math.min(127, parseInt(numMIDINum.value,10)||0));
 
   if(mode==="cc"){
-    // Control Change: 0xB0
     if(st !== 0xB0) return null;
     if(d1 !== num) return null;
     return { raw01: d2/127, ch, type:"cc", num:d1, val:d2 };
   }else{
-    // Note on/off velocity
-    // Note On: 0x90, Note Off: 0x80 (or 0x90 vel=0)
     if(st !== 0x90 && st !== 0x80) return null;
     if(d1 !== num) return null;
     const vel = (st===0x80) ? 0 : d2;
@@ -1172,7 +1213,6 @@ async function initMIDI(){
   try{
     midiAccess = await navigator.requestMIDIAccess({sysex:false});
     midiAccess.onstatechange = ()=> rebuildMIDIInputs();
-
     rebuildMIDIInputs(true);
     pushMidiLog("MIDI ready.");
   }catch(e){
@@ -1238,7 +1278,6 @@ function attachMIDIInput(id){
     txtMIDIRaw.textContent =
       `raw01:${touchRaw.toFixed(3)} -> touch:${touch.toFixed(3)} | ${parsed.type.toUpperCase()} #${parsed.num} ch:${parsed.ch+1} val:${parsed.val}`;
 
-    // log (가끔만)
     if(Math.random() < 0.25){
       pushMidiLog(`msg=[${[...data].join(',')}] -> touch=${touch.toFixed(3)}`);
     }
@@ -1259,7 +1298,7 @@ hookSelectSave('selMIDIInvert');
 hookNumberSave('numMIDINum', 1);
 
 /* ==========================================================
-   FX MAPPING (Touch)
+   FX MAPPING (Touch) + ✅ Touch Synth Gain Mapping
 ========================================================== */
 function applyFX(){
   if(!audioCtx) return;
@@ -1283,8 +1322,16 @@ function applyFX(){
   dL.delayTime.setTargetAtTime(0.002 + t*0.010 + wob*0.0007, audioCtx.currentTime, 0.05);
   dR.delayTime.setTargetAtTime(0.006 + t*0.015 + (1-wob)*0.0009, audioCtx.currentTime, 0.05);
 
+  /* ✅ TouchMe = 실제 소리 생성 (Mic/File 없어도 들림) */
+  if(touchSynthOn && touchSynthGain && touchOsc && touchNoiseGain){
+    const g = Math.min(0.95, Math.pow(t, 1.05) * 0.85);   // touch → loudness
+    touchSynthGain.gain.setTargetAtTime(g, audioCtx.currentTime, 0.02);
+    touchNoiseGain.gain.setTargetAtTime(Math.min(0.55, g*0.55), audioCtx.currentTime, 0.02);
+    touchOsc.frequency.setTargetAtTime(120 + Math.pow(t,1.4)*1400, audioCtx.currentTime, 0.02);
+  }
+
   document.getElementById('txtFx').textContent =
-    `drive:${driveAmt.toFixed(1)} | filter:${f.toFixed(0)}Hz Q:${q.toFixed(1)} | ring:${ringHz.toFixed(1)}Hz depth:${(t*0.85).toFixed(2)} | widen:${t.toFixed(2)}`;
+    `drive:${driveAmt.toFixed(1)} | filter:${f.toFixed(0)}Hz Q:${q.toFixed(1)} | ring:${ringHz.toFixed(1)}Hz depth:${(t*0.85).toFixed(2)} | widen:${t.toFixed(2)} | touchSynth:${(touchSynthGain?touchSynthGain.gain.value:0).toFixed(2)}`;
 }
 
 /* ==========================================================
@@ -1298,7 +1345,8 @@ hookRangeSave('rngFade', 0.03);
 hookRangeSave('rngPointSize', 0.60);
 hookRangeSave('rngGlow', 0.45);
 
-applySelectValue('selPointColor', 'red');
+/* ✅ 점 색은 무조건 white 기본 */
+applySelectValue('selPointColor', 'white');
 hookSelectSave('selPointColor');
 
 const rngIdleDrama = document.getElementById('rngIdleDrama');
@@ -1351,7 +1399,6 @@ let N = 220;
 let pts = [];
 let rot = 0;
 
-// base thresholds (민감한 기본값)
 const BASE_QUIET_TH = 0.0032;
 const BASE_ACTIVE_TH = 0.0065;
 const BASE_ONSET_TH  = 0.0060;
@@ -1581,6 +1628,11 @@ applySelectValue('selBounds', 'soft');
 applySelectValue('selQuietLines', '1');
 applySelectValue('selAutoReboot', '1');
 
+/* ✅ point color 기본 강제: white (이전 red 저장돼도 덮어씀) */
+S.selPointColor = "white";
+saveSettings(S);
+document.getElementById('selPointColor').value = "white";
+
 ['selMode','selN','selBounds','selQuietLines','selAutoReboot'].forEach(hookSelectSave);
 
 document.getElementById('selN').addEventListener('change', (e)=>{
@@ -1590,9 +1642,6 @@ document.getElementById('selN').addEventListener('change', (e)=>{
 
 /* ==========================================================
    FULL REBOOT to START (핵심!)
-   - RESET 누르면: 입력 끊고, 파일 정지, 오디오 ctx 정리/재생성 준비
-   - hint(START) 화면으로 복귀
-   - 설정(localStorage)은 유지
 ========================================================== */
 function showStartScreen(msg=""){
   document.getElementById('hint').style.display = 'flex';
@@ -1602,7 +1651,6 @@ function showStartScreen(msg=""){
 async function fullReboot(reason="manual"){
   console.warn("FULL REBOOT:", reason);
 
-  // stop inputs
   try{ stopMic(); }catch(e){}
   try{
     if(fileAudioEl){
@@ -1615,23 +1663,18 @@ async function fullReboot(reason="manual"){
   fileNode = null;
   inputNode = null;
 
-  // reset analysis
   amp = 0; ampSmooth = 0; ampDelta = 0; prevAmp = 0;
   touchRaw = 0; touch = 0; touchSmooth = 0;
 
-  // reset visual
   energy = 0; burstEnergy = 0; rot = 0;
   initPoints();
 
-  // clear frame
   ctx.setTransform(DPR,0,0,DPR,0,0);
   ctx.fillStyle="#000";
   ctx.fillRect(0,0,W,H);
 
-  // audio context: 너무 오래 돌다 멈추는 케이스 대비로 "재생성" (안전)
   try{
     if(audioCtx){
-      // disconnect routing to avoid pile-up
       try{ masterGain.disconnect(); }catch(e){}
       try{ analyser.disconnect(); }catch(e){}
       try{ comp.disconnect(); }catch(e){}
@@ -1646,12 +1689,14 @@ async function fullReboot(reason="manual"){
       try{ filter.disconnect(); }catch(e){}
       try{ ringMult.disconnect(); }catch(e){}
       try{ ringGain.disconnect(); }catch(e){}
-      // close
+      try{
+        if(touchSynthGain) touchSynthGain.disconnect();
+        if(touchNoiseGain) touchNoiseGain.disconnect();
+      }catch(e){}
       await audioCtx.close().catch(()=>{});
     }
   }catch(e){}
 
-  // null out everything so ensureAudio() recreates clean graph
   audioCtx = null;
   analyser = null;
   timeData = null;
@@ -1669,15 +1714,15 @@ async function fullReboot(reason="manual"){
   comp = null;
   monitorDest = null;
 
-  // UI state
+  // touch synth nodes clear
+  touchOsc=null; touchNoise=null; touchNoiseGain=null; touchSynthGain=null; touchSynthOn=false;
+
   setStartButtons(false);
   updateTopPill(1);
 
-  // go start screen
   showStartScreen(`START로 복귀 (reason: ${reason})`);
 }
 
-/* RESET button = FULL REBOOT (원하는 동작) */
 document.getElementById("btnReset").addEventListener("click", ()=> fullReboot("manual reset"));
 
 /* ==========================================================
@@ -1693,7 +1738,7 @@ document.getElementById('btnStartAudio').addEventListener('click', async ()=>{
   document.getElementById('btnMicOn').disabled = (currentSource!=="mic");
   setStartButtons(!!micStream);
   updateTopPill(1);
-  startStatus("Audio unlocked. Mic ON 또는 SYSTEM에서 File 선택.");
+  startStatus("Audio unlocked. TouchMe만 만져도 소리남 / Mic ON 또는 SYSTEM에서 File 선택.");
 });
 
 document.getElementById('btnStartMic').addEventListener('click', async ()=>{
@@ -1710,7 +1755,6 @@ document.getElementById('btnMicOn').addEventListener('click', async ()=>{
 });
 document.getElementById('btnMicOff').addEventListener('click', ()=> stopMic());
 
-// audio unlock safety
 addEventListener('pointerdown', async ()=>{
   if(audioCtx && audioCtx.state==='suspended'){
     await audioCtx.resume();
@@ -1718,9 +1762,7 @@ addEventListener('pointerdown', async ()=>{
 },{passive:true});
 
 /* ==========================================================
-   AUTO REBOOT ON LAG / FREEZE (핵심!)
-   - 프레임이 느리게 계속 쌓이면: START로 복귀
-   - requestAnimationFrame 자체가 멈추면(프리즈): watchdog가 START로 복귀
+   AUTO REBOOT ON LAG / FREEZE
 ========================================================== */
 const selAutoReboot = document.getElementById('selAutoReboot');
 function autoRebootEnabled(){ return (selAutoReboot.value === "1"); }
@@ -1729,12 +1771,10 @@ let lastFrameT = performance.now();
 let frameMsSmooth = 16.7;
 let lagTimer = 0;
 
-// freeze watchdog
 let lastAnimTick = performance.now();
 setInterval(()=>{
   const now = performance.now();
   if(!autoRebootEnabled()) return;
-  // 1.6초 이상 애니메이션 tick이 안 갱신되면 "프리즈"로 간주
   if(now - lastAnimTick > 1600){
     fullReboot("freeze watchdog");
     lastAnimTick = now;
@@ -1743,8 +1783,6 @@ setInterval(()=>{
 
 function checkLag(dt){
   if(!autoRebootEnabled()) return;
-
-  // 45ms 넘는 프레임이 누적 2.2초면 자동 리부트 (좀 더 공격적으로)
   if(dt > 45){
     lagTimer += dt;
     if(lagTimer > 2200){
@@ -1757,7 +1795,7 @@ function checkLag(dt){
 }
 
 /* ==========================================================
-   MAIN LOOP (Adaptive Quality + User Tuning)
+   MAIN LOOP
 ========================================================== */
 let lastUiT = 0;
 
@@ -1771,14 +1809,10 @@ function loop(){
 
   checkLag(dt);
 
-  // Adaptive quality by frame time
   let qAuto = 1 - Math.max(0, (frameMsSmooth - 16) / 45);
   qAuto = Math.max(0.28, Math.min(1, qAuto));
-
-  // User perf limit clamps it
   const q = Math.min(qAuto, getPerfLim());
 
-  // BG fade
   ctx.fillStyle = `rgba(0,0,0,${getFade().toFixed(3)})`;
   ctx.fillRect(0,0,W,H);
 
@@ -1799,7 +1833,6 @@ function loop(){
     updateTopPill(q);
   }
 
-  // --- STATE
   const visSens = getVisSens();
   const idleDrama = getIdleDrama();
 
@@ -1810,7 +1843,6 @@ function loop(){
   const targetEnergy = (amp > ACTIVE_TH) ? 1 : (amp < QUIET_TH ? 0 : energy);
   energy += (targetEnergy - energy) * 0.05;
 
-  // idle drama floor
   const energyFloor = 0.04 + idleDrama * 0.20;
   energy = Math.max(energyFloor, energy);
 
@@ -1880,7 +1912,6 @@ function loop(){
 
   const pr = pts.map(project);
 
-  // lines: grid bucket + cap (perf)
   if(energy > 0.05 || quietLines>0){
     const cell = Math.max(22, Math.floor(linkDist));
     const inv = 1 / cell;
@@ -1984,24 +2015,11 @@ if(S.activeTab){
   if(tabEl) tabEl.click();
 }
 
-// restore ui visible state already handled
-// restore select saves already hooked
-
-// system mic control buttons already wired above
-// fullscreen quick already wired above
-
-/* ==========================================================
-   STARTUP: restore N and init points
-========================================================== */
 N = parseInt(document.getElementById('selN').value,10);
 initPoints();
 updateTopPill(1);
 startStatus("Start Audio를 눌러 오디오를 먼저 잠금 해제하세요.");
 
-// if user wants: gear open on load
-// (kept via S.uiVisible)
-
-// prevent accidental leaving causing stuck audio on some devices
 window.addEventListener('pagehide', ()=>{
   try{ stopMic(); }catch(e){}
   try{ if(fileAudioEl) fileAudioEl.pause(); }catch(e){}
