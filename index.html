@@ -19,6 +19,8 @@
     color:#ddd; font-family:system-ui, -apple-system, sans-serif;
     text-align:center; padding:20px;
     z-index:50;
+    /* 힌트 영역 전체가 클릭 가능한 영역임을 명시 */
+    cursor:pointer; 
   }
   #hint .box{
     width:min(720px, 94vw);
@@ -27,6 +29,8 @@
     padding:18px 16px;
     background:rgba(0,0,0,.55);
     text-align:left;
+    /* 내부 요소는 포인터 이벤트 허용 (버튼 클릭 가능) */
+    pointer-events: auto; 
   }
 
   /* Top-left / Top-right buttons */
@@ -236,7 +240,7 @@
   <div class="box">
     <div class="entryTitle">LIMEN WORKSHOP – Entry</div>
     <div class="small" style="margin-bottom:12px;">
-      1) **Start Audio (Unlock Only)** 버튼을 **가장 먼저** 누르거나, **화면 아무 곳이나 클릭**하여 오디오 잠금 해제<br/>
+      1) **Start Audio (Unlock Only)** 버튼을 누르거나, **화면 아무 곳이나 클릭**하여 오디오 잠금 해제<br/>
       2) 오디오가 준비되면 <b>Mic ON</b> 또는 <b>File Play</b> 버튼으로 입장합니다.<br/>
       3) <b>⚙️ 버튼을 누르면 설정 창이 새 팝업 창으로 열립니다.</b>
     </div>
@@ -1019,7 +1023,7 @@ function setupOutputRouting(){
 async function listDevices(){
   let devices = [];
   try{ 
-      // Only request permission if AudioContext is ready and mic is the source
+      // Only request permission if AudioContext is running and mic is the source
       if (audioCtx && audioCtx.state === 'running' && currentSource === "mic") {
           await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
       }
@@ -1189,7 +1193,7 @@ async function startMic(deviceId="default", hideEntry=true){
   }catch(e){
     console.error(e);
     startStatus("Mic ON 실패. 권한/장치 선택 확인.");
-    alert("마이크 권한 또는 장치 선택에 실패했어요. 크롬 권한 확인!");
+    alert("마이크 권한 또는 장치 선택에 실패했어요. 크롬 권한 확인! (console 확인 요망)");
     setMicButtons(false);
   }
 }
@@ -2190,28 +2194,55 @@ if(isMainWindow){
   });
 
   /* ==========================================================
-      ENTRY: Start Audio (unlock)
-      >>> THIS IS THE CRITICAL START BUTTON <<<
+      AUDIO UNLOCK HANDLER (Final Attempt)
   ========================================================== */
-  async function handleAudioUnlock(){
+  async function handleAudioUnlock(e){
+    // 이 이벤트가 버튼 클릭 이벤트로부터 시작되었는지 확인 (중복 실행 방지)
+    if(e && e.target && e.target.tagName !== 'BUTTON' && e.target.id !== 'hint' && e.target.id !== 'c' && audioCtx && audioCtx.state !== 'suspended') return;
+
+    // 만약 버튼이나 화면 배경 클릭이 아니라면, 내부의 입력 필드 클릭일 수 있으므로 무시
+    if (e && e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT')) return;
+      
     ensureAudio();
-    const state = await audioCtx.resume();
-    if(state === 'running'){
-        await afterAudioUnlocked();
-        await initMIDI();
-        startStatus("✅ Audio Context 잠금 해제 성공! Mic ON 또는 File Play를 눌러 입장하세요.");
-        setMicButtons(!!micStream); // Update buttons after unlock
-        
-        // Remove global listener once unlocked
-        window.removeEventListener('pointerdown', handleAudioUnlock, true); 
+    
+    // 오디오 컨텍스트가 정지 상태(suspended)일 때만 재개 시도
+    if (audioCtx.state === 'suspended') {
+        startStatus("Audio Context 재개 시도...");
+        try {
+            const state = await audioCtx.resume();
+            
+            if (state === 'running') {
+                await afterAudioUnlocked();
+                await initMIDI();
+                startStatus("✅ Audio Context 잠금 해제 성공! Mic ON 또는 File Play를 눌러 입장하세요.");
+                setMicButtons(!!micStream); 
+                
+                // 오디오 잠금 해제에 성공했으므로, 전역 리스너는 제거
+                document.getElementById('hint').removeEventListener('click', handleAudioUnlock, false);
+                window.removeEventListener('pointerdown', handleAudioUnlock, true);
+                
+            } else {
+                 startStatus(`⚠️ Audio Context 재개 실패. 상태: ${state}`);
+                 console.error("Audio Context Resume failed. State:", state);
+                 alert(`오디오 잠금 해제 실패. 브라우저 상태: ${state}. 다른 브라우저를 시도하거나, F12 콘솔 창을 확인하세요.`);
+            }
+        } catch (error) {
+            startStatus(`❌ Audio Context 재개 중 치명적인 오류 발생!`);
+            console.error("Critical error during audio resume:", error);
+            alert(`오디오 시스템 오류: ${error.name} - ${error.message}. F12 콘솔 창을 확인해주세요.`);
+        }
     }
   }
   
-  // 1. Button Click Listener (Primary method)
-  document.getElementById('btnStartAudio').addEventListener('click', handleAudioUnlock);
+  // 1. Button Click Listener (Primary method, direct click)
+  document.getElementById('btnStartAudio').addEventListener('click', handleAudioUnlock, false);
+  
+  // 2. Hint Area Click Listener (Fallback for mobile/iOS touch)
+  // `pointer-events: auto;` 덕분에 버튼 클릭은 이 리스너를 거치지 않습니다.
+  document.getElementById('hint').addEventListener('click', handleAudioUnlock, false);
 
-  // 2. Global Fallback Listener (Highly reliable method)
-  // Use capture phase (true) to ensure it runs first
+  // 3. Global Fallback Listener (Most robust attempt)
+  // Use capture phase (true) to ensure it runs *before* other elements consume it
   window.addEventListener('pointerdown', handleAudioUnlock, true); 
 }
 
