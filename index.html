@@ -236,7 +236,7 @@
   <div class="box">
     <div class="entryTitle">LIMEN WORKSHOP – Entry</div>
     <div class="small" style="margin-bottom:12px;">
-      1) **Start Audio (Unlock Only)** 버튼을 **가장 먼저** 눌러 오디오 잠금 해제<br/>
+      1) **Start Audio (Unlock Only)** 버튼을 **가장 먼저** 누르거나, **화면 아무 곳이나 클릭**하여 오디오 잠금 해제<br/>
       2) 오디오가 준비되면 <b>Mic ON</b> 또는 <b>File Play</b> 버튼으로 입장합니다.<br/>
       3) <b>⚙️ 버튼을 누르면 설정 창이 새 팝업 창으로 열립니다.</b>
     </div>
@@ -1019,8 +1019,10 @@ function setupOutputRouting(){
 async function listDevices(){
   let devices = [];
   try{ 
-      // Need permission *before* getting labels/device IDs unless it was already granted
-      await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+      // Only request permission if AudioContext is ready and mic is the source
+      if (audioCtx && audioCtx.state === 'running' && currentSource === "mic") {
+          await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+      }
       devices = await navigator.mediaDevices.enumerateDevices(); 
   }catch(e){
       // console.warn("Could not enumerate devices or get mic permission initially:", e);
@@ -1950,6 +1952,7 @@ function toggleFullscreen(){
 document.getElementById('btnFS').addEventListener('click', toggleFullscreen);
 document.getElementById('btnFSQuick').addEventListener('click', toggleFullscreen);
 
+// System Tab resume button handler
 document.getElementById('btnResume').addEventListener('click', async ()=>{
   ensureAudio();
   await audioCtx.resume();
@@ -2006,7 +2009,6 @@ function applySourceUI(){
 
   setMicButtons(!!micStream);
   
-  // If we switch to mic, try to list devices after unlock
   if(currentSource === "mic" && !!audioCtx && audioCtx.state === 'running'){
       listDevices();
   }
@@ -2188,37 +2190,29 @@ if(isMainWindow){
   });
 
   /* ==========================================================
-      SYSTEM mic buttons
-  ========================================================== */
-  if(document.getElementById('btnMicOn')) document.getElementById('btnMicOn').addEventListener('click', async ()=>{
-    if(currentSource!=="mic") return;
-    await startMic(currentMicDeviceId, false);
-  });
-  if(document.getElementById('btnMicOff')) document.getElementById('btnMicOff').addEventListener('click', ()=> stopMic());
-
-
-  /* ==========================================================
       ENTRY: Start Audio (unlock)
       >>> THIS IS THE CRITICAL START BUTTON <<<
   ========================================================== */
-  document.getElementById('btnStartAudio').addEventListener('click', async ()=>{
+  async function handleAudioUnlock(){
     ensureAudio();
-    await audioCtx.resume();
-    await afterAudioUnlocked();
-    await initMIDI();
-    startStatus("✅ Audio Context 잠금 해제 성공! Mic ON 또는 File Play를 눌러 입장하세요.");
-    setMicButtons(!!micStream); // Update buttons after unlock
-  });
-
-  // Global fallback unlock listener
-  addEventListener('pointerdown', async ()=>{
-    if(audioCtx && audioCtx.state==='suspended'){
-      await audioCtx.resume();
-      startStatus("✅ Audio Context 잠금 해제 성공! Mic ON 또는 File Play를 눌러 입장하세요.");
-      await afterAudioUnlocked();
-      setMicButtons(!!micStream);
+    const state = await audioCtx.resume();
+    if(state === 'running'){
+        await afterAudioUnlocked();
+        await initMIDI();
+        startStatus("✅ Audio Context 잠금 해제 성공! Mic ON 또는 File Play를 눌러 입장하세요.");
+        setMicButtons(!!micStream); // Update buttons after unlock
+        
+        // Remove global listener once unlocked
+        window.removeEventListener('pointerdown', handleAudioUnlock, true); 
     }
-  },{passive:true});
+  }
+  
+  // 1. Button Click Listener (Primary method)
+  document.getElementById('btnStartAudio').addEventListener('click', handleAudioUnlock);
+
+  // 2. Global Fallback Listener (Highly reliable method)
+  // Use capture phase (true) to ensure it runs first
+  window.addEventListener('pointerdown', handleAudioUnlock, true); 
 }
 
 /* ==========================================================
@@ -2360,6 +2354,10 @@ async function entryReboot(reason="lag"){
   if(entrySelMic) entrySelMic.innerHTML = `<option>Start Audio 후 목록 로드</option>`;
   
   showEntry(`렉 감지 → Entry로 복귀 (reason: ${reason})`);
+  
+  // Re-enable the main Start Audio button
+  const btnStartAudio = document.getElementById('btnStartAudio');
+  if(btnStartAudio) btnStartAudio.disabled = false;
 }
 if(isMainWindow) window.entryReboot = entryReboot;
 
@@ -2668,7 +2666,7 @@ if(isMainWindow){
   N = parseInt(document.getElementById('selN').value,10);
   initPoints();
   updateTopPill(1);
-  startStatus("Start Audio 버튼을 눌러 오디오 시스템을 준비하세요.");
+  startStatus("Start Audio 버튼을 누르거나, 화면을 클릭하여 오디오 시스템을 준비하세요.");
 
   window.addEventListener('pagehide', ()=>{
     try{ stopMic(); }catch(e){}
