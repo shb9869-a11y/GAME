@@ -1,178 +1,284 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
-
-<title>Polycam Style Scanner</title>
+<meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1, user-scalable=no">
+<title>Polycam Web Scanner</title>
 
 <style>
-    body {
-        margin:0;
-        background:#000;
-        overflow:hidden;
-        font-family:sans-serif;
-    }
+body {
+    margin:0;
+    overflow:hidden;
+    background:#000;
+    font-family:sans-serif;
+}
+#video {
+    position:fixed;
+    top:0; left:0;
+    width:100vw; height:100vh;
+    object-fit:cover;
+    filter:brightness(1.2) contrast(1.1);
+}
 
-    #view {
-        position:fixed;
-        top:0; left:0;
-        width:100vw;
-        height:100vh;
-        object-fit:cover;
-        filter:brightness(1.1) contrast(1.1);
-    }
+#scanCanvas, #modelCanvas {
+    position:fixed;
+    top:0; left:0;
+    width:100vw;height:100vh;
+    pointer-events:none;
+}
 
-    /* 상단에 SLAM 레이저 느낌 */
-    .scan-line {
-        position:fixed;
-        top:0; left:0;
-        width:100%; height:2px;
-        background:rgba(0,200,255,0.3);
-        animation:scan 3s linear infinite;
-    }
-    @keyframes scan {
-        0% { top:0; }
-        100% { top:100%; }
-    }
+#confirmBtn {
+    position:fixed;
+    bottom:40px;
+    right:40px;
+    padding:20px 26px;
+    border-radius:30px;
+    font-size:18px;
+    border:none;
+    background:rgba(0,120,255,0.8);
+    color:#fff;
+    display:none;
+}
 
-    /* 점군 캔버스 */
-    #points {
-        position:fixed;
-        top:0; left:0;
-        width:100vw;
-        height:100vh;
-        pointer-events:none;
-        mix-blend-mode:screen;
-    }
+#startBtn {
+    position:fixed;
+    bottom:40px;
+    left:50%;
+    transform:translateX(-50%);
+    padding:20px 26px;
+    border-radius:30px;
+    font-size:18px;
+    border:none;
+    background:#fff;
+    color:#000;
+}
 
+#scanUI {
+    position:fixed;
+    top:20px; left:50%;
+    transform:translateX(-50%);
+    color:white;
+    background:rgba(0,0,0,0.4);
+    padding:10px 20px;
+    border-radius:20px;
+}
 </style>
 </head>
 
 <body>
 
-<video id="view" autoplay playsinline muted></video>
-<canvas id="points"></canvas>
-<div class="scan-line"></div>
+<video id="video" autoplay playsinline muted></video>
+<canvas id="scanCanvas"></canvas>
+<canvas id="modelCanvas" style="display:none"></canvas>
 
-<audio id="scanSound" src="scanSound.mp3" preload="auto"></audio>
+<div id="scanUI">스캔 중...</div>
+<button id="confirmBtn">확인</button>
+<button id="startBtn">전체화면 시작</button>
 
 <script>
-/* -------------------------
-   1. 카메라 켜기
-------------------------- */
-const video = document.getElementById("view");
+/* ===========================================================
+    1. 전체화면 설정
+=========================================================== */
+const startBtn = document.getElementById("startBtn");
+startBtn.onclick = () => {
+    document.documentElement.requestFullscreen();
+    startBtn.style.display="none";
+};
+
+
+/* ===========================================================
+    2. 카메라 실행
+=========================================================== */
+const video = document.getElementById("video");
 
 navigator.mediaDevices.getUserMedia({
     video:{ facingMode:"environment" },
     audio:false
-}).then(stream =>{
-    video.srcObject = stream;
-});
+}).then(stream=> video.srcObject = stream);
 
-/* -------------------------
-   2. 점군(3D-like) Canvas
-------------------------- */
-const canvas = document.getElementById("points");
-const ctx = canvas.getContext("2d");
-let w = canvas.width = window.innerWidth;
-let h = canvas.height = window.innerHeight;
 
-window.addEventListener("resize", ()=>{
-    w = canvas.width = window.innerWidth;
-    h = canvas.height = window.innerHeight;
-});
+/* ===========================================================
+    3. Canvas 초기화
+=========================================================== */
+const scanCanvas = document.getElementById("scanCanvas");
+const sCtx = scanCanvas.getContext("2d");
+scanCanvas.width = innerWidth;
+scanCanvas.height = innerHeight;
 
-/* 점군 데이터 */
-let points = [];
-const maxPoints = 600;
+const modelCanvas = document.getElementById("modelCanvas");
+const mCtx = modelCanvas.getContext("2d");
+modelCanvas.width = innerWidth;
+modelCanvas.height = innerHeight;
 
-function addPoint(x, y){
-    if(points.length > maxPoints) points.shift();
-    points.push({
-        x:x,
-        y:y,
-        z:Math.random()*2,   // 의사 3D 깊이
-        a:1.0                // 투명도
-    });
+
+/* ===========================================================
+    4. 찰칵 사운드 (NO MP3)
+    → Web Audio API로 즉석 합성
+=========================================================== */
+
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+function playClick() {
+    const o = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+
+    o.type = "square";
+    o.frequency.setValueAtTime(1800, audioCtx.currentTime);
+    g.gain.setValueAtTime(0.6, audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.08);
+
+    o.connect(g).connect(audioCtx.destination);
+    o.start();
+    o.stop(audioCtx.currentTime + 0.08);
 }
 
-/* 점군 그리기 */
-function drawPoints(){
-    ctx.clearRect(0,0,w,h);
 
-    for(let p of points){
-        const size = 2 + p.z*3;
-        ctx.fillStyle = `rgba(0,255,200,${p.a})`;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, size, 0, Math.PI*2);
-        ctx.fill();
-        p.a *= 0.96;  // 점이 점점 사라지기
+/* ===========================================================
+    5. 특징점 추출 + Polycam 스타일 스캔
+=========================================================== */
+
+let lastFeatures = [];
+let accumulatedMesh = [];
+
+function extractFeatures(img) {
+    const pts = [];
+    let d = img.data;
+    for(let i=0; i<d.length; i+=16){
+        let sum = d[i] + d[i+1] + d[i+2];
+        if(sum < 70 || sum > 680){
+            let idx = i/4;
+            pts.push({
+                x:(idx % img.width)*(innerWidth/img.width),
+                y:Math.floor(idx/img.width)*(innerHeight/img.height)
+            });
+        }
     }
-
-    requestAnimationFrame(drawPoints);
+    return pts;
 }
-drawPoints();
 
-/* -------------------------
-   3. 공간 이동 감지 (Polycam 느낌)
-------------------------- */
-let lastFrame = null;
-let moving = false;
-let moveTimer = null;
-
-const scanSound = document.getElementById("scanSound");
-scanSound.loop = true;
-scanSound.volume = 0.6;
-
-/* 카메라 프레임 분석 → 움직임 감지 */
-function detectMotion(){
-    const smallCanvas = document.createElement("canvas");
-    const sctx = smallCanvas.getContext("2d");
-    smallCanvas.width = 160;
-    smallCanvas.height = 120;
-
-    setInterval(()=>{
-        if(video.videoWidth === 0) return;
-
-        sctx.drawImage(video, 0, 0, 160, 120);
-        let frame = sctx.getImageData(0, 0, 160, 120);
-
-        if(lastFrame){
-            let diff = 0;
-            for(let i=0; i<frame.data.length; i+=4){
-                diff += Math.abs(frame.data[i] - lastFrame.data[i]);
-            }
-
-            let movement = diff / 20000;
-
-            if(movement > 2){
-                // 움직임이 충분히 크다 → 스캔 시작
-                if(!moving){
-                    moving = true;
-                    scanSound.play();
-                }
-                clearTimeout(moveTimer);
-                moveTimer = setTimeout(()=>{
-                    moving = false;
-                    scanSound.pause();
-                }, 600); // 멈추면 0.6초 후 스캔 정지
-
-                // 점군 찍기
-                addPoint(
-                    Math.random()*w,
-                    Math.random()*h
-                );
+function connectMesh(pts){
+    for(let i=0;i<pts.length;i++){
+        for(let j=i+1;j<pts.length;j++){
+            let dx = pts[i].x - pts[j].x;
+            let dy = pts[i].y - pts[j].y;
+            if(dx*dx + dy*dy < 2600){
+                accumulatedMesh.push({
+                    x1:pts[i].x, y1:pts[i].y,
+                    x2:pts[j].x, y2:pts[j].y,
+                    a:1
+                });
             }
         }
-
-        lastFrame = frame;
-
-    }, 80); // 80ms 간격 = 12.5fps 분석
+    }
 }
-detectMotion();
+
+
+/* ===========================================================
+    6. 스캔 루프
+=========================================================== */
+const confirmBtn = document.getElementById("confirmBtn");
+
+function scanLoop(){
+
+    if(video.videoWidth===0){ requestAnimationFrame(scanLoop); return; }
+
+    // 임시 캔버스에 작은 이미지 그리기
+    let temp = document.createElement("canvas");
+    temp.width = 200;
+    temp.height = 150;
+    let tctx = temp.getContext("2d");
+    tctx.drawImage(video,0,0,200,150);
+
+    let frame = tctx.getImageData(0,0,200,150);
+    let features = extractFeatures(frame);
+
+    if(lastFeatures.length>0){
+        let diff = Math.abs(features.length - lastFeatures.length);
+
+        // 새로운 면이 스캔될 때 “찰칵”
+        if(diff > 40){
+            playClick();
+            connectMesh(features);
+        }
+    }
+
+    lastFeatures = features;
+
+    // 화면에 누적 메쉬 렌더링
+    sCtx.clearRect(0,0,innerWidth,innerHeight);
+
+    for(let m of accumulatedMesh){
+        sCtx.strokeStyle = `rgba(0,200,255,${m.a})`;
+        sCtx.beginPath();
+        sCtx.moveTo(m.x1,m.y1);
+        sCtx.lineTo(m.x2,m.y2);
+        sCtx.stroke();
+        m.a*=0.985;
+    }
+
+    confirmBtn.style.display="block";
+
+    requestAnimationFrame(scanLoop);
+}
+
+scanLoop();
+
+
+/* ===========================================================
+    7. 확인 버튼 → 3D 모델 보기 화면 전환
+=========================================================== */
+
+confirmBtn.onclick = ()=>{
+    video.style.display="none";
+    scanCanvas.style.display="none";
+    modelCanvas.style.display="block";
+    show3DModel();
+};
+
+
+/* ===========================================================
+    8. 의사 3D 모델 뷰어(점군 회전)
+=========================================================== */
+
+let angle = 0;
+
+function show3DModel(){
+
+    function render3D(){
+        mCtx.clearRect(0,0,innerWidth,innerHeight);
+
+        for(let m of accumulatedMesh){
+            // 깊이 표현을 위한 회전 변환
+            let cx = innerWidth/2;
+            let cy = innerHeight/2;
+
+            let x1 = (m.x1-cx);
+            let y1 = (m.y1-cy);
+
+            let x2 = (m.x2-cx);
+            let y2 = (m.y2-cy);
+
+            let rx1 = x1 * Math.cos(angle) - y1 * Math.sin(angle);
+            let ry1 = x1 * Math.sin(angle) + y1 * Math.cos(angle);
+
+            let rx2 = x2 * Math.cos(angle) - y2 * Math.sin(angle);
+            let ry2 = x2 * Math.sin(angle) + y2 * Math.cos(angle);
+
+            mCtx.strokeStyle = "rgba(0,200,255,0.9)";
+            mCtx.beginPath();
+            mCtx.moveTo(rx1+cx, ry1+cy);
+            mCtx.lineTo(rx2+cx, ry2+cy);
+            mCtx.stroke();
+        }
+
+        angle += 0.0025;
+        requestAnimationFrame(render3D);
+    }
+
+    render3D();
+}
 
 </script>
-
 </body>
 </html>
