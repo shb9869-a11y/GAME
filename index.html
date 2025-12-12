@@ -1,171 +1,523 @@
 <!doctype html>
 <html lang="ko">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>SLEEP – Sound / Touch Reactive Field</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>SLEEP – Sound/Touch Reactive Field (Mic or File + TouchMe FX)</title>
 <style>
-html,body{margin:0;height:100%;background:#000;overflow:hidden}
-canvas{display:block}
-#hint{
-  position:fixed; inset:0;
-  display:flex; align-items:center; justify-content:center;
-  color:#aaa; font-family:sans-serif;
-  background:rgba(0,0,0,.6);
-}
+  html,body{margin:0;height:100%;background:#000;overflow:hidden;touch-action:none;}
+  canvas{display:block;width:100vw;height:100vh;}
+  #overlay{
+    position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
+    background:rgba(0,0,0,.72); color:#ddd; font-family:system-ui, -apple-system, sans-serif;
+  }
+  .panel{
+    width:min(560px, 92vw);
+    border:1px solid rgba(255,255,255,.12);
+    border-radius:14px;
+    padding:18px 16px;
+    background:rgba(0,0,0,.55);
+    box-shadow:0 0 0 1px rgba(255,255,255,.05) inset;
+  }
+  .title{font-size:16px; font-weight:700; margin:0 0 10px 0;}
+  .desc{font-size:12px; line-height:1.55; color:#aaa; margin:0 0 14px 0;}
+  .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center;}
+  button{
+    cursor:pointer;
+    background:#111; color:#eee;
+    border:1px solid rgba(255,255,255,.18);
+    border-radius:10px; padding:10px 12px;
+    font-weight:650;
+  }
+  button:hover{border-color:rgba(255,255,255,.32)}
+  #hud{
+    position:fixed; left:10px; top:10px;
+    font-family:ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size:12px; color:#aaa;
+    padding:8px 10px; border-radius:10px;
+    background:rgba(0,0,0,.35);
+    border:1px solid rgba(255,255,255,.08);
+    user-select:none; pointer-events:none;
+  }
+  #miniTip{
+    position:fixed; right:10px; top:10px;
+    font-family:ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size:12px; color:#888;
+    padding:8px 10px; border-radius:10px;
+    background:rgba(0,0,0,.25);
+    border:1px solid rgba(255,255,255,.06);
+    user-select:none; pointer-events:none;
+    max-width:min(520px, 70vw);
+    text-align:right;
+  }
+  input[type="file"]{display:none;}
 </style>
 </head>
 <body>
 
-<div id="hint">화면을 한 번 터치 / 클릭</div>
+<div id="overlay">
+  <div class="panel">
+    <p class="title">SLEEP – Sound / Touch Reactive Field</p>
+    <p class="desc">
+      1) 입력을 선택: <b>Mic</b> 또는 <b>Audio File</b><br/>
+      2) TouchMe(MIDI) 값이 <b>들어오는 소리 자체</b>를 전자적으로 변형합니다 (덮어씌우기 X).<br/>
+      3) 비주얼은 소리(amp)와 변화량(Δamp), Touch 값에 반응해 점/선이 “파바박” 변합니다.
+    </p>
+    <div class="row">
+      <button id="btnMic">Mic 시작</button>
+      <button id="btnFile">Audio File 선택</button>
+      <button id="btnMute" style="margin-left:auto;">소리 끄기/켜기</button>
+    </div>
+    <p class="desc" style="margin-top:12px;opacity:.85">
+      Chrome 권장. (Safari는 MIDI/WebAudio 정책 때문에 제한이 있을 수 있음)
+    </p>
+  </div>
+</div>
+
+<input id="file" type="file" accept="audio/*" />
 <canvas id="c"></canvas>
 
+<div id="hud"></div>
+<div id="miniTip"></div>
+
 <script>
-/* ======================
-   BASIC SETUP
-====================== */
-const canvas = document.getElementById("c");
-const ctx2d = canvas.getContext("2d");
-let w,h,dpr;
+/* ==========================================================
+   CANVAS / DPR
+========================================================== */
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d', { alpha: false });
+let W=0, H=0, DPR=1;
 
 function resize(){
-  dpr = window.devicePixelRatio||1;
-  w = canvas.width = innerWidth*dpr;
-  h = canvas.height = innerHeight*dpr;
+  DPR = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+  W = Math.floor(innerWidth);
+  H = Math.floor(innerHeight);
+  canvas.width = Math.floor(W * DPR);
+  canvas.height = Math.floor(H * DPR);
+  ctx.setTransform(DPR,0,0,DPR,0,0); // 이제 모든 좌표는 CSS 픽셀 기준
 }
-window.addEventListener("resize",resize);
+addEventListener('resize', resize);
 resize();
 
-/* ======================
-   AUDIO (AMPLITUDE ONLY)
-====================== */
-let audioCtx, analyser, data;
-let amp = 0, ampSmooth = 0, ampDelta = 0;
+/* ==========================================================
+   AUDIO INPUT + FX (TouchMe로 "입력 자체" 변형)
+========================================================== */
+let audioCtx;
+let analyser, timeData;
+let inputNode;        // mic or file source
+let masterGain;       // mute toggle
+let isMuted = false;
 
-async function initMic(){
-  audioCtx = new AudioContext();
-  const stream = await navigator.mediaDevices.getUserMedia({audio:true});
-  const src = audioCtx.createMediaStreamSource(stream);
+let amp = 0, ampSmooth=0, ampDelta=0, prevAmp=0;
+
+// FX nodes
+let preGain, driveWS, driveGain, filter, ringOsc, ringGain, ringMult, widenDelayL, widenDelayR, widenMerger, comp;
+
+// waveshaper helper
+function makeWaveshaper(curveAmount=20){
+  const n = 2048;
+  const curve = new Float32Array(n);
+  const k = curveAmount;
+  for(let i=0;i<n;i++){
+    const x = (i*2/n) - 1;
+    curve[i] = (1 + k) * x / (1 + k * Math.abs(x));
+  }
+  return curve;
+}
+
+function ensureAudio(){
+  if(audioCtx) return;
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+  // analyser for visuals (amplitude)
   analyser = audioCtx.createAnalyser();
   analyser.fftSize = 1024;
-  data = new Uint8Array(analyser.fftSize);
-  src.connect(analyser);
+  timeData = new Uint8Array(analyser.fftSize);
+
+  // master
+  masterGain = audioCtx.createGain();
+  masterGain.gain.value = 0.9;
+
+  // pre
+  preGain = audioCtx.createGain();
+  preGain.gain.value = 1.0;
+
+  // drive
+  driveWS = audioCtx.createWaveShaper();
+  driveWS.curve = makeWaveshaper(10);
+  driveWS.oversample = '4x';
+  driveGain = audioCtx.createGain();
+  driveGain.gain.value = 1.0;
+
+  // filter (electronic resonance)
+  filter = audioCtx.createBiquadFilter();
+  filter.type = 'bandpass';
+  filter.frequency.value = 900;
+  filter.Q.value = 2.0;
+
+  // ringmod (AM 느낌의 전자 변형)
+  ringOsc = audioCtx.createOscillator();
+  ringOsc.type = 'sine';
+  ringOsc.frequency.value = 35; // low = tremolo-ish, higher = metallic-ish
+  ringGain = audioCtx.createGain();
+  ringGain.gain.value = 0.0;    // ring depth (touch로 올라감)
+
+  // multiply input by (1 + ringDepth*sin)
+  // 구현: input -> ringMult.gain (AudioParam)에 ringOsc를 연결 (AM)
+  ringMult = audioCtx.createGain();
+  ringMult.gain.value = 1.0;
+  ringOsc.connect(ringGain);
+  ringGain.connect(ringMult.gain);
+
+  // stereo widen (micro delay)
+  widenDelayL = audioCtx.createDelay(0.05);
+  widenDelayR = audioCtx.createDelay(0.05);
+  widenDelayL.delayTime.value = 0.004;
+  widenDelayR.delayTime.value = 0.011;
+  widenMerger = audioCtx.createChannelMerger(2);
+
+  // comp (level stabilize)
+  comp = audioCtx.createDynamicsCompressor();
+  comp.threshold.value = -18;
+  comp.knee.value = 24;
+  comp.ratio.value = 5;
+  comp.attack.value = 0.004;
+  comp.release.value = 0.12;
+
+  // graph (input set later)
+  // inputNode -> preGain -> driveWS -> driveGain -> filter -> ringMult -> (split to delays) -> merger -> comp -> analyser -> master -> destination
+  // split to two delays for widening:
+  const splitter = audioCtx.createChannelSplitter(2);
+
+  preGain.connect(driveWS);
+  driveWS.connect(driveGain);
+  driveGain.connect(filter);
+  filter.connect(ringMult);
+
+  ringMult.connect(splitter);
+  splitter.connect(widenDelayL, 0);
+  splitter.connect(widenDelayR, 1);
+
+  widenDelayL.connect(widenMerger, 0, 0);
+  widenDelayR.connect(widenMerger, 0, 1);
+
+  widenMerger.connect(comp);
+  comp.connect(analyser);
+  analyser.connect(masterGain);
+  masterGain.connect(audioCtx.destination);
+
+  ringOsc.start();
+}
+
+function setMuted(m){
+  isMuted = m;
+  if(masterGain){
+    masterGain.gain.setTargetAtTime(isMuted ? 0.0 : 0.9, audioCtx.currentTime, 0.02);
+  }
+  document.getElementById('btnMute').textContent = isMuted ? '소리 켜기' : '소리 끄기/켜기';
+}
+document.getElementById('btnMute').addEventListener('click', ()=>{
+  setMuted(!isMuted);
+});
+
+async function useMic(){
+  ensureAudio();
+  await audioCtx.resume();
+
+  // 기존 input detach
+  if(inputNode) try{ inputNode.disconnect(); }catch(e){}
+  const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation:false, noiseSuppression:false, autoGainControl:false }});
+  inputNode = audioCtx.createMediaStreamSource(stream);
+  inputNode.connect(preGain);
+
+  startLoop();
+}
+
+async function useFile(file){
+  ensureAudio();
+  await audioCtx.resume();
+
+  if(inputNode) try{ inputNode.disconnect(); }catch(e){}
+
+  const url = URL.createObjectURL(file);
+  const audioEl = new Audio();
+  audioEl.src = url;
+  audioEl.loop = true;
+  audioEl.crossOrigin = "anonymous";
+  audioEl.playsInline = true;
+
+  const src = audioCtx.createMediaElementSource(audioEl);
+  inputNode = src;
+  src.connect(preGain);
+
+  await audioEl.play();
+  startLoop();
 }
 
 function updateAmp(){
   if(!analyser) return;
-  analyser.getByteTimeDomainData(data);
-  let sum=0;
-  for(let i=0;i<data.length;i++){
-    const v=(data[i]-128)/128;
-    sum+=v*v;
+  analyser.getByteTimeDomainData(timeData);
+  let sum = 0;
+  for(let i=0;i<timeData.length;i++){
+    const v = (timeData[i]-128)/128;
+    sum += v*v;
   }
-  const rms=Math.sqrt(sum/data.length);
-  ampDelta = Math.abs(rms-ampSmooth);
-  ampSmooth += (rms-ampSmooth)*0.15;
+  const rms = Math.sqrt(sum / timeData.length);
+  ampSmooth += (rms - ampSmooth) * 0.12;
   amp = ampSmooth;
+  ampDelta = Math.abs(amp - prevAmp);
+  prevAmp = amp;
 }
 
-/* ======================
-   TOUCHME (MIDI FLOW)
-====================== */
-let touch=0, touchSmooth=0;
+/* ==========================================================
+   TOUCHME (MIDI) -> FX PARAMS
+========================================================== */
+let touch = 0, touchSmooth = 0;
+let midiName = "MIDI: none";
 
-if(navigator.requestMIDIAccess){
-  navigator.requestMIDIAccess().then(midi=>{
-    for(const input of midi.inputs.values()){
-      input.onmidimessage=e=>{
-        const [, ,v]=e.data;
-        touch = v/127;
-      };
-      break;
+async function initMIDI(){
+  if(!navigator.requestMIDIAccess) return;
+  try{
+    const midi = await navigator.requestMIDIAccess({ sysex:false });
+    const inputs = [...midi.inputs.values()];
+    if(inputs.length === 0){
+      midiName = "MIDI: no inputs";
+      return;
     }
-  });
+    const input = inputs[0]; // 첫 입력 사용 (원하면 나중에 선택 UI 추가 가능)
+    midiName = "MIDI: " + (input.name || "input");
+    input.onmidimessage = (e)=>{
+      // TouchMe가 CC든 Note든 "세 번째 바이트(v)"를 보낼 때가 많아서 여기선 일단 v만 사용
+      const v = e.data[2] ?? 0;
+      touch = Math.max(0, Math.min(1, v/127));
+    };
+  }catch(err){
+    midiName = "MIDI: blocked";
+  }
 }
 
 function updateTouch(){
-  touchSmooth += (touch-touchSmooth)*0.2;
+  touchSmooth += (touch - touchSmooth) * 0.18;
 }
 
-/* ======================
-   POINT FIELD
-====================== */
-const N=180;
-const pts=[];
-for(let i=0;i<N;i++){
-  pts.push({
-    x:Math.random()*w,
-    y:Math.random()*h,
-    vx:0, vy:0
-  });
+// Touch -> FX mapping (중요: 입력 자체를 변형)
+function applyFX(){
+  if(!audioCtx) return;
+
+  const t = touchSmooth;
+
+  // drive: touch가 올라갈수록 왜곡 증가
+  const driveAmt = 6 + t * 60;
+  driveWS.curve = makeWaveshaper(driveAmt);
+  preGain.gain.setTargetAtTime(0.9 + t*1.1, audioCtx.currentTime, 0.03);
+  driveGain.gain.setTargetAtTime(1.0 + t*0.8, audioCtx.currentTime, 0.03);
+
+  // filter: touch로 중심 주파수/레조넌스 변화 (전자적 느낌)
+  const f = 250 + Math.pow(t, 1.8) * 5200;
+  const q = 1.2 + t * 14;
+  filter.frequency.setTargetAtTime(f, audioCtx.currentTime, 0.03);
+  filter.Q.setTargetAtTime(q, audioCtx.currentTime, 0.03);
+
+  // ringmod: touch로 metallic/AM 느낌 증가
+  const ringHz = 12 + t * 220;
+  ringOsc.frequency.setTargetAtTime(ringHz, audioCtx.currentTime, 0.03);
+  ringGain.gain.setTargetAtTime(t * 0.85, audioCtx.currentTime, 0.03);
+
+  // widen micro-delay: touch로 넓어짐 + 살짝 흔들림
+  const wob = (Math.sin(performance.now()*0.0015)*0.5+0.5);
+  widenDelayL.delayTime.setTargetAtTime(0.002 + t*0.010 + wob*0.0007, audioCtx.currentTime, 0.05);
+  widenDelayR.delayTime.setTargetAtTime(0.006 + t*0.015 + (1-wob)*0.0009, audioCtx.currentTime, 0.05);
 }
 
-function draw(){
+/* ==========================================================
+   2.5D POINT FIELD (가짜 3D)
+========================================================== */
+const N = 220;
+const pts = [];
+let rot = 0;
+
+function resetPoints(){
+  pts.length = 0;
+  for(let i=0;i<N;i++){
+    pts.push({
+      // 중심 근처에 분포시키고 z를 준다
+      x: (Math.random()*2-1) * (W*0.45),
+      y: (Math.random()*2-1) * (H*0.45),
+      z: (Math.random()*2-1) * 320,
+      vx: 0, vy: 0, vz: 0
+    });
+  }
+}
+resetPoints();
+
+function project(p){
+  // y축 회전 + z 원근 투영
+  const s = Math.sin(rot), c = Math.cos(rot);
+  const x = p.x*c - p.z*s;
+  const z = p.x*s + p.z*c;
+
+  const depth = 900; // 카메라 거리
+  const k = depth / (depth + z); // z가 -depth로 갈수록 커짐
+  return {
+    x: x*k + W/2,
+    y: p.y*k + H/2,
+    k,
+    z
+  };
+}
+
+function loop(){
   updateAmp();
   updateTouch();
+  applyFX();
 
-  ctx2d.fillStyle="rgba(0,0,0,0.15)";
-  ctx2d.fillRect(0,0,w,h);
+  // 배경 잔상
+  ctx.fillStyle = "rgba(0,0,0,0.16)";
+  ctx.fillRect(0,0,W,H);
 
-  const speed = 0.2 + amp*12;
-  const linkDist = 40 + amp*180 + touchSmooth*220;
-  const chaos = ampDelta*120 + touchSmooth*60;
+  // “느리게” 기본 움직임 + 소리 변화/터치로 파바박
+  const calm = 0.10;
+  const speed = calm + amp*6.0;              // 소리 커질수록 빠름
+  const chaos = (ampDelta*90) + (touchSmooth*35); // 변화량/터치로 급변
+  const linkDist = 40 + amp*240 + touchSmooth*260;
 
+  // 원형 수렴(force) ↔ 폭발(force)
+  const centerPull = (0.006 + touchSmooth*0.020) * (1.0 - Math.min(1, amp*1.4)); // 소리 없을수록 모임
+  const burst = (amp*0.020 + ampDelta*0.060 + touchSmooth*0.012);                // 소리/변화/터치로 바깥으로
+
+  rot += 0.0015 + amp*0.010 + touchSmooth*0.006;
+
+  // 업데이트
   for(const p of pts){
+    // 무작위 흔들림(파바박)
     p.vx += (Math.random()-0.5)*chaos;
     p.vy += (Math.random()-0.5)*chaos;
-    p.vx *= 0.9;
-    p.vy *= 0.9;
-    p.x += p.vx*speed;
-    p.y += p.vy*speed;
+    p.vz += (Math.random()-0.5)*chaos*0.5;
 
-    if(p.x<0)p.x+=w; if(p.x>w)p.x-=w;
-    if(p.y<0)p.y+=h; if(p.y>h)p.y-=h;
+    // 중심으로 모이는 힘
+    p.vx += (-p.x) * centerPull;
+    p.vy += (-p.y) * centerPull;
+    p.vz += (-p.z) * centerPull*0.6;
+
+    // 폭발/분산(원 밖 연결 느낌)
+    // 중심에서 바깥으로 밀어내기 (크게 튀는 느낌)
+    p.vx += (p.x) * burst;
+    p.vy += (p.y) * burst;
+    p.vz += (p.z) * burst*0.6;
+
+    // 감쇠
+    p.vx *= 0.88;
+    p.vy *= 0.88;
+    p.vz *= 0.90;
+
+    // 이동
+    p.x += p.vx * speed;
+    p.y += p.vy * speed;
+    p.z += p.vz * speed;
+
+    // 너무 멀리 가면 살짝 되돌림(장면 유지)
+    const maxX = W*0.60, maxY = H*0.60, maxZ = 520;
+    if(p.x> maxX) p.x = -maxX;
+    if(p.x<-maxX) p.x =  maxX;
+    if(p.y> maxY) p.y = -maxY;
+    if(p.y<-maxY) p.y =  maxY;
+    if(p.z> maxZ) p.z = -maxZ;
+    if(p.z<-maxZ) p.z =  maxZ;
   }
 
-  // connections
-  ctx2d.strokeStyle="rgba(255,255,255,0.25)";
-  ctx2d.lineWidth=1*dpr;
+  // 투영 좌표 캐싱
+  const pr = pts.map(project);
 
+  // 선 연결 (가까울수록 진하게)
+  ctx.lineWidth = 1;
   for(let i=0;i<N;i++){
+    const a = pr[i];
+    // z 기반으로 아주 약한 가시성(깊이감)
     for(let j=i+1;j<N;j++){
-      const a=pts[i], b=pts[j];
-      const dx=a.x-b.x, dy=a.y-b.y;
-      const d=Math.hypot(dx,dy);
-      if(d<linkDist){
-        ctx2d.globalAlpha = 1 - d/linkDist;
-        ctx2d.beginPath();
-        ctx2d.moveTo(a.x,a.y);
-        ctx2d.lineTo(b.x,b.y);
-        ctx2d.stroke();
+      const b = pr[j];
+      const dx = a.x - b.x, dy = a.y - b.y;
+      const d = Math.hypot(dx,dy);
+      if(d < linkDist){
+        const alpha = (1 - d/linkDist);
+        // 소리 커질수록 선이 더 “파바박”: alpha에 ampDelta/amp 반영
+        const punch = Math.min(1, alpha * (0.35 + amp*1.6 + ampDelta*2.0));
+        ctx.globalAlpha = punch * 0.9;
+        ctx.strokeStyle = "rgba(255,255,255,0.9)";
+        ctx.beginPath();
+        ctx.moveTo(a.x,a.y);
+        ctx.lineTo(b.x,b.y);
+        ctx.stroke();
       }
     }
   }
 
-  // points
-  ctx2d.fillStyle="#fff";
-  ctx2d.globalAlpha=0.8;
-  for(const p of pts){
-    ctx2d.beginPath();
-    ctx2d.arc(p.x,p.y,(1.5+amp*3)*dpr,0,Math.PI*2);
-    ctx2d.fill();
+  // 점
+  for(let i=0;i<N;i++){
+    const p = pr[i];
+    // 깊이에 따라 크기 약간 변화
+    const r = (1.0 + amp*3.0 + touchSmooth*1.2) * (0.7 + p.k*0.7);
+    const a = Math.min(1, 0.22 + amp*1.2 + touchSmooth*0.5);
+    ctx.globalAlpha = a;
+    ctx.fillStyle = "#fff";
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, r, 0, Math.PI*2);
+    ctx.fill();
   }
-  ctx2d.globalAlpha=1;
+  ctx.globalAlpha = 1;
 
-  requestAnimationFrame(draw);
+  // HUD
+  const hud = document.getElementById('hud');
+  hud.textContent =
+    `amp:${amp.toFixed(3)}  dAmp:${ampDelta.toFixed(3)}  touch:${touchSmooth.toFixed(3)}\n`+
+    `${midiName}  | input:${inputNode ? (inputNode.mediaElement ? 'file' : 'mic') : 'none'}`;
+
+  const tip = document.getElementById('miniTip');
+  tip.textContent = `TouchMe ↑ : drive / filter / ringmod / widen ↑   |   소리 변화(Δamp) ↑ : 비주얼 파바박`;
+
+  requestAnimationFrame(loop);
 }
 
-/* ======================
-   START
-====================== */
-async function start(){
-  document.getElementById("hint").remove();
-  await initMic();
-  draw();
+/* ==========================================================
+   START / UI
+========================================================== */
+let running = false;
+function startLoop(){
+  if(running) return;
+  running = true;
+  document.getElementById('overlay').style.display = 'none';
+  initMIDI();
+  loop();
 }
-["pointerdown","touchstart","mousedown"].forEach(e=>{
-  window.addEventListener(e,start,{once:true});
+
+document.getElementById('btnMic').addEventListener('click', async ()=>{
+  try{
+    await useMic();
+  }catch(e){
+    alert('Mic 권한을 허용해줘야 해요. (브라우저 설정 확인)');
+    console.error(e);
+  }
 });
+
+const fileInput = document.getElementById('file');
+document.getElementById('btnFile').addEventListener('click', ()=>{
+  fileInput.click();
+});
+fileInput.addEventListener('change', async (e)=>{
+  const f = e.target.files && e.target.files[0];
+  if(!f) return;
+  try{
+    await useFile(f);
+  }catch(err){
+    alert('오디오 파일 재생/오디오 컨텍스트 시작에 실패했어요.');
+    console.error(err);
+  }
+});
+
+// 첫 제스처로 AudioContext가 열려야 하는 브라우저 대비
+addEventListener('pointerdown', ()=>{
+  if(audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+},{passive:true});
+
 </script>
 </body>
 </html>
