@@ -3,77 +3,72 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>Mic THRU + TouchMe FX (Start Fix)</title>
+  <title>Chrome Start Fix + Click Debug</title>
   <style>
     :root{color-scheme:dark}
-    body{margin:0;background:#0b0b0b;color:#eee;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
-    .wrap{max-width:1100px;margin:0 auto;padding:18px}
-    .card{background:#141414;border:1px solid #2a2a2a;border-radius:16px;padding:16px;position:relative}
-    h1{font-size:18px;margin:0 0 10px}
-    p{opacity:.9;line-height:1.55;margin:8px 0}
-    label{display:block;margin-top:10px;font-size:13px;opacity:.92}
-    input,select,button{width:100%;margin-top:6px;padding:12px;border-radius:12px;border:1px solid #333;background:#0f0f0f;color:#eee}
-    button{cursor:pointer; user-select:none; -webkit-tap-highlight-color:transparent}
-    button:disabled{opacity:.55;cursor:not-allowed}
-
-    /* ✅ Start 버튼 절대 안 씹히게 */
-    #startBtn{
-      position:relative;
-      z-index:9999;
-      pointer-events:auto;
-      touch-action:manipulation;
-      font-weight:700;
+    html,body{height:100%}
+    body{
+      margin:0; background:#0b0b0b; color:#eee;
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      touch-action:manipulation; /* ✅ 크롬 탭/클릭 안정화 */
     }
 
+    /* ✅ 어떤 레이어가 있어도 눌리게: 화면 최상단 fixed */
+    #startOverlay{
+      position:fixed; inset:0;
+      display:flex; align-items:center; justify-content:center;
+      z-index:2147483647; /* max */
+      pointer-events:none; /* overlay 자체는 클릭 안 먹음 */
+    }
+    #startBtn{
+      pointer-events:auto; /* 버튼만 클릭 먹음 */
+      width:min(520px, calc(100vw - 40px));
+      padding:18px 16px;
+      border-radius:18px;
+      border:2px solid #444;
+      background:#111;
+      color:#fff;
+      font-size:18px;
+      font-weight:800;
+      cursor:pointer;
+      user-select:none;
+      -webkit-tap-highlight-color:transparent;
+      touch-action:manipulation;
+    }
+    #startBtn:active{transform:scale(0.99)}
+    #panel{
+      max-width:1100px; margin:0 auto; padding:18px;
+    }
+    .card{background:#141414;border:1px solid #2a2a2a;border-radius:16px;padding:16px}
+    .mono{
+      margin-top:12px;
+      font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;
+      font-size:12px;background:#0f0f0f;border:1px solid #2a2a2a;border-radius:12px;
+      padding:12px;white-space:pre-wrap
+    }
+    button, input, select{
+      width:100%; margin-top:8px; padding:12px; border-radius:12px;
+      border:1px solid #333; background:#0f0f0f; color:#eee;
+    }
     .row{display:flex;gap:10px;flex-wrap:wrap}
-    .row > *{flex:1;min-width:220px}
-
-    .mono{margin-top:12px;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;
-      font-size:12px;background:#0f0f0f;border:1px solid #2a2a2a;border-radius:12px;padding:12px;white-space:pre-wrap}
-
-    .meter{height:10px;border-radius:999px;background:#1a1a1a;border:1px solid #2a2a2a;overflow:hidden}
-    .meter > div{height:100%;width:0%;background:#eaeaea;opacity:.9}
-
-    .hint{font-size:12px;opacity:.78;margin-top:6px}
-
-    /* 혹시 어떤 overlay가 카드 위에 생겨도 클릭 막지 않게 */
-    .card * { pointer-events:auto; }
+    .row>*{flex:1;min-width:220px}
   </style>
 </head>
 <body>
-<div class="wrap">
+
+<!-- ✅ Start 버튼을 “별도 오버레이”로 최상단에 올려서 크롬 클릭 씹힘을 무력화 -->
+<div id="startOverlay">
+  <button id="startBtn" type="button">START (Chrome Fix / Debug)</button>
+</div>
+
+<div id="panel">
   <div class="card">
-    <h1>Start 버튼 안 눌리는 문제 해결판 (Mic THRU + TouchMe FX)</h1>
-    <p>순서: <b>Start → Mic On</b>. Mic On 하면 원음이 들려야 정상.</p>
-
+    <h3 style="margin:0 0 10px">크롬에서 Start 버튼이 안 눌리는 원인 잡는 디버그 페이지</h3>
     <div class="row">
-      <button id="startBtn" type="button">Start</button>
-      <button id="micBtn" type="button" disabled>Mic On</button>
-      <button id="micOffBtn" type="button" disabled>Mic Off</button>
-      <button id="panicBtn" type="button" disabled>Panic (Mute)</button>
+      <button id="micBtn" disabled>Mic On</button>
+      <button id="micOffBtn" disabled>Mic Off</button>
+      <button id="panicBtn" disabled>Panic</button>
     </div>
-
-    <div class="row">
-      <div>
-        <label>MIDI Input (TouchMe)</label>
-        <select id="midiIn" disabled><option>Start 후 활성화</option></select>
-        <div class="hint">TouchMe 누르면 FX가 올라가고, 떼면 내려감</div>
-      </div>
-      <div>
-        <label class="small">TouchMe (velocity)</label>
-        <div class="meter"><div id="midiBar"></div></div>
-        <label class="small">Mic level</label>
-        <div class="meter"><div id="micBar"></div></div>
-      </div>
-    </div>
-
-    <div class="row">
-      <div><label>THRU</label><input id="thruVol" type="range" min="0" max="100" value="85" disabled /></div>
-      <div><label>FX Max</label><input id="fxMax" type="range" min="0" max="100" value="85" disabled /></div>
-      <div><label>Distance</label><input id="distance" type="range" min="0" max="100" value="65" disabled /></div>
-      <div><label>Out</label><input id="outVol" type="range" min="0" max="100" value="85" disabled /></div>
-    </div>
-
     <div id="log" class="mono">대기 중…</div>
   </div>
 </div>
@@ -84,303 +79,91 @@
   const logEl = $("log");
   const log = (m)=>{ logEl.textContent = m + "\n" + logEl.textContent; };
 
-  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
-  const lerp=(a,b,t)=>a+(b-a)*t;
-  const norm=(x)=>clamp(x/100,0,1);
-
-  let ctx=null;
-
-  // mic
-  let micStream=null, micSrc=null;
-
-  // ring buffer for FX
-  let ring=null, ringLen=0, ringWrite=0;
-
-  // nodes
-  let thruGain=null, fxGain=null, outGain=null;
-  let fxProc=null, lp=null, delay=null, fb=null;
-
-  // MIDI
-  let midiAccess=null, currentInput=null;
-  let midiVel=0; // 0..1
-  let active=0;
-  let fxGate=0;
-
-  // voices
-  let voices=[];
-  let crushHold=0, crushCounter=0;
-
-  function enableUI(on){
-    ["micBtn","micOffBtn","panicBtn","midiIn","thruVol","fxMax","distance","outVol"].forEach(id=>{
-      $(id).disabled = !on;
-    });
+  // --- CLICK DEBUG: 지금 포인터 아래에 “진짜로” 있는 요소가 뭔지 찍기
+  function dumpTopElement(ev){
+    const x = (ev.touches && ev.touches[0]) ? ev.touches[0].clientX : ev.clientX;
+    const y = (ev.touches && ev.touches[0]) ? ev.touches[0].clientY : ev.clientY;
+    const el = document.elementFromPoint(x, y);
+    if(!el) return "elementFromPoint: null";
+    const cls = (el.className && typeof el.className === "string") ? "."+el.className.split(/\s+/).join(".") : "";
+    return `topEl=${el.tagName}${cls}#${el.id||""}`;
   }
 
-  function windowHann(t){ return 0.5 - 0.5*Math.cos(2*Math.PI*t); }
-  function resetVoices(n){
-    voices=[];
-    for(let i=0;i<n;i++) voices.push({readPos:0, remain:0, grainLen:0, inc:1.0});
-  }
-  function readRing(pos){
-    let p=pos;
-    while(p<0)p+=ringLen;
-    while(p>=ringLen)p-=ringLen;
-    const i0=p|0, i1=(i0+1)%ringLen;
-    const f=p-i0;
-    return ring[i0]*(1-f)+ring[i1]*f;
-  }
-  function scheduleGrain(v, grainSamples, dist, shat, intensity){
-    const backMs   = lerp(50, 900, clamp(0.35*intensity + 0.65*shat,0,1));
-    const jitterMs = lerp(6,  340, clamp(0.25*intensity + 0.75*shat,0,1));
-    const backS = backMs * ctx.sampleRate / 1000;
-    const jitS  = (Math.random()*2-1) * (jitterMs * ctx.sampleRate / 1000);
-
-    const slow   = lerp(1.0, 0.40, dist);
-    const wobble = lerp(0.00, 0.08, intensity);
-    v.inc = slow + (Math.random()*2-1)*wobble;
-
-    v.grainLen = grainSamples;
-    v.remain = grainSamples;
-    v.readPos = ringWrite - backS + jitS + (Math.random()*2-1)*(ctx.sampleRate*0.02);
-  }
-
-  function buildGraph(){
-    thruGain = ctx.createGain();
-    fxGain   = ctx.createGain();
-    outGain  = ctx.createGain();
-
-    lp = ctx.createBiquadFilter();
-    lp.type="lowpass"; lp.frequency.value=9000; lp.Q.value=0.7;
-
-    delay = ctx.createDelay(1.0);
-    fb = ctx.createGain();
-
-    lp.connect(delay);
-    delay.connect(fb);
-    fb.connect(delay);
-
-    // sum: THRU + FX -> OUT
-    const sum = ctx.createGain();
-    thruGain.connect(sum);
-    fxGain.connect(sum);
-    sum.connect(outGain);
-    outGain.connect(ctx.destination);
-
-    // init
-    thruGain.gain.value = 0.85;
-    fxGain.gain.value   = 0.0;
-    outGain.gain.value  = 0.85;
-    fb.gain.value       = 0.35;
-    delay.delayTime.value = 0.18;
-  }
-
-  function buildProcessor(){
-    const bufSize=1024;
-    fxProc = ctx.createScriptProcessor(bufSize, 1, 1);
-
-    fxProc.onaudioprocess = (e)=>{
-      const input = e.inputBuffer.getChannelData(0);
-      const out   = e.outputBuffer.getChannelData(0);
-
-      for(let i=0;i<input.length;i++){
-        ring[ringWrite]=input[i];
-        ringWrite=(ringWrite+1)%ringLen;
+  // --- Global capture listener: 크롬에서 클릭이 씹혀도 “캡처 단계”에서 먼저 잡음
+  ["pointerdown","mousedown","touchstart","click"].forEach(type=>{
+    window.addEventListener(type, (ev)=>{
+      // 버튼 영역 근처에서 어떤 요소가 최상단인지 계속 로그로 확인 가능
+      if(type==="pointerdown" || type==="touchstart"){
+        log(`[CAPTURE ${type}] ` + dumpTopElement(ev));
       }
+    }, {capture:true, passive:false});
+  });
 
-      const dist = clamp(norm($("distance").value)*0.70 + midiVel*0.60, 0, 1);
-      const shat = 0.55;               // 간단 고정 (Start 안정화용)
-      const crush= 0.25;
-      const intensity = clamp(0.35 + 0.65*midiVel, 0, 1);
+  let ctx=null, micStream=null, micSrc=null, outGain=null;
 
-      const grainSamples = Math.max(16, (120 * ctx.sampleRate / 1000) | 0); // 120ms 고정
+  async function startAudio(ev){
+    ev.preventDefault();
+    ev.stopPropagation();
 
-      for(let i=0;i<out.length;i++){
-        let s=0;
-        for(const v of voices){
-          if(v.remain<=0){
-            const density = lerp(0.10, 0.96, intensity);
-            if(Math.random() < density) scheduleGrain(v, grainSamples, dist, shat, intensity);
-          }
-          if(v.remain>0){
-            const t=1-(v.remain/v.grainLen);
-            s += readRing(v.readPos) * windowHann(t);
-            v.readPos += v.inc;
-            v.remain--;
-          }
-        }
-        s *= voices.length ? 1.0/Math.sqrt(voices.length) : 0;
+    log("START FIRED ✅  " + dumpTopElement(ev));
 
-        const holdN = Math.max(1, (1 + crush*30)|0);
-        if(crushCounter<=0){ crushHold=s; crushCounter=holdN; }
-        else crushCounter--;
-        s = lerp(s, crushHold, clamp(crush*0.9,0,1));
-
-        out[i]=s;
-      }
-    };
-
-    // FX routing: fxProc -> lp -> delay -> fxGain
-    fxProc.connect(lp);
-    delay.connect(fxGain);
-  }
-
-  function updateParams(){
-    thruGain.gain.value = norm($("thruVol").value);
-    outGain.gain.value  = norm($("outVol").value);
-
-    const dist = clamp(norm($("distance").value)*0.70 + midiVel*0.60, 0, 1);
-    lp.frequency.value = lerp(15000, 1400, dist);
-    delay.delayTime.value = lerp(0.06, 0.30, dist);
-    fb.gain.value = clamp(lerp(0.10, 0.88, dist), 0, 0.92);
-  }
-
-  function updateFxGate(){
-    const fxMax = norm($("fxMax").value);
-    const pressed = active>0 ? 1 : 0;
-    const target = pressed ? clamp(fxMax*(0.20 + 0.95*midiVel), 0, 1) : 0;
-    fxGate = lerp(fxGate, target, pressed ? 0.18 : 0.08);
-    fxGain.gain.value = fxGate;
-
-    if(active===0) midiVel *= 0.985;
-    $("midiBar").style.width = `${Math.round(midiVel*100)}%`;
-  }
-
-  async function micOn(){
-    micStream = await navigator.mediaDevices.getUserMedia({
-      audio:{echoCancellation:false, noiseSuppression:false, autoGainControl:false}
-    });
-    micSrc = ctx.createMediaStreamSource(micStream);
-
-    // THRU
-    micSrc.connect(thruGain);
-    // FX input
-    micSrc.connect(fxProc);
-
-    log("Mic ON ✅ (원음이 들려야 정상)");
-  }
-
-  function micOff(){
-    if(micSrc){ try{ micSrc.disconnect(); }catch(e){} micSrc=null; }
-    if(micStream){ try{ micStream.getTracks().forEach(t=>t.stop()); }catch(e){} micStream=null; }
-    log("Mic OFF");
-  }
-
-  function panic(){
-    const prev = outGain.gain.value;
-    outGain.gain.value = 0.0;
-    setTimeout(()=>{ outGain.gain.value = prev; }, 250);
-    log("PANIC");
-  }
-
-  async function initMIDI(){
-    const sel=$("midiIn"); sel.innerHTML="";
-    if(!navigator.requestMIDIAccess){
-      sel.innerHTML = `<option>WebMIDI 미지원</option>`;
-      log("WebMIDI 미지원(Chrome 권장)");
-      return;
-    }
-    midiAccess = await navigator.requestMIDIAccess({sysex:false});
-    midiAccess.onstatechange = refreshInputs;
-    refreshInputs();
-    log("MIDI ready ✅");
-  }
-
-  function refreshInputs(){
-    const sel=$("midiIn"); sel.innerHTML="";
-    const inputs = midiAccess ? Array.from(midiAccess.inputs.values()) : [];
-    if(inputs.length===0){ sel.innerHTML=`<option>연결된 MIDI 없음</option>`; return; }
-    inputs.forEach(inp=>{
-      const opt=document.createElement("option");
-      opt.value=inp.id;
-      opt.textContent=`${inp.name || "MIDI Input"}${inp.manufacturer ? " – "+inp.manufacturer : ""}`;
-      sel.appendChild(opt);
-    });
-    if(!currentInput){ connectInput(inputs[0].id); sel.value=inputs[0].id; }
-  }
-
-  function connectInput(id){
-    if(currentInput) currentInput.onmidimessage=null;
-    currentInput = midiAccess.inputs.get(id);
-    if(!currentInput) return;
-
-    currentInput.onmidimessage = (msg)=>{
-      const [status,,d2]=msg.data;
-      const cmd=status & 0xF0;
-      if(cmd===0x90){
-        const vel=d2;
-        if(vel===0) active=Math.max(0,active-1);
-        else { active++; midiVel = clamp(vel/127,0,1); }
-      } else if(cmd===0x80){
-        active=Math.max(0,active-1);
-      }
-      updateParams();
-    };
-    log("MIDI connected: "+(currentInput.name||id));
-  }
-
-  // ✅ Start 버튼 이벤트를 “무조건” 받도록 여러 타입으로 바인딩
-  async function onStart(ev){
-    ev?.preventDefault?.();
-    ev?.stopPropagation?.();
-    log("START FIRED ✅ (event: " + (ev?.type || "unknown") + ")");
-
-    if(ctx) return;
-
+    // 크롬 오디오 언락
     ctx = new (window.AudioContext||window.webkitAudioContext)();
     await ctx.resume();
 
-    ringLen = Math.floor(ctx.sampleRate*4.0);
-    ring = new Float32Array(ringLen);
-    ringWrite=0;
+    outGain = ctx.createGain();
+    outGain.gain.value = 0.9;
+    outGain.connect(ctx.destination);
 
-    buildGraph();
-    resetVoices(4);
-    buildProcessor();
-
-    enableUI(true);
-    $("startBtn").disabled = true;
     $("micBtn").disabled = false;
-    $("micOffBtn").disabled = true;
     $("panicBtn").disabled = false;
 
-    await initMIDI();
+    // 오버레이 제거 (Start 버튼 사라짐)
+    $("startOverlay").remove();
 
-    ["thruVol","fxMax","distance","outVol"].forEach(id=>{
-      $(id).addEventListener("input", updateParams);
-    });
-
-    // tiny loop for fx gate smoothing + midi bar
-    const tick=()=>{ if(!ctx) return; updateFxGate(); requestAnimationFrame(tick); };
-    requestAnimationFrame(tick);
-
-    updateParams();
-    log("Audio ready ✅ 다음: Mic On");
+    log("AudioContext READY ✅  다음: Mic On");
   }
 
-  const startBtn = $("startBtn");
-  startBtn.addEventListener("click", onStart, {passive:false});
-  startBtn.addEventListener("pointerdown", onStart, {passive:false});
-  startBtn.addEventListener("touchstart", onStart, {passive:false});
+  // ✅ Start 버튼 이벤트를 여러 방식으로 강제 수신 (크롬 대응)
+  const sbtn = $("startBtn");
+  ["pointerdown","mousedown","touchstart","click"].forEach(type=>{
+    sbtn.addEventListener(type, startAudio, {passive:false});
+  });
 
   $("micBtn").addEventListener("click", async ()=>{
     try{
-      await micOn();
-      $("micBtn").disabled=true;
-      $("micOffBtn").disabled=false;
+      micStream = await navigator.mediaDevices.getUserMedia({
+        audio:{echoCancellation:false, noiseSuppression:false, autoGainControl:false}
+      });
+      micSrc = ctx.createMediaStreamSource(micStream);
+
+      // 원음 THRU
+      micSrc.connect(outGain);
+
+      $("micBtn").disabled = true;
+      $("micOffBtn").disabled = false;
+
+      log("Mic ON ✅ (원음 들려야 정상)");
     }catch(e){
-      log("Mic error: "+e.message);
+      log("Mic error: " + e.message);
     }
   });
 
   $("micOffBtn").addEventListener("click", ()=>{
-    micOff();
-    $("micBtn").disabled=false;
-    $("micOffBtn").disabled=true;
+    if(micSrc){ try{ micSrc.disconnect(); }catch(e){} micSrc=null; }
+    if(micStream){ try{ micStream.getTracks().forEach(t=>t.stop()); }catch(e){} micStream=null; }
+    $("micBtn").disabled = false;
+    $("micOffBtn").disabled = true;
+    log("Mic OFF");
   });
 
-  $("panicBtn").addEventListener("click", panic);
-
-  enableUI(false);
+  $("panicBtn").addEventListener("click", ()=>{
+    if(!outGain) return;
+    const prev = outGain.gain.value;
+    outGain.gain.value = 0;
+    setTimeout(()=> outGain.gain.value = prev, 250);
+    log("PANIC");
+  });
 })();
 </script>
 </body>
