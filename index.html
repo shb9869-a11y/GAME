@@ -152,9 +152,6 @@
     background:rgba(0,0,0,.22);
     color:#ddd;
   }
-
-  .kv{display:flex; justify-content:space-between; gap:12px; width:100%;}
-  .kv b{color:#eee;}
 </style>
 </head>
 <body>
@@ -164,7 +161,7 @@
     <div style="font-weight:800; font-size:16px; margin-bottom:10px;">SLEEP – Start</div>
     <div class="small" style="margin-bottom:12px;">
       1) <b>Start Audio</b>로 오디오를 열고<br/>
-      2) <b>Mic ON</b> 또는 <b>File</b> 선택 후 AUDIO 탭에서 레벨 확인<br/>
+      2) <b>Mic ON</b> 또는 <b>File</b> 선택 후 AUDIO 탭에서 레벨(amp) 확인<br/>
       3) TouchMe(MIDI) 값은 MIDI 탭에서 확인
     </div>
     <div class="row">
@@ -189,7 +186,7 @@
   <div id="bar">
     <div class="title">Settings</div>
     <button id="btnHideUI" title="Close">닫기</button>
-    <div class="pill" id="topPill">audio:off | src:off | q:1.00</div>
+    <div class="pill" id="topPill">audio:off | src:off | midi:?</div>
   </div>
 
   <div id="tabs">
@@ -200,7 +197,6 @@
   </div>
 
   <div id="panels">
-    <!-- VISUAL -->
     <div class="panel active" id="panel-visual">
       <div class="row">
         <div class="label">Mode</div>
@@ -238,52 +234,12 @@
         </select>
       </div>
 
-      <div class="row">
-        <div class="label">Idle Drama</div>
-        <div class="grow">
-          <input id="rngIdleDrama" type="range" min="0" max="1" step="0.01" value="0.55" style="width:100%;">
-          <div class="small" id="txtIdleDrama">idle drama: 0.55 (무음 상태의 ‘살아있음/호흡/회전’)</div>
-        </div>
-      </div>
-
-      <div class="row">
-        <div class="label">Visual Sens</div>
-        <div class="grow">
-          <input id="rngVisSens" type="range" min="0.6" max="2.6" step="0.01" value="1.55" style="width:100%;">
-          <div class="small" id="txtVisSens">visual sens: 1.55× (amp→움직임/연결 반응 강도)</div>
-        </div>
-      </div>
-
-      <div class="row">
-        <div class="label">Line density</div>
-        <div class="grow">
-          <input id="rngLine" type="range" min="0.2" max="1.2" step="0.01" value="0.75" style="width:100%;">
-          <div class="small" id="txtLine">line density: 0.75× (선/연결량)</div>
-        </div>
-      </div>
-
-      <div class="row">
-        <div class="label">Perf limit</div>
-        <div class="grow">
-          <input id="rngPerf" type="range" min="0.25" max="1" step="0.01" value="0.72" style="width:100%;">
-          <div class="small" id="txtPerf">perf limit: 0.72 (렉 방지 상한, 낮출수록 더 안전)</div>
-        </div>
-      </div>
-
-      <div class="row">
-        <div class="label">BG fade</div>
-        <div class="grow">
-          <input id="rngFade" type="range" min="0.02" max="0.20" step="0.005" value="0.09" style="width:100%;">
-          <div class="small" id="txtFade">fade: 0.090 (잔상/부드러움; 높을수록 빨리 지움)</div>
-        </div>
-      </div>
-
       <div class="small">
-        ✅ 팁: 렉이 오면 <b>Perf limit↓</b> → <b>Line density↓</b> → <b>Particles↓</b> 순으로 내리면 거의 바로 안정됩니다.
+        무음일 때도 점은 사라지지 않고 “입체 점 상태”로 유지됩니다.<br/>
+        소리/변화가 들어오면 연결·확장·수축·회전·멈춤 같은 상태 전이가 생깁니다.
       </div>
     </div>
 
-    <!-- AUDIO -->
     <div class="panel" id="panel-audio">
       <div class="row">
         <div class="label">Input level</div>
@@ -291,40 +247,17 @@
       </div>
 
       <div class="row">
-        <div class="label">Media Gain</div>
+        <div class="label">Sensitivity</div>
         <div class="grow">
-          <input id="rngMediaGain" type="range" min="0.2" max="3.0" step="0.01" value="1.00" style="width:100%;">
-          <div class="small" id="txtMediaGain">media gain: 1.00× (마이크/파일 입력 볼륨)</div>
-        </div>
-      </div>
-
-      <div class="row">
-        <div class="label">Analysis Sens</div>
-        <div class="grow">
+          <!-- 더 세게: 1~12x -->
           <input id="rngSens" type="range" min="1" max="12" step="0.1" value="7.0" style="width:100%;">
-          <div class="small" id="txtSens">analysis sens: 7.0× (amp 분석 민감도)</div>
-        </div>
-      </div>
-
-      <div class="row">
-        <div class="label">Gamma boost</div>
-        <div class="grow">
-          <input id="rngGamma" type="range" min="0.45" max="1.20" step="0.01" value="0.72" style="width:100%;">
-          <div class="small" id="txtGamma">gamma: 0.72 (작은 소리 부스트; 1보다 작을수록 더 예민)</div>
-        </div>
-      </div>
-
-      <div class="row">
-        <div class="label">Amp cap</div>
-        <div class="grow">
-          <input id="rngCap" type="range" min="0.10" max="0.70" step="0.01" value="0.42" style="width:100%;">
-          <div class="small" id="txtCap">amp cap: 0.42 (폭주 상한; 낮추면 큰 소리에서 더 안정)</div>
+          <div class="small" id="txtSens">sens: 7.0× (작은 소리도 강하게 부스트)</div>
         </div>
       </div>
 
       <div class="row">
         <div class="label">Amp / Δ</div>
-        <div class="mono grow" id="txtAmp">amp: 0.0000 | dAmp: 0.0000</div>
+        <div class="mono grow" id="txtAmp">amp: 0.000 | dAmp: 0.000</div>
       </div>
       <div class="row">
         <div class="label">FX (Touch)</div>
@@ -332,11 +265,10 @@
       </div>
 
       <div class="small">
-        렉이 생기는 구간을 찾을 때는 <b>Analysis Sens↑</b> 대신 <b>Visual Sens↑</b>로 올리는 게 더 안전한 경우가 많아요.
+        큰 소리에서 렉이 보이면 sens를 조금 낮추거나 Particles를 160으로 내려보세요.
       </div>
     </div>
 
-    <!-- MIDI -->
     <div class="panel" id="panel-midi">
       <div class="row">
         <div class="label">Touch value</div>
@@ -348,7 +280,6 @@
       </div>
     </div>
 
-    <!-- SYSTEM -->
     <div class="panel" id="panel-settings">
       <div class="row">
         <div class="label">Audio context</div>
@@ -405,7 +336,7 @@
 /* ==========================================================
    SETTINGS PERSISTENCE (localStorage)
 ========================================================== */
-const STORE_KEY = "sleep_settings_v5";
+const STORE_KEY = "sleep_settings_v4";
 function loadSettings(){ try{ return JSON.parse(localStorage.getItem(STORE_KEY)||"{}"); }catch(e){ return {}; } }
 function saveSettings(obj){ localStorage.setItem(STORE_KEY, JSON.stringify(obj)); }
 const S = loadSettings();
@@ -420,12 +351,6 @@ function hookSelectSave(id){
   if(!el) return;
   el.addEventListener('change', ()=>{ S[id] = el.value; saveSettings(S); });
 }
-function hookRangeSave(id, fallback){
-  const el = document.getElementById(id);
-  if(!el) return;
-  el.value = (S[id] ?? fallback);
-  el.addEventListener('input', ()=>{ S[id] = parseFloat(el.value); saveSettings(S); });
-}
 
 /* ==========================================================
    CANVAS / DPR
@@ -433,6 +358,7 @@ function hookRangeSave(id, fallback){
 const canvas = document.getElementById('c');
 const ctx = canvas.getContext('2d', { alpha:false });
 let W=0,H=0,DPR=1;
+
 function resize(){
   DPR = Math.max(1, Math.min(2, devicePixelRatio||1));
   W = innerWidth|0; H = innerHeight|0;
@@ -520,12 +446,14 @@ function ensureAudio(){
   merger = audioCtx.createChannelMerger(2);
 
   comp = audioCtx.createDynamicsCompressor();
+  // 약간 더 강하게 리미팅해서 "큰 소리 폭주" 완화
   comp.threshold.value = -22;
   comp.knee.value = 28;
   comp.ratio.value = 7;
   comp.attack.value = 0.003;
   comp.release.value = 0.14;
 
+  // chain
   preGain.connect(driveWS);
   driveWS.connect(driveGain);
   driveGain.connect(filter);
@@ -546,43 +474,22 @@ function ensureAudio(){
   updateTopPill();
 }
 
-/* ==========================================================
-   AUDIO CONTROLS (UI)
-========================================================== */
-hookRangeSave('rngMediaGain', 1.00);
-hookRangeSave('rngSens', 7.0);
-hookRangeSave('rngGamma', 0.72);
-hookRangeSave('rngCap', 0.42);
-
-const rngMediaGain = document.getElementById('rngMediaGain');
+// Sensitivity (더 강하게 + 작은 신호 부스트)
 const rngSens = document.getElementById('rngSens');
-const rngGamma = document.getElementById('rngGamma');
-const rngCap = document.getElementById('rngCap');
-
-const txtMediaGain = document.getElementById('txtMediaGain');
 const txtSens = document.getElementById('txtSens');
-const txtGamma = document.getElementById('txtGamma');
-const txtCap = document.getElementById('txtCap');
-
-function getMediaGain(){ return Math.max(0.2, Math.min(3.0, parseFloat(rngMediaGain.value)||1)); }
-function getSens(){ return Math.max(1, Math.min(12, parseFloat(rngSens.value)||7)); }
-function getGamma(){ return Math.max(0.45, Math.min(1.20, parseFloat(rngGamma.value)||0.72)); }
-function getCap(){ return Math.max(0.10, Math.min(0.70, parseFloat(rngCap.value)||0.42)); }
-
-function refreshAudioLabels(){
-  txtMediaGain.textContent = `media gain: ${getMediaGain().toFixed(2)}× (마이크/파일 입력 볼륨)`;
-  txtSens.textContent      = `analysis sens: ${getSens().toFixed(1)}× (amp 분석 민감도)`;
-  txtGamma.textContent     = `gamma: ${getGamma().toFixed(2)} (작은 소리 부스트; 1보다 작을수록 더 예민)`;
-  txtCap.textContent       = `amp cap: ${getCap().toFixed(2)} (폭주 상한; 낮추면 큰 소리에서 더 안정)`;
-}
-['input','change'].forEach(ev=>{
-  rngMediaGain.addEventListener(ev, refreshAudioLabels);
-  rngSens.addEventListener(ev, refreshAudioLabels);
-  rngGamma.addEventListener(ev, refreshAudioLabels);
-  rngCap.addEventListener(ev, refreshAudioLabels);
+rngSens.value = (S.rngSens ?? 7.0);
+function getSens(){ return Math.max(1, Math.min(12, parseFloat(rngSens.value)||7.0)); }
+function updateSensLabel(){ txtSens.textContent = `sens: ${getSens().toFixed(1)}× (작은 소리도 강하게 부스트)`; }
+updateSensLabel();
+rngSens.addEventListener('input', ()=>{
+  S.rngSens = parseFloat(rngSens.value)||7.0;
+  saveSettings(S);
+  updateSensLabel();
 });
-refreshAudioLabels();
 
+// 핵심: quiet에서도 “안 죽게” (감마 < 1 로 작은 신호 올림)
+const AMP_CAP = 0.42;     // amp 상한 (너무 크면 폭주/렉)
+const AMP_GAMMA = 0.72;   // <1 이면 작은 신호가 더 커짐
 function updateAmp(){
   if(!analyser) return;
 
@@ -593,19 +500,12 @@ function updateAmp(){
     sum+=v*v;
   }
   const rms=Math.sqrt(sum/timeData.length);
-
-  // 입력 볼륨(마이크/파일 둘 다)
-  const g = getMediaGain();
-  const rmsG = rms * g;
-
-  ampSmooth += (rmsG-ampSmooth)*0.12;
+  ampSmooth += (rms-ampSmooth)*0.12;
 
   const sens = getSens();
-  const gamma = getGamma();
-  const cap = getCap();
-
-  const boosted = Math.pow(Math.max(0, ampSmooth * sens), gamma);
-  const scaled = Math.min(cap, boosted);
+  // 감도 + 감마 부스트
+  const boosted = Math.pow(Math.max(0, ampSmooth * sens), AMP_GAMMA);
+  const scaled = Math.min(AMP_CAP, boosted);
 
   amp = scaled;
   ampDelta = Math.abs(amp - prevAmp);
@@ -678,8 +578,8 @@ async function listDevices(){
   }
 
   txtSupport.textContent =
-    `지원 상태: mic=${mics.length} | spk=${spks.length} | outputSelect=${outputSupported ? 'YES' : 'NO'}\n`+
-    `AUDIO/VISUAL에서 렉 안 먹는 선을 직접 튜닝하세요.`;
+    `지원 상태: mic=${mics.length} | spk=${spks.length} | outputSelect=${outputSupported ? 'YES' : 'NO'}\n` +
+    `작은 소리도 반응하게 sens+gamma 부스트 적용 중.`;
 
   if(outputSupported && S.currentSpkDeviceId){
     try{
@@ -742,7 +642,7 @@ async function startMic(deviceId="default"){
     await listDevices();
     setStartButtons(true);
     updateTopPill();
-    startStatus("Mic ON. AUDIO 탭에서 레벨/민감도 조절.");
+    startStatus("Mic ON. AUDIO 탭에서 레벨(amp) 확인.");
   }catch(e){
     console.error(e);
     startStatus("Mic ON 실패. 권한/장치 선택 확인.");
@@ -888,59 +788,16 @@ function applyFX(){
 }
 
 /* ==========================================================
-   VISUAL CONTROLS (UI)
-========================================================== */
-hookRangeSave('rngIdleDrama', 0.55);
-hookRangeSave('rngVisSens', 1.55);
-hookRangeSave('rngLine', 0.75);
-hookRangeSave('rngPerf', 0.72);
-hookRangeSave('rngFade', 0.09);
-
-const rngIdleDrama = document.getElementById('rngIdleDrama');
-const rngVisSens   = document.getElementById('rngVisSens');
-const rngLine      = document.getElementById('rngLine');
-const rngPerf      = document.getElementById('rngPerf');
-const rngFade      = document.getElementById('rngFade');
-
-const txtIdleDrama = document.getElementById('txtIdleDrama');
-const txtVisSens   = document.getElementById('txtVisSens');
-const txtLine      = document.getElementById('txtLine');
-const txtPerf      = document.getElementById('txtPerf');
-const txtFade      = document.getElementById('txtFade');
-
-function getIdleDrama(){ return Math.max(0, Math.min(1, parseFloat(rngIdleDrama.value)||0.55)); }
-function getVisSens(){ return Math.max(0.6, Math.min(2.6, parseFloat(rngVisSens.value)||1.55)); }
-function getLineMul(){ return Math.max(0.2, Math.min(1.2, parseFloat(rngLine.value)||0.75)); }
-function getPerfLim(){ return Math.max(0.25, Math.min(1.0, parseFloat(rngPerf.value)||0.72)); }
-function getFade(){ return Math.max(0.02, Math.min(0.20, parseFloat(rngFade.value)||0.09)); }
-
-function refreshVisualLabels(){
-  txtIdleDrama.textContent = `idle drama: ${getIdleDrama().toFixed(2)} (무음 상태의 ‘살아있음/호흡/회전’)`;
-  txtVisSens.textContent   = `visual sens: ${getVisSens().toFixed(2)}× (amp→움직임/연결 반응 강도)`;
-  txtLine.textContent      = `line density: ${getLineMul().toFixed(2)}× (선/연결량)`;
-  txtPerf.textContent      = `perf limit: ${getPerfLim().toFixed(2)} (렉 방지 상한, 낮출수록 더 안전)`;
-  txtFade.textContent      = `fade: ${getFade().toFixed(3)} (잔상/부드러움; 높을수록 빨리 지움)`;
-}
-['input','change'].forEach(ev=>{
-  rngIdleDrama.addEventListener(ev, refreshVisualLabels);
-  rngVisSens.addEventListener(ev, refreshVisualLabels);
-  rngLine.addEventListener(ev, refreshVisualLabels);
-  rngPerf.addEventListener(ev, refreshVisualLabels);
-  rngFade.addEventListener(ev, refreshVisualLabels);
-});
-refreshVisualLabels();
-
-/* ==========================================================
    VISUAL FIELD
 ========================================================== */
 let N = 220;
 let pts = [];
 let rot = 0;
 
-// base thresholds (민감한 기본값)
-const BASE_QUIET_TH = 0.0032;
-const BASE_ACTIVE_TH = 0.0065;
-const BASE_ONSET_TH  = 0.0060;
+// 더 민감하게(조용해도 active 쪽으로 조금은 가게)
+let QUIET_TH = 0.0032;
+let ACTIVE_TH = 0.0065;
+let ONSET_TH  = 0.0060;
 
 let energy = 0;
 let burstEnergy = 0;
@@ -1001,15 +858,16 @@ function applyBounds(p, mode){
 }
 
 /* ==========================================================
-   UI / TOGGLES
+   UI / TABS / TOGGLES
 ========================================================== */
-function updateTopPill(q=1){
+function updateTopPill(){
   const pill = document.getElementById('topPill');
   const a = audioCtx ? audioCtx.state : 'off';
   const src = (currentSource==="mic")
     ? (micStream ? "mic:on" : "mic:off")
     : (fileAudioEl && fileAudioEl.src ? (fileAudioEl.paused ? "file:loaded" : "file:play") : "file:empty");
-  pill.textContent = `audio:${a} | src:${src} | q:${q.toFixed(2)}`;
+  const midi = midiName.includes('MIDI:') ? midiName.replace('MIDI: ','') : '?';
+  pill.textContent = `audio:${a} | src:${src} | midi:${midi}`;
 }
 
 const ui = document.getElementById('ui');
@@ -1044,7 +902,7 @@ document.getElementById('btnResume').addEventListener('click', async ()=>{
   await audioCtx.resume();
   await listDevices();
   setStartButtons(!!micStream);
-  updateTopPill(1);
+  updateTopPill();
 });
 
 document.querySelectorAll('.tab').forEach(t=>{
@@ -1062,13 +920,12 @@ if(S.activeTab){
   if(tabEl) tabEl.click();
 }
 
-// restore selects + saves
 applySelectValue('selMode', 'pulse');
 applySelectValue('selN', '220');
 applySelectValue('selBounds', 'soft');
 applySelectValue('selQuietLines', '1');
 applySelectValue('selSrc', (S.currentSource ?? 'mic'));
-['selMode','selN','selBounds','selQuietLines','selSrc'].forEach(hookSelectSave);
+['selMode','selN','selBounds','selQuietLines'].forEach(hookSelectSave);
 
 document.getElementById('selN').addEventListener('change', (e)=>{
   N = parseInt(e.target.value,10);
@@ -1091,7 +948,7 @@ function applySourceUI(){
   rowFile.style.display = (currentSource==="file") ? "" : "none";
 
   setStartButtons(!!micStream);
-  updateTopPill(1);
+  updateTopPill();
 }
 selSrc.addEventListener('change', async ()=>{
   applySourceUI();
@@ -1119,7 +976,6 @@ const btnFilePlay = document.getElementById('btnFilePlay');
 const btnFilePause = document.getElementById('btnFilePause');
 const btnFileStop = document.getElementById('btnFileStop');
 const txtFile = document.getElementById('txtFile');
-
 function setFileBtns(enabled){
   btnFilePlay.disabled = !enabled;
   btnFilePause.disabled = !enabled;
@@ -1150,7 +1006,7 @@ fileAudio.addEventListener('change', async ()=>{
 
   connectFileToChain();
   setFileBtns(true);
-  updateTopPill(1);
+  updateTopPill();
 });
 
 btnFilePlay.addEventListener('click', async ()=>{
@@ -1160,17 +1016,17 @@ btnFilePlay.addEventListener('click', async ()=>{
   try{ await fileAudioEl.play(); }catch(e){
     alert("재생이 막혔어요. 화면을 한번 터치/클릭한 뒤 다시 Play 눌러주세요.");
   }
-  updateTopPill(1);
+  updateTopPill();
 });
 btnFilePause.addEventListener('click', ()=>{
   if(!fileAudioEl) return;
   try{ fileAudioEl.pause(); }catch(e){}
-  updateTopPill(1);
+  updateTopPill();
 });
 btnFileStop.addEventListener('click', ()=>{
   if(!fileAudioEl) return;
   try{ fileAudioEl.pause(); fileAudioEl.currentTime = 0; }catch(e){}
-  updateTopPill(1);
+  updateTopPill();
 });
 
 /* ==========================================================
@@ -1185,16 +1041,14 @@ document.getElementById('btnStartAudio').addEventListener('click', async ()=>{
   document.getElementById('btnStartMic').disabled = (currentSource!=="mic");
   document.getElementById('btnMicOn').disabled = (currentSource!=="mic");
   setStartButtons(!!micStream);
-  updateTopPill(1);
+  updateTopPill();
   startStatus("Audio unlocked. Mic ON 또는 SYSTEM에서 File 선택.");
 });
-
 document.getElementById('btnStartMic').addEventListener('click', async ()=>{
   if(currentSource!=="mic") return;
   await startMic(currentMicDeviceId);
   document.getElementById('hint').style.display='none';
 });
-
 document.getElementById('btnStopMic').addEventListener('click', ()=> stopMic());
 document.getElementById('btnMicOn').addEventListener('click', async ()=>{
   if(currentSource!=="mic") return;
@@ -1202,15 +1056,21 @@ document.getElementById('btnMicOn').addEventListener('click', async ()=>{
 });
 document.getElementById('btnMicOff').addEventListener('click', ()=> stopMic());
 
-// audio unlock safety
 addEventListener('pointerdown', async ()=>{
   if(audioCtx && audioCtx.state==='suspended'){
     await audioCtx.resume();
+    updateTopPill();
   }
 },{passive:true});
 
 /* ==========================================================
-   MAIN LOOP (Adaptive Quality + User Tuning)
+   MAIN LOOP
+   - “점이 사라져 보이는” 원인 대부분:
+     1) 배경 페이드가 너무 강해서 잔상이 금방 사라짐
+     2) quiet 상태 점 alpha가 너무 낮음
+   => fade 약화 + quiet alpha/radius 하한 상승
+   - 큰 소리 렉 완화:
+     Adaptive Quality로 라인 수 자동 감소
 ========================================================== */
 let lastUiT = 0;
 let lastFrameT = performance.now();
@@ -1222,45 +1082,33 @@ function loop(){
   lastFrameT = now;
   frameMsSmooth += (dt - frameMsSmooth) * 0.08;
 
-  // Adaptive quality by frame time
-  let qAuto = 1 - Math.max(0, (frameMsSmooth - 16) / 45);
-  qAuto = Math.max(0.28, Math.min(1, qAuto));
+  // Adaptive quality: 프레임이 느려질수록(=렉) 라인 수 자동 감소
+  // 16ms(60fps) => q=1, 33ms(30fps) => q~0.55, 50ms => q~0.35
+  let q = 1 - Math.max(0, (frameMsSmooth - 16) / 45);
+  q = Math.max(0.28, Math.min(1, q));
 
-  // User perf limit clamps it (더 강력한 렉 방지)
-  const q = Math.min(qAuto, getPerfLim());
-
-  // BG fade controllable
-  ctx.fillStyle = `rgba(0,0,0,${getFade().toFixed(3)})`;
+  // 배경 페이드: 조금 더 “남게”(점이 안 죽어 보임)
+  ctx.fillStyle = "rgba(0,0,0,0.09)";
   ctx.fillRect(0,0,W,H);
 
   if(audioCtx) updateAmp();
   updateTouch();
   if(audioCtx) applyFX();
 
+  // DOM 업데이트 throttling
   if(now - lastUiT > 110){
     lastUiT = now;
     const inPct = Math.max(0, Math.min(1, amp*6.0));
     document.getElementById('meterIn').style.width = (inPct*100).toFixed(1)+"%";
-    document.getElementById('txtAmp').textContent =
-      `amp: ${amp.toFixed(4)} | dAmp: ${ampDelta.toFixed(4)} | frame:${frameMsSmooth.toFixed(1)}ms | q:${q.toFixed(2)}`;
+    document.getElementById('txtAmp').textContent = `amp: ${amp.toFixed(4)} | dAmp: ${ampDelta.toFixed(4)} | q:${q.toFixed(2)}`;
     document.getElementById('meterTouch').style.width = (touchSmooth*100).toFixed(1)+"%";
-    updateTopPill(q);
+    updateTopPill();
   }
 
-  // --- STATE
-  const visSens = getVisSens();
-  const idleDrama = getIdleDrama();
-
-  // threshold는 visSens가 높을수록 더 쉽게 active로
-  const QUIET_TH = BASE_QUIET_TH / visSens;
-  const ACTIVE_TH = BASE_ACTIVE_TH / visSens;
-  const ONSET_TH  = BASE_ONSET_TH / visSens;
-
+  // energy: 조용해도 완전 0으로 안 떨어지게(“살아있음”)
   const targetEnergy = (amp > ACTIVE_TH) ? 1 : (amp < QUIET_TH ? 0 : energy);
   energy += (targetEnergy - energy) * 0.05;
-
-  // idle drama가 높으면 에너지 바닥을 올려 “무음 드라마” 유지
-  const energyFloor = 0.04 + idleDrama * 0.20; // 0.04~0.24
+  const energyFloor = 0.08; // <- 핵심: 작은 소리에서도 완전 꺼지지 않게
   energy = Math.max(energyFloor, energy);
 
   const onset = Math.max(0, (ampDelta - ONSET_TH));
@@ -1275,11 +1123,11 @@ function loop(){
   const t = now*0.001;
   const breathe = 0.5 + 0.5*Math.sin(t*1.2);
 
-  const baseSpeedQuiet = 0.10 + idleDrama*0.05;
-  const baseChaosQuiet = 0.55 + idleDrama*1.10;
+  const baseSpeedQuiet = 0.10;
+  const baseChaosQuiet = 0.8;
 
-  const baseSpeedActive = (0.12 + Math.min(0.30, amp*2.6)) * visSens;
-  const baseChaosActive = Math.min(22, (ampDelta*90) + (touchSmooth*34) + burstEnergy*42) * visSens;
+  const baseSpeedActive = 0.12 + Math.min(0.25, amp*2.3);
+  const baseChaosActive = Math.min(20, (ampDelta*85) + (touchSmooth*34) + burstEnergy*36);
 
   let speed = baseSpeedQuiet*(1-energy) + baseSpeedActive*energy;
   let chaos = baseChaosQuiet*(1-energy) + baseChaosActive*energy;
@@ -1287,19 +1135,16 @@ function loop(){
   if(mode==="calm"){ speed *= 0.88; chaos *= 0.75; }
   if(mode==="burst"){ speed *= 1.05; chaos *= 1.18; }
 
-  // link distance controlled by line density
-  const lineMul = getLineMul();
-  const linkDistQuiet = 26 + idleDrama*10;
-  const linkDistActiveRaw = (64 + amp*240 + touchSmooth*280 + burstEnergy*110) * lineMul * visSens;
-  const linkDistActive = Math.min(160, linkDistActiveRaw);
+  const linkDistQuiet = 28;
+  const linkDistActiveRaw = 64 + amp*240 + touchSmooth*280 + burstEnergy*110;
+  const linkDistActive = Math.min(140, linkDistActiveRaw);
   const linkDist = linkDistQuiet*(1-energy) + linkDistActive*energy;
 
-  const centerPull = (0.008 + touchSmooth*0.018) * (1.0 - Math.min(1, amp*1.2)) * (0.75 + idleDrama*0.6);
-  const burst = (amp*0.017 + ampDelta*0.056 + touchSmooth*0.010 + burstEnergy*0.020) * visSens;
+  const centerPull = (0.008 + touchSmooth*0.018) * (1.0 - Math.min(1, amp*1.2));
+  const burst = (amp*0.017 + ampDelta*0.056 + touchSmooth*0.010 + burstEnergy*0.020);
 
   const freeze = energy * Math.max(0, 1 - (ampDelta*20));
-  const rotSpeedBase = (0.0012 + energy*0.010 + burstEnergy*0.008) * (1 - 0.7*freeze);
-  const rotSpeed = rotSpeedBase * (0.65 + idleDrama*0.8);
+  const rotSpeed = (0.0012 + energy*0.010 + burstEnergy*0.008) * (1 - 0.7*freeze);
   rot += rotSpeed;
 
   const scale = 1.0 + energy*(breathe-0.5)*0.25;
@@ -1330,7 +1175,7 @@ function loop(){
 
   const pr = pts.map(project);
 
-  // lines: bucket + adaptive + user density & perf clamp
+  // lines: grid buckets + Adaptive quality(q)로 라인 cap 줄이기
   if(energy > 0.05 || quietLines>0){
     const cell = Math.max(22, Math.floor(linkDist));
     const inv = 1 / cell;
@@ -1346,11 +1191,11 @@ function loop(){
       arr.push(i);
     }
 
-    // user controls line density and perf
-    const baseMax = (1200 + energy*900 + burstEnergy*800) * lineMul;
-    const maxLines = Math.floor(baseMax * q);
-
+    const baseMax = 1200 + energy*900 + burstEnergy*800;
+    const maxLines = Math.floor(baseMax * q);  // <- 느려지면 자동 감소
     let linesDrawn = 0;
+
+    // 느릴수록 검사량도 더 줄이기(점 인덱스 stride)
     const stride = (q < 0.45) ? 2 : 1;
 
     for(let i=0;i<N;i+=stride){
@@ -1377,8 +1222,8 @@ function loop(){
             if(d<linkDist){
               const alpha = 1 - d/linkDist;
 
-              const quietGain = (quietLines===0) ? 0 : (quietLines===1 ? 0.14 : 0.28);
-              const onGain = 0.38 + amp*1.6*visSens + burstEnergy*1.7*visSens;
+              const quietGain = (quietLines===0) ? 0 : (quietLines===1 ? 0.14 : 0.28); // quiet 라인도 조금 더 보이게
+              const onGain = 0.38 + amp*1.6 + burstEnergy*1.7;
               const punch = Math.min(1, alpha * (quietGain*(1-energy) + onGain*energy));
 
               ctx.globalAlpha = punch;
@@ -1398,17 +1243,17 @@ function loop(){
     }
   }
 
-  // points: quiet에서도 확실히 살아있게 + visSens로 반응 강화
+  // points: quiet에서도 더 선명하게(사라져 보이는 느낌 해결)
   for(let i=0;i<N;i++){
     const p = pr[i];
     const baseR = 1.0 + p.k*0.6;
 
-    const rQuiet = Math.max(1.4, baseR * (1.05 + idleDrama*0.20));
-    const rActive = baseR * (1.25 + amp*3.0*visSens + touchSmooth*1.2 + burstEnergy*0.9);
+    const rQuiet = Math.max(1.5, baseR * 1.10);  // <- quiet 반경 하한↑
+    const rActive = baseR * (1.25 + amp*3.0 + touchSmooth*1.2 + burstEnergy*0.9);
     const r = rQuiet*(1-energy) + rActive*energy;
 
-    const aQuiet = 0.36 + idleDrama*0.16; // 0.36~0.52
-    const aActive = Math.min(1, 0.45 + amp*1.05*visSens + touchSmooth*0.55 + burstEnergy*0.7);
+    const aQuiet = 0.42; // <- quiet 알파 크게↑ (항상 존재감)
+    const aActive = Math.min(1, 0.45 + amp*1.05 + touchSmooth*0.55 + burstEnergy*0.7);
     const a = aQuiet*(1-energy) + aActive*energy;
 
     ctx.globalAlpha = a;
@@ -1424,15 +1269,36 @@ function loop(){
 loop();
 
 /* ==========================================================
-   MUTE/FS QUICK
+   MUTE/FS QUICK + RESTORE
 ========================================================== */
+function toggleFullscreen(){
+  const el = document.documentElement;
+  if(!document.fullscreenElement) el.requestFullscreen?.();
+  else document.exitFullscreen?.();
+}
 document.getElementById('btnFSQuick').addEventListener('click', toggleFullscreen);
 
+// audio unlock safety
+addEventListener('pointerdown', async ()=>{
+  if(audioCtx && audioCtx.state==='suspended'){
+    await audioCtx.resume();
+    updateTopPill();
+  }
+},{passive:true});
+
 /* ==========================================================
-   INIT
+   INIT UI RESTORE
 ========================================================== */
 N = parseInt(document.getElementById('selN').value,10);
 initPoints();
+
+/* ==========================================================
+   SYSTEM: mic/file + device list
+========================================================== */
+async function ensureBoot(){
+  // nothing: user gesture로만
+}
+ensureBoot();
 </script>
 </body>
 </html>
