@@ -3,440 +3,683 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>TouchMe – Voice Granular Shatter (REC + MIDI)</title>
+  <title>TouchMe – LIVE Mic Granular + Wave Viz</title>
   <style>
     :root{color-scheme:dark}
-    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:#0b0b0b;color:#eee;margin:0;padding:20px}
-    .card{max-width:920px;margin:0 auto;background:#141414;border:1px solid #2a2a2a;border-radius:16px;padding:16px}
+    body{margin:0;padding:18px;background:#0b0b0b;color:#eee;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+    .wrap{max-width:1100px;margin:0 auto}
+    .card{background:#141414;border:1px solid #2a2a2a;border-radius:16px;padding:16px}
     h1{font-size:18px;margin:0 0 10px}
     p{opacity:.9;line-height:1.55;margin:8px 0}
-    label{display:block;margin-top:10px}
+    label{display:block;margin-top:10px;font-size:13px;opacity:.9}
     input,select,button{width:100%;margin-top:6px;padding:12px;border-radius:12px;border:1px solid #333;background:#0f0f0f;color:#eee}
     button{cursor:pointer}
     button:disabled{opacity:.5;cursor:not-allowed}
     .row{display:flex;gap:10px;flex-wrap:wrap}
-    .row > *{flex:1;min-width:180px}
-    .hint{font-size:12px;opacity:.78;margin-top:10px}
+    .row > *{flex:1;min-width:220px}
+    .grid{display:grid;grid-template-columns:1fr;gap:10px;margin-top:12px}
+    @media(min-width:980px){ .grid{grid-template-columns:1.2fr .8fr} }
+    .viz{background:#0f0f0f;border:1px solid #2a2a2a;border-radius:14px;padding:10px}
+    canvas{width:100%;height:280px;display:block;border-radius:10px;background:#0a0a0a}
+    .hint{font-size:12px;opacity:.78;margin-top:8px}
     .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:12px;background:#0f0f0f;border:1px solid #2a2a2a;border-radius:12px;padding:12px;white-space:pre-wrap}
-    .tinyrow{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
-    .tinyrow .mini{flex:1;min-width:210px}
-    .mini span{display:block;font-size:12px;opacity:.8;margin-top:10px}
-    .mini input[type="range"]{padding:0}
+    .split{display:grid;grid-template-columns:1fr;gap:10px}
+    .small{font-size:12px;opacity:.8}
   </style>
 </head>
 <body>
+<div class="wrap">
   <div class="card">
-    <h1>TouchMe → “늘어지고 멀어지며 파편적으로 뭉그러진” 목소리 (REC + MIDI)</h1>
-
+    <h1>LIVE 마이크 → “늘어짐/멀어짐/파편화” 제너레이팅 + 파형/스펙트럼 시각화 (TouchMe/MIDI 옵션)</h1>
     <p>
-      1) <b>Start Audio</b> → 2) <b>Record Voice</b>로 네 목소리 녹음(또는 파일 업로드) → 3) <b>MIDI Input</b>에서 TouchMe 선택 → 손대면 재생/변형.
-      <br/>※ WebMIDI는 보통 <b>Chrome</b>에서 가장 안정적.
+      1) <b>Start</b> → 2) <b>Mic On</b> (권한 허용) → 소리가 실시간으로 뭉개지고 파편화됨.<br>
+      TouchMe를 쓰면 <b>MIDI Input</b>에서 선택 → 손 세기(velocity)로 변형 강도 맵핑.
     </p>
 
     <div class="row">
-      <button id="startBtn">Start Audio (필수)</button>
-      <button id="recBtn" disabled>Record Voice</button>
-      <button id="stopRecBtn" disabled>Stop Record</button>
-      <button id="panicBtn" disabled>Panic (Stop)</button>
+      <button id="startBtn">Start (AudioContext)</button>
+      <button id="micBtn" disabled>Mic On</button>
+      <button id="micOffBtn" disabled>Mic Off</button>
+      <button id="panicBtn" disabled>Panic (Mute)</button>
     </div>
-
-    <label>내 음원 업로드 (wav/mp3/ogg/webm)</label>
-    <input id="file" type="file" accept="audio/*" disabled />
 
     <div class="row">
       <div>
         <label>MIDI Input (TouchMe)</label>
-        <select id="midiIn" disabled><option>Start Audio 후 활성화</option></select>
+        <select id="midiIn" disabled><option>Start 후 활성화</option></select>
+        <div class="hint">※ WebMIDI는 보통 Chrome에서 안정적.</div>
       </div>
       <div>
-        <label>캐릭터(프리셋)</label>
+        <label>Preset</label>
         <select id="preset" disabled>
-          <option value="ghost" selected>유령/멀어짐 (늘어짐+잔향)</option>
-          <option value="shatter">파편/찢김 (더 조각+크러시)</option>
-          <option value="cute">귀엽게 뭉그러짐 (짧은 그레인)</option>
+          <option value="ghost" selected>Ghost (늘어짐+멀어짐)</option>
+          <option value="shatter">Shatter (파편+깨짐)</option>
+          <option value="cute">Cute (짧은 그레인, 귀여움)</option>
         </select>
       </div>
     </div>
 
-    <div class="tinyrow">
-      <div class="mini">
-        <span>파편감 (Jitter)</span>
-        <input id="jitter" type="range" min="0" max="100" value="55" disabled />
+    <div class="grid">
+      <div class="viz">
+        <label>Waveform (시간 파형)</label>
+        <canvas id="wave"></canvas>
+        <div class="hint">마이크 입력/가공 후 신호를 실시간 표시.</div>
       </div>
-      <div class="mini">
-        <span>멀어짐 (Distance)</span>
-        <input id="distance" type="range" min="0" max="100" value="60" disabled />
-      </div>
-      <div class="mini">
-        <span>깨짐 (Crush)</span>
-        <input id="crush" type="range" min="0" max="100" value="50" disabled />
+      <div class="viz">
+        <label>Spectrum (주파수 스펙트럼)</label>
+        <canvas id="spec"></canvas>
+        <div class="hint">멀어짐(필터)·깨짐(크러시) 변화가 주파수 분포로 보임.</div>
       </div>
     </div>
 
-    <div class="hint">
-      - 손을 더 “세게” 누를수록: 더 늘어짐/더 멀어짐/더 파편화(velocity 기반).<br/>
-      - “말의 결”을 남기고 싶으면: <b>Crush</b>를 낮추고, <b>Distance</b>를 올리는 게 자연스러움.
-    </div>
+    <div class="split" style="margin-top:12px">
+      <div>
+        <label>Controls (라이브 변형)</label>
 
-    <label>로그</label>
-    <div id="log" class="mono">대기 중…</div>
+        <div class="row">
+          <div>
+            <label class="small">Intensity (전체 강도)</label>
+            <input id="intensity" type="range" min="0" max="100" value="55" disabled />
+          </div>
+          <div>
+            <label class="small">Distance (멀어짐/유령화)</label>
+            <input id="distance" type="range" min="0" max="100" value="60" disabled />
+          </div>
+        </div>
+
+        <div class="row">
+          <div>
+            <label class="small">Shatter (파편/랜덤 점프)</label>
+            <input id="shatter" type="range" min="0" max="100" value="55" disabled />
+          </div>
+          <div>
+            <label class="small">Crush (비트크러시 느낌)</label>
+            <input id="crush" type="range" min="0" max="100" value="45" disabled />
+          </div>
+        </div>
+
+        <div class="row">
+          <div>
+            <label class="small">Grain ms (그레인 길이)</label>
+            <input id="grainMs" type="range" min="15" max="240" value="90" disabled />
+          </div>
+          <div>
+            <label class="small">Voices (겹침 개수)</label>
+            <input id="voices" type="range" min="1" max="6" value="3" disabled />
+          </div>
+        </div>
+
+        <div class="hint">
+          - <b>Ghost</b>: distance↑, grain 길게, voices↑ 하면 “멀어지는 유령 말소리”.<br>
+          - <b>Shatter</b>: shatter↑, crush↑ 하면 “말 파편/찢김”.
+        </div>
+      </div>
+
+      <div>
+        <label>Log</label>
+        <div id="log" class="mono">대기 중…</div>
+      </div>
+    </div>
   </div>
+</div>
 
-  <!-- Tone.js -->
-  <script src="https://unpkg.com/tone@15.1.22/build/Tone.js"></script>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const logEl = $("log");
+  const log = (m) => { logEl.textContent = m + "\n" + logEl.textContent; };
 
-  <script>
-    const $ = (id) => document.getElementById(id);
-    const logEl = $("log");
-    const log = (msg) => { logEl.textContent = msg + "\n" + logEl.textContent; };
+  // ---------- state ----------
+  let ctx = null;
+  let master = null;
 
-    // ---------- helpers ----------
-    function clamp(v, a, b){ return Math.max(a, Math.min(b, v)); }
-    function lerp(a,b,t){ return a + (b-a)*t; }
-    function norm01(v){ return clamp(v/127, 0, 1); }
+  let micStream = null;
+  let micSrc = null;
 
-    // ---------- Audio graph ----------
-    // GrainPlayer -> Crusher -> Delay -> Reverb -> LPF -> Out
-    const crusher = new Tone.BitCrusher(5);
-    const delay = new Tone.FeedbackDelay("8n", 0.30);
-    const reverb = new Tone.Reverb({ decay: 6.0, preDelay: 0.02, wet: 0.35 });
-    const lp = new Tone.Filter(11000, "lowpass");
-    const out = new Tone.Gain(0.95).toDestination();
+  // analysis + viz
+  let analyser = null;
+  let analyserIn = null; // (optional) raw mic
+  let raf = null;
 
-    crusher.connect(delay);
-    delay.connect(reverb);
-    reverb.connect(lp);
-    lp.connect(out);
+  // MIDI
+  let midiAccess = null;
+  let currentInput = null;
+  let midiIntensity = 0.0; // 0..1 (velocity)
+  let activeNotes = 0;
 
-    let player = null;
-    let bufferLoaded = false;
-    let activeNotes = new Map(); // note -> true
+  // DSP nodes
+  let ring = null;
+  let ringLen = 0;
+  let ringWrite = 0;
 
-    function ensurePlayer(){
-      if(player) return player;
-      player = new Tone.GrainPlayer({
-        url: null,
-        loop: true,
-        autostart: false,
-        grainSize: 0.10,
-        overlap: 0.06
+  let proc = null;        // ScriptProcessor for granular-ish playback
+  let delay = null;
+  let delayFb = null;
+  let wet = null;
+  let dry = null;
+  let lp = null;
+  let outGain = null;
+
+  // “crush” (sample&hold / downsample) inside processor
+  let crushHold = 0;
+  let crushCounter = 0;
+
+  // granular voices
+  let voices = [];
+
+  // ---------- helpers ----------
+  const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
+  const lerp = (a,b,t)=>a+(b-a)*t;
+  const rand = (a,b)=>a+Math.random()*(b-a);
+  const norm = (x)=>clamp(x/100,0,1);
+
+  function enableUI(on){
+    ["micBtn","micOffBtn","panicBtn","midiIn","preset",
+     "intensity","distance","shatter","crush","grainMs","voices"
+    ].forEach(id=> $(id).disabled = !on);
+  }
+
+  function applyPreset(name){
+    // set UI defaults (still adjustable)
+    if(name==="ghost"){
+      $("intensity").value = 55;
+      $("distance").value = 70;
+      $("shatter").value = 40;
+      $("crush").value = 30;
+      $("grainMs").value = 120;
+      $("voices").value = 4;
+    } else if(name==="shatter"){
+      $("intensity").value = 65;
+      $("distance").value = 45;
+      $("shatter").value = 75;
+      $("crush").value = 70;
+      $("grainMs").value = 65;
+      $("voices").value = 3;
+    } else { // cute
+      $("intensity").value = 45;
+      $("distance").value = 35;
+      $("shatter").value = 40;
+      $("crush").value = 20;
+      $("grainMs").value = 55;
+      $("voices").value = 2;
+    }
+    log("preset: " + name);
+  }
+
+  // ---------- Granular-ish processor ----------
+  // Strategy:
+  // - continuously write mic input into ring buffer
+  // - output is sum of N “voices”, each plays a short grain window
+  // - each grain reads from ring at a randomized (write - offset) position,
+  //   with jitter & optional “distance” (slower drift, more smoothing)
+  function resetVoices(n){
+    voices = [];
+    for(let i=0;i<n;i++){
+      voices.push({
+        // read head position in ring
+        readPos: 0,
+        // grain samples remaining
+        remain: 0,
+        // grain length in samples
+        grainLen: 0,
+        // per-sample increment (time stretch / drift)
+        inc: 1.0,
+        // base offset from write head (how far back we read)
+        back: 0,
       });
-      player.connect(crusher);
-      return player;
     }
+  }
 
-    // ---------- Presets ----------
-    function applyPreset(name){
-      if(!player) return;
+  function windowHann(t){ // 0..1
+    return 0.5 - 0.5*Math.cos(2*Math.PI*t);
+  }
 
-      if(name === "cute"){
-        player.grainSize = 0.05;
-        player.overlap = 0.03;
-        player.playbackRate = 1.0;
-        player.detune = 0;
-        delay.delayTime.value = 0.12;
-        delay.feedback.value = 0.18;
-        reverb.decay = 2.2;
-        reverb.wet.value = 0.22;
-        lp.frequency.value = 14000;
-        crusher.bits = 6;
-      } else if(name === "ghost"){
-        player.grainSize = 0.12;
-        player.overlap = 0.08;
-        player.playbackRate = 0.85;
-        player.detune = -120;
-        delay.delayTime.value = 0.22;
-        delay.feedback.value = 0.35;
-        reverb.decay = 7.0;
-        reverb.wet.value = 0.42;
-        lp.frequency.value = 9000;
-        crusher.bits = 5;
-      } else if(name === "shatter"){
-        player.grainSize = 0.04;
-        player.overlap = 0.015;
-        player.playbackRate = 1.05;
-        player.detune = 80;
-        delay.delayTime.value = 0.09;
-        delay.feedback.value = 0.55;
-        reverb.decay = 1.6;
-        reverb.wet.value = 0.18;
-        lp.frequency.value = 11000;
-        crusher.bits = 3;
-      }
-      log(`preset: ${name}`);
-    }
+  function readRing(pos){
+    // linear interp
+    let p = pos;
+    while(p < 0) p += ringLen;
+    while(p >= ringLen) p -= ringLen;
 
-    // ---------- Mapping (MIDI -> “파편/늘어짐/멀어짐”) ----------
-    function noteToPosition(note){
-      // 0..127 -> 0..1 (살짝 비선형)
-      const x = clamp(note / 127, 0, 1);
-      return Math.pow(x, 1.15);
-    }
+    const i0 = p|0;
+    const i1 = (i0+1) % ringLen;
+    const frac = p - i0;
+    return ring[i0]*(1-frac) + ring[i1]*frac;
+  }
 
-    function uiJitter(){ return clamp(Number($("jitter").value)/100, 0, 1); }
-    function uiDistance(){ return clamp(Number($("distance").value)/100, 0, 1); }
-    function uiCrush(){ return clamp(Number($("crush").value)/100, 0, 1); }
+  function scheduleGrain(v, grainSamples, intensity, dist, shat){
+    // how far back to read: base 60~600ms (intensity↑ => 더 멀리 점프 가능)
+    const backMs = lerp(70, 700, clamp(0.35*intensity + 0.65*shat,0,1));
+    const backSamp = backMs * ctx.sampleRate / 1000;
 
-    function startGrains(note, velocity){
-      if(!bufferLoaded || !player) return;
+    // jitter: 파편감 (write head 주변 랜덤 점프)
+    const jitterMs = lerp(8, 260, clamp(0.2*intensity + 0.8*shat,0,1));
+    const jitterSamp = (Math.random()*2-1) * (jitterMs * ctx.sampleRate / 1000);
 
-      const v = norm01(velocity);
-      const preset = $("preset").value;
+    // distance: 더 멀어질수록 더 느리게(늘어짐) + 더 부드럽게(필터는 별도)
+    const slow = lerp(1.0, 0.45, dist);
 
-      // UI knobs (0..1)
-      const j = uiJitter();
-      const d = uiDistance();
-      const c = uiCrush();
+    // inc: time warp (늘어짐) + 약간 불안정
+    const wobble = lerp(0.00, 0.06, intensity);
+    v.inc = slow + (Math.random()*2-1)*wobble;
 
-      // Position jitter (파편감)
-      const basePos = noteToPosition(note);
-      const jitterAmt = lerp(0.02, 0.28, clamp(0.35*j + 0.65*v, 0, 1));
-      const jitter = jitterAmt * (Math.random()*2 - 1);
+    v.grainLen = grainSamples;
+    v.remain = grainSamples;
 
-      const segLen = lerp(0.10, 0.34, clamp(0.25 + 0.75*v, 0, 1)); // 강할수록 구간 길이 늘려 "늘어짐"
-      player.loopStart = clamp(basePos + jitter, 0, 0.97);
-      player.loopEnd   = clamp(player.loopStart + segLen, 0.03, 1.0);
+    // readPos = (write - back + jitter)
+    v.readPos = ringWrite - backSamp + jitterSamp;
 
-      // Grain params (강할수록 뭉개짐)
-      const gSize = lerp(0.03, 0.22, clamp(0.25 + 0.75*v, 0, 1));
-      const ovlp  = lerp(0.008, 0.16, clamp(0.20 + 0.80*v, 0, 1));
+    // per-voice slight variation
+    v.readPos += (Math.random()*2-1) * (ctx.sampleRate*0.02);
+  }
 
-      // 프리셋에 따라 질감 조금 다르게
-      if(preset === "ghost"){
-        player.grainSize = clamp(gSize * lerp(0.9, 1.25, d), 0.02, 0.28);
-        player.overlap   = clamp(ovlp  * lerp(1.0, 1.35, d), 0.005, 0.22);
+  function buildDSPGraph(){
+    // output mix nodes
+    dry = ctx.createGain();
+    wet = ctx.createGain();
 
-        // playbackRate 느려짐(늘어짐) + detune 하강(유령화)
-        const slow = clamp(lerp(0.95, 0.40, 0.65*v + 0.35*d), 0.30, 1.10);
-        player.playbackRate = slow;
-        player.detune = -80 - (520*(0.55*v + 0.45*d));
+    // delay + feedback (space)
+    delay = ctx.createDelay(1.0);
+    delay.delayTime.value = 0.18;
 
-      } else if(preset === "cute"){
-        player.grainSize = clamp(gSize * 0.7, 0.02, 0.18);
-        player.overlap   = clamp(ovlp  * 0.7, 0.005, 0.14);
-        player.playbackRate = clamp(1.0 - 0.12*(0.7*v), 0.78, 1.12);
-        player.detune = 0 + 140*(0.6*v);
+    delayFb = ctx.createGain();
+    delayFb.gain.value = 0.35;
 
-      } else { // shatter
-        player.grainSize = clamp(gSize * lerp(0.55, 0.95, c), 0.02, 0.20);
-        player.overlap   = clamp(ovlp  * 0.55, 0.005, 0.10);
-        player.playbackRate = clamp(1.05 - 0.45*(0.8*v), 0.45, 1.2);
-        player.detune = 120 + 620*(0.55*v + 0.45*j);
-      }
+    // lowpass for “distance”
+    lp = ctx.createBiquadFilter();
+    lp.type = "lowpass";
+    lp.frequency.value = 9000;
+    lp.Q.value = 0.7;
 
-      // “멀어짐” (Distance): LPF, Reverb, Delay, Volume
-      const dist = clamp(0.35*d + 0.65*v, 0, 1);
-      lp.frequency.value = clamp(lerp(15000, 1600, dist), 800, 16000);
-      reverb.decay = lerp(1.6, 8.0, dist);
-      reverb.wet.value = clamp(lerp(0.10, 0.78, dist), 0, 0.95);
-      delay.feedback.value = clamp(lerp(0.10, 0.75, dist), 0, 0.92);
+    outGain = ctx.createGain();
+    outGain.gain.value = 0.9;
 
-      // “깨짐” (Crush): Bit depth
-      const crushAmt = clamp(0.50*c + 0.50*v, 0, 1);
-      const bits = Math.round(clamp(lerp(7, 1.6, crushAmt), 1, 8));
-      crusher.bits = bits;
+    // analyser after processing
+    analyser = ctx.createAnalyser();
+    analyser.fftSize = 2048;
+    analyser.smoothingTimeConstant = 0.85;
 
-      // “멀어짐” 볼륨(원본 결 유지하려면 너무 낮추지 말 것)
-      player.volume.value = -8 - 22*dist;
+    // feedback loop: wet -> delay -> lp -> wet
+    // (wet path is: proc -> wet -> delay -> lp -> wet mix + output)
+    wet.connect(delay);
+    delay.connect(lp);
+    lp.connect(wet);        // feedback send (controlled by delayFb below)
+    // To control feedback safely: insert gain in loop
+    lp.disconnect();
+    lp.connect(delayFb);
+    delayFb.connect(wet);
 
-      if(!activeNotes.get(note)){
-        try { player.start(); } catch(e){}
-        activeNotes.set(note, true);
+    // output sum: dry + wet -> analyser -> out
+    const sum = ctx.createGain();
+    dry.connect(sum);
+    wet.connect(sum);
+    sum.connect(analyser);
+    analyser.connect(outGain);
+    outGain.connect(ctx.destination);
+  }
+
+  function buildProcessor(){
+    // ScriptProcessor (widely supported in Chrome; ok for this art-prototype)
+    const bufSize = 1024;
+    proc = ctx.createScriptProcessor(bufSize, 1, 1);
+
+    proc.onaudioprocess = (e) => {
+      const input = e.inputBuffer.getChannelData(0);
+      const output = e.outputBuffer.getChannelData(0);
+
+      if(!ring) {
+        output.fill(0);
+        return;
       }
 
-      log(`NOTE ON  note=${note} vel=${velocity}  seg=${(player.loopEnd-player.loopStart).toFixed(2)}  grain=${player.grainSize.toFixed(3)}  bits=${crusher.bits}  LPF=${Math.round(lp.frequency.value)}`);
-    }
-
-    function stopGrains(note){
-      activeNotes.delete(note);
-      if(activeNotes.size === 0 && player){
-        setTimeout(()=>{ try{ player.stop(); }catch(e){} }, 70);
+      // write input into ring buffer (raw mic capture)
+      for(let i=0;i<input.length;i++){
+        ring[ringWrite] = input[i];
+        ringWrite = (ringWrite + 1) % ringLen;
       }
-      log(`NOTE OFF note=${note} (active=${activeNotes.size})`);
+
+      // params (UI + MIDI velocity boost)
+      const uiInt = norm($("intensity").value);
+      const uiDist = norm($("distance").value);
+      const uiShat = norm($("shatter").value);
+      const uiCrush = norm($("crush").value);
+      const gMs = Number($("grainMs").value);
+
+      // MIDI note press increases intensity (and makes it more “performable”)
+      const midiBoost = clamp(midiIntensity, 0, 1);
+      const intensity = clamp(uiInt*0.65 + midiBoost*0.85, 0, 1);
+      const dist = clamp(uiDist*0.70 + midiBoost*0.45, 0, 1);
+      const shat = clamp(uiShat*0.75 + midiBoost*0.55, 0, 1);
+      const crush = clamp(uiCrush*0.85 + midiBoost*0.35, 0, 1);
+
+      const grainSamples = Math.max(16, (gMs * ctx.sampleRate / 1000) | 0);
+
+      // output synthesis
+      for(let i=0;i<output.length;i++){
+        let s = 0;
+
+        // schedule grains if needed
+        for(const v of voices){
+          if(v.remain <= 0){
+            // chance to emit new grain: intensity↑ => 더 자주(더 제너레이팅)
+            const density = lerp(0.15, 0.95, intensity);
+            if(Math.random() < density){
+              scheduleGrain(v, grainSamples, intensity, dist, shat);
+            } else {
+              v.remain = 0;
+            }
+          }
+
+          if(v.remain > 0){
+            const t = 1 - (v.remain / v.grainLen); // 0..1
+            const w = windowHann(t);
+            const x = readRing(v.readPos);
+            s += x * w;
+            v.readPos += v.inc;
+            v.remain--;
+          }
+        }
+
+        // normalize by voices
+        s *= (voices.length > 0) ? (1.0 / Math.sqrt(voices.length)) : 0;
+
+        // crush via downsample/hold (simple “bitcrush-ish” time quantize)
+        // crush↑ => hold length↑ => 더 뭉개짐
+        const holdN = Math.max(1, (1 + (crush * 30))|0);
+        if(crushCounter <= 0){
+          crushHold = s;
+          crushCounter = holdN;
+        } else {
+          crushCounter--;
+        }
+        s = lerp(s, crushHold, clamp(crush*0.9,0,1));
+
+        // output goes to wet path; also feed some dry for intelligibility
+        output[i] = s;
+      }
+    };
+
+    // connect graph:
+    // micSrc -> proc (captures input & generates output) -> wet, dry
+    proc.connect(wet);
+    proc.connect(dry);
+
+    // dry amount (more distance => less dry)
+    function updateMix(){
+      const dist = norm($("distance").value);
+      const inten = norm($("intensity").value);
+      const d = clamp(dist*0.8 + midiIntensity*0.4, 0, 1);
+      dry.gain.value = lerp(0.55, 0.08, d);
+      wet.gain.value = lerp(0.55, 0.95, clamp(0.35*inten + 0.65*d,0,1));
+
+      // delay & feedback & lowpass
+      delay.delayTime.value = lerp(0.08, 0.28, d);
+      delayFb.gain.value = clamp(lerp(0.18, 0.82, d), 0, 0.92);
+      lp.frequency.value = lerp(14000, 1400, d);
+
+      // overall output
+      outGain.gain.value = lerp(0.95, 0.75, d);
     }
 
-    // ---------- Recorder (Mic -> Blob -> GrainPlayer) ----------
-    let mediaStream = null;
-    let mediaRecorder = null;
-    let chunks = [];
-
-    async function startRecord(){
-      ensurePlayer();
-      chunks = [];
-
-      mediaStream = await navigator.mediaDevices.getUserMedia({ audio:true });
-
-      // mimeType은 브라우저마다 다름: 가능한 값으로 fallback
-      let options = {};
-      if(MediaRecorder.isTypeSupported("audio/webm;codecs=opus")) options.mimeType = "audio/webm;codecs=opus";
-      else if(MediaRecorder.isTypeSupported("audio/webm")) options.mimeType = "audio/webm";
-      else if(MediaRecorder.isTypeSupported("audio/ogg;codecs=opus")) options.mimeType = "audio/ogg;codecs=opus";
-
-      mediaRecorder = new MediaRecorder(mediaStream, options);
-
-      mediaRecorder.ondataavailable = (e)=>{ if(e.data && e.data.size) chunks.push(e.data); };
-      mediaRecorder.onstop = async ()=>{
-        const blob = new Blob(chunks, { type: mediaRecorder.mimeType || "audio/webm" });
-        const url = URL.createObjectURL(blob);
-
-        bufferLoaded = false;
-        log("Loading recorded voice...");
-        try{
-          await player.load(url);
-          bufferLoaded = true;
+    ["intensity","distance","shatter","crush","grainMs","voices","preset"].forEach(id=>{
+      $(id).addEventListener("input", () => {
+        if(id==="voices"){
+          resetVoices(Number($("voices").value));
+          log("voices: " + $("voices").value);
+        }
+        updateMix();
+      });
+      $(id).addEventListener("change", () => {
+        if(id==="preset"){
           applyPreset($("preset").value);
-          log(`Recorded voice loaded ✅ (dur ~ ${player.buffer.duration.toFixed(2)}s)`);
-        }catch(e){
-          log("Load recorded voice FAILED: " + e.message);
+          resetVoices(Number($("voices").value));
+          updateMix();
         }
-
-        try { mediaStream.getTracks().forEach(t=>t.stop()); } catch(e){}
-        mediaStream = null;
-      };
-
-      mediaRecorder.start();
-      log("Recording... 🎙️ (말/호흡/속삭임 추천)");
-    }
-
-    function stopRecord(){
-      if(mediaRecorder && mediaRecorder.state !== "inactive"){
-        mediaRecorder.stop();
-        log("Stop recording.");
-      }
-    }
-
-    // ---------- WebMIDI ----------
-    let midiAccess = null;
-    let currentInput = null;
-
-    async function initMIDI(){
-      if(!navigator.requestMIDIAccess){
-        $("midiIn").innerHTML = `<option>WebMIDI 미지원 브라우저</option>`;
-        log("WebMIDI 미지원: Chrome 권장");
-        return;
-      }
-      midiAccess = await navigator.requestMIDIAccess({ sysex:false });
-      refreshInputs();
-      midiAccess.onstatechange = refreshInputs;
-      log("MIDI ready ✅");
-    }
-
-    function refreshInputs(){
-      const sel = $("midiIn");
-      sel.innerHTML = "";
-      const inputs = Array.from(midiAccess.inputs.values());
-
-      if(inputs.length === 0){
-        sel.innerHTML = `<option>연결된 MIDI 없음</option>`;
-        return;
-      }
-      inputs.forEach((inp)=>{
-        const opt = document.createElement("option");
-        opt.value = inp.id;
-        opt.textContent = `${inp.name || "MIDI Input"}${inp.manufacturer ? " – " + inp.manufacturer : ""}`;
-        sel.appendChild(opt);
       });
+    });
 
-      if(!currentInput){
-        connectInput(inputs[0].id);
-        sel.value = inputs[0].id;
+    updateMix();
+  }
+
+  // ---------- Mic ----------
+  async function micOn(){
+    if(!ctx) return;
+    if(micStream) return;
+
+    micStream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        echoCancellation: false,
+        noiseSuppression: false,
+        autoGainControl: false
       }
+    });
+
+    micSrc = ctx.createMediaStreamSource(micStream);
+
+    // optional analyser for raw mic (not drawn by default, but kept if you want)
+    analyserIn = ctx.createAnalyser();
+    analyserIn.fftSize = 2048;
+    micSrc.connect(analyserIn);
+
+    // feed mic to processor input
+    micSrc.connect(proc);
+
+    log("Mic ON ✅ (입력 수집 중)");
+  }
+
+  function micOff(){
+    if(micSrc){
+      try { micSrc.disconnect(); } catch(e){}
+      micSrc = null;
     }
+    if(micStream){
+      try { micStream.getTracks().forEach(t=>t.stop()); } catch(e){}
+      micStream = null;
+    }
+    log("Mic OFF");
+  }
 
-    function connectInput(id){
-      if(currentInput) currentInput.onmidimessage = null;
-      currentInput = midiAccess.inputs.get(id);
-      if(!currentInput) return;
+  function panic(){
+    if(outGain) outGain.gain.value = 0.0;
+    setTimeout(()=>{ if(outGain) outGain.gain.value = 0.9; }, 180);
+    log("PANIC: mute blip");
+  }
 
-      currentInput.onmidimessage = (msg)=>{
-        const [status, d1, d2] = msg.data;
-        const cmd = status & 0xF0;
+  // ---------- MIDI ----------
+  async function initMIDI(){
+    const sel = $("midiIn");
+    sel.innerHTML = "";
 
-        if(cmd === 0x90){ // note on
-          const note = d1;
-          const vel = d2;
-          if(vel === 0) stopGrains(note);
-          else startGrains(note, vel);
-        } else if(cmd === 0x80){ // note off
-          stopGrains(d1);
+    if(!navigator.requestMIDIAccess){
+      sel.innerHTML = `<option>WebMIDI 미지원</option>`;
+      log("WebMIDI 미지원: Chrome 권장");
+      return;
+    }
+    midiAccess = await navigator.requestMIDIAccess({ sysex:false });
+    midiAccess.onstatechange = refreshInputs;
+    refreshInputs();
+    log("MIDI ready ✅");
+  }
+
+  function refreshInputs(){
+    const sel = $("midiIn");
+    sel.innerHTML = "";
+    const inputs = midiAccess ? Array.from(midiAccess.inputs.values()) : [];
+    if(inputs.length === 0){
+      sel.innerHTML = `<option>연결된 MIDI 없음</option>`;
+      return;
+    }
+    inputs.forEach(inp=>{
+      const opt = document.createElement("option");
+      opt.value = inp.id;
+      opt.textContent = `${inp.name || "MIDI Input"}${inp.manufacturer ? " – " + inp.manufacturer : ""}`;
+      sel.appendChild(opt);
+    });
+    if(!currentInput){
+      connectInput(inputs[0].id);
+      sel.value = inputs[0].id;
+    }
+  }
+
+  function connectInput(id){
+    if(currentInput) currentInput.onmidimessage = null;
+    currentInput = midiAccess.inputs.get(id);
+    if(!currentInput) return;
+
+    currentInput.onmidimessage = (msg)=>{
+      const [status, d1, d2] = msg.data;
+      const cmd = status & 0xF0;
+
+      if(cmd === 0x90){ // note on
+        const vel = d2;
+        if(vel === 0){
+          activeNotes = Math.max(0, activeNotes-1);
+        } else {
+          activeNotes++;
+          midiIntensity = clamp(vel/127, 0, 1);
         }
-      };
-
-      log(`MIDI input connected: ${currentInput.name || id}`);
-    }
-
-    // ---------- UI wiring ----------
-    function setEnabledAll(on){
-      $("recBtn").disabled = !on;
-      $("stopRecBtn").disabled = true;
-      $("panicBtn").disabled = !on;
-      $("file").disabled = !on;
-      $("midiIn").disabled = !on;
-      $("preset").disabled = !on;
-      $("jitter").disabled = !on;
-      $("distance").disabled = !on;
-      $("crush").disabled = !on;
-    }
-
-    $("startBtn").addEventListener("click", async ()=>{
-      await Tone.start();
-      ensurePlayer();
-      reverb.generate();
-      setEnabledAll(true);
-      await initMIDI();
-      log("Audio started ✅  (REC/파일/MIDI 사용 가능)");
-      $("startBtn").disabled = true;
-    });
-
-    $("preset").addEventListener("change", (e)=> applyPreset(e.target.value));
-
-    $("panicBtn").addEventListener("click", ()=>{
-      activeNotes.clear();
-      try { if(player) player.stop(); } catch(e){}
-      log("PANIC: stop");
-    });
-
-    $("midiIn").addEventListener("change", (e)=> connectInput(e.target.value));
-
-    $("file").addEventListener("change", async (e)=>{
-      const f = e.target.files?.[0];
-      if(!f) return;
-
-      ensurePlayer();
-      const url = URL.createObjectURL(f);
-      bufferLoaded = false;
-
-      log(`Loading sample: ${f.name}`);
-      try{
-        await player.load(url);
-        bufferLoaded = true;
-        applyPreset($("preset").value);
-        log(`Loaded ✅ duration ~ ${player.buffer.duration.toFixed(2)}s`);
-      }catch(err){
-        log("Load FAILED: " + err.message);
+      } else if(cmd === 0x80){ // note off
+        activeNotes = Math.max(0, activeNotes-1);
       }
-    });
 
-    $("recBtn").addEventListener("click", async ()=>{
-      try{
-        $("recBtn").disabled = true;
-        $("stopRecBtn").disabled = false;
-        await startRecord();
-      }catch(e){
-        log("Record error: " + e.message);
-        $("recBtn").disabled = false;
-        $("stopRecBtn").disabled = true;
+      // release behavior: fade intensity when no notes
+      if(activeNotes === 0){
+        // quick decay
+        midiIntensity *= 0.85;
       }
-    });
 
-    $("stopRecBtn").addEventListener("click", ()=>{
-      $("stopRecBtn").disabled = true;
-      $("recBtn").disabled = false;
-      stopRecord();
-    });
+      log(`MIDI ${cmd===0x90?"ON":"OFF"} vel=${d2} active=${activeNotes}`);
+    };
 
-    // start disabled until Start Audio
-    setEnabledAll(false);
-  </script>
+    log("MIDI input connected: " + (currentInput.name || id));
+  }
+
+  // ---------- Visualization ----------
+  const waveCv = $("wave");
+  const specCv = $("spec");
+  const wCtx = waveCv.getContext("2d");
+  const sCtx = specCv.getContext("2d");
+
+  function resizeCanvas(){
+    const dpr = Math.max(1, window.devicePixelRatio || 1);
+    [waveCv, specCv].forEach(cv=>{
+      const rect = cv.getBoundingClientRect();
+      cv.width = Math.floor(rect.width * dpr);
+      cv.height = Math.floor(rect.height * dpr);
+    });
+  }
+
+  function draw(){
+    if(!analyser) return;
+    const dpr = Math.max(1, window.devicePixelRatio || 1);
+
+    // waveform
+    const tData = new Uint8Array(analyser.fftSize);
+    analyser.getByteTimeDomainData(tData);
+
+    wCtx.clearRect(0,0,waveCv.width,waveCv.height);
+    wCtx.globalAlpha = 1;
+    wCtx.lineWidth = 2*dpr;
+    wCtx.strokeStyle = "#eaeaea"; // (ok to specify? user didn’t forbid; still minimal)
+    wCtx.beginPath();
+    const mid = waveCv.height/2;
+    for(let i=0;i<tData.length;i++){
+      const x = (i/(tData.length-1))*waveCv.width;
+      const v = (tData[i]-128)/128;
+      const y = mid + v*(waveCv.height*0.40);
+      if(i===0) wCtx.moveTo(x,y);
+      else wCtx.lineTo(x,y);
+    }
+    wCtx.stroke();
+
+    // spectrum
+    const fData = new Uint8Array(analyser.frequencyBinCount);
+    analyser.getByteFrequencyData(fData);
+
+    sCtx.clearRect(0,0,specCv.width,specCv.height);
+    const bars = 96;
+    const step = Math.floor(fData.length / bars);
+    const bw = specCv.width / bars;
+
+    for(let i=0;i<bars;i++){
+      let sum = 0;
+      for(let k=0;k<step;k++) sum += fData[i*step+k];
+      const v = sum/(step*255); // 0..1
+      const h = v * specCv.height * 0.95;
+      const x = i*bw;
+      const y = specCv.height - h;
+
+      sCtx.fillStyle = "#eaeaea";
+      sCtx.globalAlpha = 0.18 + 0.75*v;
+      sCtx.fillRect(x+1*dpr, y, Math.max(1, bw-2*dpr), h);
+    }
+    sCtx.globalAlpha = 1;
+
+    raf = requestAnimationFrame(draw);
+  }
+
+  // ---------- UI events ----------
+  $("startBtn").addEventListener("click", async ()=>{
+    ctx = new (window.AudioContext || window.webkitAudioContext)();
+
+    // ring buffer (4 seconds)
+    ringLen = Math.floor(ctx.sampleRate * 4.0);
+    ring = new Float32Array(ringLen);
+    ringWrite = 0;
+
+    buildDSPGraph();
+    resetVoices(Number($("voices").value));
+    buildProcessor();
+
+    enableUI(true);
+    $("micBtn").disabled = false;
+    $("micOffBtn").disabled = true;
+    $("panicBtn").disabled = false;
+
+    // preset init
+    applyPreset($("preset").value);
+    resetVoices(Number($("voices").value));
+
+    await initMIDI();
+
+    // viz
+    resizeCanvas();
+    if(raf) cancelAnimationFrame(raf);
+    raf = requestAnimationFrame(draw);
+
+    log("Start ✅ AudioContext ready");
+    $("startBtn").disabled = true;
+  });
+
+  $("micBtn").addEventListener("click", async ()=>{
+    try{
+      await micOn();
+      $("micBtn").disabled = true;
+      $("micOffBtn").disabled = false;
+    }catch(e){
+      log("Mic error: " + e.message);
+    }
+  });
+
+  $("micOffBtn").addEventListener("click", ()=>{
+    micOff();
+    $("micBtn").disabled = false;
+    $("micOffBtn").disabled = true;
+  });
+
+  $("panicBtn").addEventListener("click", panic);
+
+  $("midiIn").addEventListener("change", (e)=> connectInput(e.target.value));
+
+  $("preset").addEventListener("change", ()=>{
+    applyPreset($("preset").value);
+    resetVoices(Number($("voices").value));
+  });
+
+  window.addEventListener("resize", resizeCanvas);
+
+  // start disabled until Start
+  enableUI(false);
+})();
+</script>
 </body>
 </html>
