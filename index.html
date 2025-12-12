@@ -4,75 +4,79 @@
 <meta charset="UTF-8">
 <meta name="viewport"
       content="width=device-width, initial-scale=1, user-scalable=no">
-<title>Polycam Style Space Scanner</title>
+<title>Polycam Web Scanner</title>
 
 <style>
-  body{
-    margin:0;
-    overflow:hidden;
-    background:#000;
-    font-family:sans-serif;
-  }
+body{
+  margin:0;
+  overflow:hidden;
+  background:#000;
+  font-family:sans-serif;
+}
 
-  /* 카메라는 숨겨두고 데이터만 사용 */
-  #video{
-    display:none;
-  }
+/* 🔥 Safari가 카메라를 끊지 않도록 반드시 화면에 존재해야 함 */
+#video{
+  position:fixed;
+  inset:0;
+  width:100vw;
+  height:100vh;
+  object-fit:cover;
+  opacity:0;                 /* 카메라 보이지 않게 — 하지만 “존재함” */
+  pointer-events:none;
+  z-index:-1;
+}
 
-  /* 스캔 상태 표시용 캔버스 (점 + 선) */
-  #scanCanvas,
-  #modelCanvas{
-    position:fixed;
-    inset:0;
-    width:100vw;
-    height:100vh;
-    pointer-events:none;
-  }
+#scanCanvas,
+#modelCanvas{
+  position:fixed;
+  inset:0;
+  width:100vw;
+  height:100vh;
+  pointer-events:none;
+}
 
-  #modelCanvas{
-    display:none;
-  }
+#modelCanvas{ display:none; }
 
-  #startBtn{
-    position:fixed;
-    bottom:40px;
-    left:50%;
-    transform:translateX(-50%);
-    padding:18px 26px;
-    border-radius:30px;
-    border:none;
-    font-size:17px;
-    background:#ffffff;
-    color:#000;
-    z-index:10;
-  }
+#startBtn{
+  position:fixed;
+  bottom:40px;
+  left:50%;
+  transform:translateX(-50%);
+  padding:18px 26px;
+  border-radius:30px;
+  border:none;
+  font-size:17px;
+  background:#ffffff;
+  color:#000;
+  z-index:10;
+}
 
-  #confirmBtn{
-    position:fixed;
-    bottom:40px;
-    right:40px;
-    padding:18px 26px;
-    border-radius:30px;
-    border:none;
-    font-size:17px;
-    background:rgba(60,130,255,0.9);
-    color:#fff;
-    display:none;
-    z-index:10;
-  }
+#confirmBtn{
+  position:fixed;
+  bottom:40px;
+  right:40px;
+  padding:18px 26px;
+  border-radius:30px;
+  border:none;
+  font-size:17px;
+  background:rgba(60,130,255,0.9);
+  color:#fff;
+  display:none;
+  z-index:10;
+}
 
-  #status{
-    position:fixed;
-    top:20px;
-    left:50%;
-    transform:translateX(-50%);
-    padding:8px 18px;
-    border-radius:20px;
-    background:rgba(0,0,0,0.45);
-    color:#fff;
-    font-size:14px;
-    z-index:10;
-  }
+#status{
+  position:fixed;
+  top:20px;
+  left:50%;
+  transform:translateX(-50%);
+  padding:8px 18px;
+  border-radius:20px;
+  background:rgba(0,0,0,0.45);
+  color:#fff;
+  font-size:14px;
+  z-index:10;
+}
 </style>
 </head>
 <body>
@@ -88,147 +92,149 @@
 
 <script>
 /* ======================================================
- *  1. 전체화면 시작 버튼
- * ==================================================== */
-const startBtn   = document.getElementById('startBtn');
-const confirmBtn = document.getElementById('confirmBtn');
-const statusDiv  = document.getElementById('status');
+ * 1. 전체화면 시작 버튼
+ * ====================================================== */
+const startBtn   = document.getElementById("startBtn");
+const confirmBtn = document.getElementById("confirmBtn");
+const statusDiv  = document.getElementById("status");
 
 startBtn.onclick = async () => {
-  if (document.documentElement.requestFullscreen) {
+
+  // iOS에서는 fullscreen 허용된 영역 제한 → 실패해도 진행
+  try{
     await document.documentElement.requestFullscreen();
+  }catch(e){}
+
+  startBtn.style.display = "none";
+  statusDiv.textContent = "스캔 중...";
+
+  // 🔥 AudioContext 활성화
+  if(audioCtx.state === "suspended"){
+    audioCtx.resume();
   }
-  startBtn.style.display = 'none';
-  statusDiv.textContent = '스캔 중...';
 };
 
 /* ======================================================
- *  2. 카메라 열기 (비디오는 화면에 안 보임)
- * ==================================================== */
-const video = document.getElementById('video');
+ * 2. 카메라(반드시 화면에 남겨둬야 한다!)
+ * ====================================================== */
+const video = document.getElementById("video");
 
 navigator.mediaDevices.getUserMedia({
-  video: { facingMode:'environment' },
-  audio: false
+  video:{ facingMode:"environment" },
+  audio:false
 }).then(stream => {
   video.srcObject = stream;
 }).catch(err => {
   console.error(err);
-  statusDiv.textContent = '카메라 접근 실패';
+  statusDiv.textContent = "카메라 접근 실패";
 });
 
 /* ======================================================
- *  3. 캔버스 셋업
- * ==================================================== */
-const scanCanvas  = document.getElementById('scanCanvas');
-const sCtx        = scanCanvas.getContext('2d');
-const modelCanvas = document.getElementById('modelCanvas');
-const mCtx        = modelCanvas.getContext('2d');
+ * 3. 캔버스 설정
+ * ====================================================== */
+const scanCanvas  = document.getElementById("scanCanvas");
+const sCtx        = scanCanvas.getContext("2d");
+const modelCanvas = document.getElementById("modelCanvas");
+const mCtx        = modelCanvas.getContext("2d");
 
 function resizeCanvas(){
-  scanCanvas.width  = window.innerWidth;
-  scanCanvas.height = window.innerHeight;
-  modelCanvas.width  = window.innerWidth;
-  modelCanvas.height = window.innerHeight;
+  scanCanvas.width  = innerWidth;
+  scanCanvas.height = innerHeight;
+  modelCanvas.width  = innerWidth;
+  modelCanvas.height = innerHeight;
 }
 resizeCanvas();
-window.addEventListener('resize', resizeCanvas);
+window.addEventListener("resize", resizeCanvas);
 
 /* ======================================================
- *  4. 찰칵 사운드 (Web Audio – mp3 필요 없음)
- * ==================================================== */
+ * 4. 찰칵 소리 — Web Audio (mp3 없음)
+ * ====================================================== */
 const AudioContextClass = window.AudioContext || window.webkitAudioContext;
 const audioCtx = new AudioContextClass();
 
 function playClick(){
-  const osc  = audioCtx.createOscillator();
-  const gain = audioCtx.createGain();
+  try{
+    const osc  = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
 
-  osc.type = 'square';
-  osc.frequency.setValueAtTime(1900, audioCtx.currentTime);
-  gain.gain.setValueAtTime(0.7, audioCtx.currentTime);
-  gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.07);
+    osc.type = "square";
+    osc.frequency.setValueAtTime(2000, audioCtx.currentTime);
+    gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.005, audioCtx.currentTime + 0.06);
 
-  osc.connect(gain).connect(audioCtx.destination);
-  osc.start();
-  osc.stop(audioCtx.currentTime + 0.07);
+    osc.connect(gain).connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.06);
+  }catch(e){}
 }
 
 /* ======================================================
- *  5. 포인트 클라우드 데이터
- *    - 스캔 화면: 2D 점+선
- *    - 결과 화면: 같은 점들을 3D처럼 회전
- * ==================================================== */
-let pointCloud = []; // {x, y, z}
-const MAX_POINTS = 2500;
+ * 5. 포인트 클라우드 데이터
+ * ====================================================== */
+let pointCloud = [];
+let lastFeatureCount = 0;
+let scanning = true;
 
-/* 특징점 추출 (아주 간단한 버전) */
-function extractFeatures(imageData){
+/* 간단 특징점 추출 */
+function extractFeatures(img){
   const pts = [];
-  const d = imageData.data;
-  const w = imageData.width;
+  const d = img.data;
+  const w = img.width;
 
-  for (let i=0;i<d.length;i+=16){
-    const r = d[i], g = d[i+1], b = d[i+2];
-    const sum = r+g+b;
-    if (sum<80 || sum>680){
+  for(let i=0;i<d.length;i+=12){
+    const sum = d[i] + d[i+1] + d[i+2];
+    if(sum < 80 || sum > 680){
       const idx = i/4;
-      const x = idx % w;
-      const y = Math.floor(idx / w);
-      pts.push({x,y});
+      pts.push({ x: idx % w, y: Math.floor(idx / w) });
     }
   }
   return pts;
 }
 
-/* 새로운 포인트를 pointCloud에 추가 (정규화 좌표) */
-function addPointsFromFeatures(features, imgW, imgH){
-  for (let i=0;i<features.length;i+=2){ // 일부만 샘플링
+function addPoints(features, imgW, imgH){
+  for(let i=0;i<features.length;i+=2){
     const f = features[i];
-    const nx = (f.x / imgW - 0.5) * 2;   // -1 ~ 1
-    const ny = (f.y / imgH - 0.5) * 2;
-    const nz = (Math.random() - 0.5) * 2; // 임의 깊이
-
-    pointCloud.push({x:nx, y:ny, z:nz});
-    if (pointCloud.length > MAX_POINTS){
-      pointCloud.shift();
-    }
+    pointCloud.push({
+      x:(f.x/imgW - 0.5)*2,
+      y:(f.y/imgH - 0.5)*2,
+      z:(Math.random()-0.5)*2
+    });
+    if(pointCloud.length>2500) pointCloud.shift();
   }
 }
 
-/* 스캔 화면용: 2D 점+선 그리기 */
+/* ======================================================
+ * 6. 스캔 화면 그리기(점+선)
+ * ====================================================== */
 function drawScanView(){
   const w = scanCanvas.width;
   const h = scanCanvas.height;
 
   sCtx.clearRect(0,0,w,h);
-  sCtx.fillStyle   = '#000';
+  sCtx.fillStyle = "#000";
   sCtx.fillRect(0,0,w,h);
 
   // 점
-  sCtx.fillStyle = 'rgba(0,255,255,0.9)';
-  for (const p of pointCloud){
-    const sx = (p.x*0.5 + 0.5)*w;
-    const sy = (p.y*0.5 + 0.5)*h;
+  sCtx.fillStyle = "rgba(0,255,255,0.95)";
+  for(const p of pointCloud){
+    const sx = (p.x*0.5+0.5)*w;
+    const sy = (p.y*0.5+0.5)*h;
     sCtx.beginPath();
-    sCtx.arc(sx, sy, 2.0, 0, Math.PI*2);
+    sCtx.arc(sx, sy, 2, 0, Math.PI*2);
     sCtx.fill();
   }
 
-  // 선 (가까운 점끼리)
-  sCtx.strokeStyle = 'rgba(0,180,255,0.5)';
-  for (let i=0;i<pointCloud.length;i++){
-    for (let j=i+1;j<i+8 && j<pointCloud.length;j++){
-      const p1 = pointCloud[i];
-      const p2 = pointCloud[j];
-      const dx = p1.x - p2.x;
-      const dy = p1.y - p2.y;
-      const dz = p1.z - p2.z;
-      if (dx*dx+dy*dy+dz*dz < 0.35){
-        const x1 = (p1.x*0.5 + 0.5)*w;
-        const y1 = (p1.y*0.5 + 0.5)*h;
-        const x2 = (p2.x*0.5 + 0.5)*w;
-        const y2 = (p2.y*0.5 + 0.5)*h;
+  // 선
+  sCtx.strokeStyle = "rgba(0,180,255,0.5)";
+  for(let i=0;i<pointCloud.length;i++){
+    for(let j=i+1;j<i+6 && j<pointCloud.length;j++){
+      const p1 = pointCloud[i], p2 = pointCloud[j];
+      const dx = p1.x-p2.x, dy=p1.y-p2.y, dz=p1.z-p2.z;
+      if(dx*dx+dy*dy+dz*dz < 0.25){
+        const x1=(p1.x*0.5+0.5)*w;
+        const y1=(p1.y*0.5+0.5)*h;
+        const x2=(p2.x*0.5+0.5)*w;
+        const y2=(p2.y*0.5+0.5)*h;
         sCtx.beginPath();
         sCtx.moveTo(x1,y1);
         sCtx.lineTo(x2,y2);
@@ -239,137 +245,97 @@ function drawScanView(){
 }
 
 /* ======================================================
- *  6. 스캔 루프 (확인 누르기 전까지 계속)
- * ==================================================== */
-let lastFeatureCount = 0;
-let scanning = true;
-
+ * 7. 스캔 루프
+ * ====================================================== */
 function scanLoop(){
-  if (!scanning){
-    return;
-  }
+  if(!scanning) return;
 
-  if (video.readyState >= 2){
-    const temp = document.createElement('canvas');
+  if(video.readyState >= 2){
+
     const tw = 200, th = 150;
+    const temp = document.createElement("canvas");
     temp.width = tw;
     temp.height = th;
-    const tctx = temp.getContext('2d');
-    tctx.drawImage(video, 0, 0, tw, th);
-    const imgData = tctx.getImageData(0,0,tw,th);
+    const tctx = temp.getContext("2d");
 
-    const features = extractFeatures(imgData);
+    tctx.drawImage(video,0,0,tw,th);
+    const frame = tctx.getImageData(0,0,tw,th);
+
+    const features = extractFeatures(frame);
     const diff = Math.abs(features.length - lastFeatureCount);
 
-    // 특징점 변화가 크면 → 새로운 조각 스캔 → 찰칵 + 포인트 추가
-    if (diff > 40){
-      // 오디오 컨텍스트는 사용자 제스처 후에만 재생 가능
-      if (audioCtx.state === 'suspended'){
-        audioCtx.resume();
-      }
+    if(diff > 40){
       playClick();
-      addPointsFromFeatures(features, tw, th);
+      addPoints(features, tw, th);
     }
 
     lastFeatureCount = features.length;
     drawScanView();
-    confirmBtn.style.display = 'block';
+    confirmBtn.style.display = "block";
   }
 
   requestAnimationFrame(scanLoop);
 }
+
 requestAnimationFrame(scanLoop);
 
 /* ======================================================
- *  7. 확인 버튼 → 스캔 종료 & 3D 결과 화면
- * ==================================================== */
+ * 8. 확인 → 결과 3D 뷰어
+ * ====================================================== */
 confirmBtn.onclick = () => {
   scanning = false;
-  statusDiv.textContent = '스캔 결과';
 
-  scanCanvas.style.display  = 'none';
-  modelCanvas.style.display = 'block';
+  scanCanvas.style.display = "none";
+  modelCanvas.style.display = "block";
+  statusDiv.textContent = "스캔 결과";
 
   show3DModel();
 };
 
 /* ======================================================
- *  8. 3D 결과 뷰어 (포인트클라우드 회전)
- * ==================================================== */
+ * 9. 3D 뷰어
+ * ====================================================== */
 let angle = 0;
 
 function show3DModel(){
+
   function loop(){
     const w = modelCanvas.width;
     const h = modelCanvas.height;
-    mCtx.clearRect(0,0,w,h);
-    mCtx.fillStyle='#000';
-    mCtx.fillRect(0,0,w,h);
-
-    const cx = w/2;
-    const cy = h/2;
-    const scale = Math.min(w,h)*0.4;
+    const cx = w/2, cy = h/2;
+    const scale = Math.min(w,h)*0.45;
     const fov = 1.8;
 
+    mCtx.clearRect(0,0,w,h);
+    mCtx.fillStyle = "#000";
+    mCtx.fillRect(0,0,w,h);
+
+    const cosA = Math.cos(angle);
+    const sinA = Math.sin(angle);
+
     // 점
-    for (const p of pointCloud){
-      // Y축 회전
-      const cosA = Math.cos(angle);
-      const sinA = Math.sin(angle);
-      const x = p.x * cosA - p.z * sinA;
-      const z = p.x * sinA + p.z * cosA;
+    for(const p of pointCloud){
+      const x = p.x*cosA - p.z*sinA;
+      const z = p.x*sinA + p.z*cosA;
       const y = p.y;
 
-      const depth = (z + 3) / fov; // z ~ [-1,1] → 약간 앞으로
+      const depth = (z + 3)/fov;
       const sx = cx + x*scale/depth;
       const sy = cy + y*scale/depth;
 
-      const alpha = 0.3 + 0.7*(1 - depth/4);
-
-      mCtx.fillStyle = `rgba(0,255,255,${alpha})`;
+      mCtx.fillStyle = `rgba(0,255,255,${0.3 + 0.7*(1-depth/4)})`;
       mCtx.beginPath();
-      mCtx.arc(sx, sy, 2.2/depth, 0, Math.PI*2);
+      mCtx.arc(sx,sy,2.5/depth,0,Math.PI*2);
       mCtx.fill();
     }
 
-    // 선도 좀 그려줌 (가까운 점끼리)
-    mCtx.strokeStyle = 'rgba(0,180,255,0.35)';
-    for (let i=0;i<pointCloud.length;i+=4){
-      const p1 = pointCloud[i];
-      for (let j=i+1;j<i+6 && j<pointCloud.length;j++){
-        const p2 = pointCloud[j];
-
-        const cosA = Math.cos(angle);
-        const sinA = Math.sin(angle);
-
-        const x1 = p1.x * cosA - p1.z * sinA;
-        const z1 = p1.x * sinA + p1.z * cosA;
-        const y1 = p1.y;
-
-        const x2 = p2.x * cosA - p2.z * sinA;
-        const z2 = p2.x * sinA + p2.z * cosA;
-        const y2 = p2.y;
-
-        const depth1 = (z1 + 3) / fov;
-        const depth2 = (z2 + 3) / fov;
-
-        const sx1 = cx + x1*scale/depth1;
-        const sy1 = cy + y1*scale/depth1;
-        const sx2 = cx + x2*scale/depth2;
-        const sy2 = cy + y2*scale/depth2;
-
-        mCtx.beginPath();
-        mCtx.moveTo(sx1,sy1);
-        mCtx.lineTo(sx2,sy2);
-        mCtx.stroke();
-      }
-    }
-
-    angle += 0.0035;
+    angle += 0.003;
     requestAnimationFrame(loop);
   }
+
   requestAnimationFrame(loop);
 }
 </script>
+
 </body>
 </html>
