@@ -14,7 +14,7 @@ body{
   font-family:sans-serif;
 }
 
-/* 🔥 카메라 영상: 화면에 보이게 */
+/* 카메라: 뒤에 깔리고 항상 보이게 */
 #video{
   position:fixed;
   inset:0;
@@ -24,7 +24,7 @@ body{
   z-index:0;
 }
 
-/* 스캐닝 그리기 레이어 */
+/* 스캔 오버레이 (점+선) */
 #scanCanvas{
   position:fixed;
   inset:0;
@@ -44,7 +44,7 @@ body{
   z-index:2;
 }
 
-#startBtn, #confirmBtn{
+#startBtn,#confirmBtn{
   position:fixed;
   bottom:40px;
   padding:18px 26px;
@@ -55,20 +55,24 @@ body{
 }
 
 #startBtn{
-  left:50%; transform:translateX(-50%);
-  background:#fff;color:#000;
+  left:50%;
+  transform:translateX(-50%);
+  background:#fff;
+  color:#000;
 }
 
 #confirmBtn{
   right:40px;
-  background:#3a7bff;color:#fff;
+  background:#3a7bff;
+  color:#fff;
   display:none;
 }
 
 #status{
   position:fixed;
   top:20px;
-  left:50%; transform:translateX(-50%);
+  left:50%;
+  transform:translateX(-50%);
   background:rgba(0,0,0,0.4);
   padding:8px 18px;
   border-radius:20px;
@@ -88,50 +92,41 @@ body{
 <button id="confirmBtn">확인</button>
 
 <script>
-/* -----------------------------
- * 1. 전체화면 시작
- * --------------------------- */
+/* 1. 전체화면 + 오디오 허용 */
 const startBtn   = document.getElementById("startBtn");
 const confirmBtn = document.getElementById("confirmBtn");
 const statusDiv  = document.getElementById("status");
 
 startBtn.onclick = async () => {
   try{ await document.documentElement.requestFullscreen(); }catch(e){}
-  startBtn.style.display="none";
-  statusDiv.textContent = "스캔 중...";
-  if(audioCtx.state==="suspended") audioCtx.resume();
+  startBtn.style.display = "none";
+  statusDiv.textContent  = "스캔 중...";
+  if (audioCtx.state === "suspended") audioCtx.resume();
 };
 
-/* -----------------------------
- * 2. 카메라 켜기
- * --------------------------- */
+/* 2. 카메라 켜기 */
 const video = document.getElementById("video");
 navigator.mediaDevices.getUserMedia({
   video:{ facingMode:"environment" },
   audio:false
 }).then(stream => video.srcObject = stream);
 
-/* -----------------------------
- * 3. 캔버스 준비
- * --------------------------- */
+/* 3. 캔버스 설정 */
 const scanCanvas = document.getElementById("scanCanvas");
-const sCtx = scanCanvas.getContext("2d");
-
-const modelCanvas = document.getElementById("modelCanvas");
-const mCtx = modelCanvas.getContext("2d");
+const sCtx       = scanCanvas.getContext("2d");
+const modelCanvas= document.getElementById("modelCanvas");
+const mCtx       = modelCanvas.getContext("2d");
 
 function resize(){
-  scanCanvas.width = innerWidth;
+  scanCanvas.width  = innerWidth;
   scanCanvas.height = innerHeight;
-  modelCanvas.width = innerWidth;
+  modelCanvas.width  = innerWidth;
   modelCanvas.height = innerHeight;
 }
 resize();
 window.addEventListener("resize", resize);
 
-/* -----------------------------
- * 4. 찰칵 사운드 (mp3 없이 생성)
- * --------------------------- */
+/* 4. 찰칵 소리 (Web Audio) */
 const AudioContextClass = window.AudioContext || window.webkitAudioContext;
 const audioCtx = new AudioContextClass();
 
@@ -139,62 +134,60 @@ function playClick(){
   try{
     const o = audioCtx.createOscillator();
     const g = audioCtx.createGain();
-    o.type="square";
-    o.frequency.value=2000;
-    g.gain.value=0.4;
-    g.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime+0.07);
+    o.type = "square";
+    o.frequency.value = 2000;
+    g.gain.value = 0.5;
+    g.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime+0.06);
     o.connect(g).connect(audioCtx.destination);
-    o.start(); o.stop(audioCtx.currentTime+0.07);
+    o.start(); o.stop(audioCtx.currentTime+0.06);
   }catch(e){}
 }
 
-/* -----------------------------
- * 5. 스캔 데이터 저장
- * --------------------------- */
-let pointCloud = [];  // {x,y,z,r,g,b}
+/* 5. 스캔 데이터 */
+let pointCloud = [];   // {x,y,z,r,g,b}
 let lastFeatureCount = 0;
 let scanning = true;
+const MAX_POINTS = 4000;
 
-/* 특징점 추출 (간단 버전) */
+/* 간단 특징점: 어둡거나 아주 밝은 픽셀 */
 function extractFeatures(img){
   const pts=[];
-  const data = img.data;
+  const d = img.data;
   const w = img.width;
-
-  for(let i=0;i<data.length;i+=16){
-    const sum=data[i]+data[i+1]+data[i+2];
-    if(sum <80 || sum>700){
+  for (let i=0;i<d.length;i+=16){
+    const r=d[i], g=d[i+1], b=d[i+2];
+    const sum=r+g+b;
+    if (sum<80 || sum>700){
       const idx=i/4;
-      pts.push({x:idx%w, y:Math.floor(idx/w)});
+      pts.push({ x: idx%w, y: Math.floor(idx/w) });
     }
   }
   return pts;
 }
 
+/* 🔥 밝기 기반 깊이 사용 */
 function addPoints(features,img,tw,th){
-  const d=img.data;
-  for(let i=0;i<features.length;i+=2){
-    const f = features[i];
-    const px = f.x;
-    const py = f.y;
-
-    const idx = (py*tw + px)*4;
+  const d = img.data;
+  for (let i=0;i<features.length;i+=2){
+    const f=features[i];
+    const px=f.x, py=f.y;
+    const idx=(py*tw+px)*4;
     const r=d[idx], g=d[idx+1], b=d[idx+2];
+    const gray=(r+g+b)/3;
+    const norm = gray/255;            // 0~1
+    const depth = (1 - norm)*2 - 1;   // -1~1 (밝을수록 멀리)
 
     pointCloud.push({
-      x:(px/tw -0.5)*2,
-      y:(py/th -0.5)*2,
-      z:(Math.random()-0.5)*2,
+      x:(px/tw - 0.5)*2,
+      y:(py/th - 0.5)*2,
+      z:depth,
       r,g,b
     });
-
-    if(pointCloud.length>3500) pointCloud.shift();
+    if(pointCloud.length>MAX_POINTS) pointCloud.shift();
   }
 }
 
-/* -----------------------------
- * 6. 스캔 화면(카메라 위에 겹침)
- * --------------------------- */
+/* 6. 카메라 위에 스캔 레이어 그리기 */
 function drawScan(){
   const w=scanCanvas.width, h=scanCanvas.height;
   sCtx.clearRect(0,0,w,h);
@@ -204,16 +197,16 @@ function drawScan(){
     const sx=(p.x*0.5+0.5)*w;
     const sy=(p.y*0.5+0.5)*h;
     sCtx.fillStyle=`rgba(${p.r},${p.g},${p.b},1)`;
-    sCtx.fillRect(sx, sy, 2, 2);
+    sCtx.fillRect(sx,sy,2,2);
   }
 
-  // 선(근접한 점끼리)
+  // 근접 선
   sCtx.strokeStyle="rgba(0,255,255,0.4)";
   for(let i=0;i<pointCloud.length;i+=3){
     for(let j=i+1;j<i+6 && j<pointCloud.length;j++){
       const p1=pointCloud[i], p2=pointCloud[j];
       const dx=p1.x-p2.x, dy=p1.y-p2.y, dz=p1.z-p2.z;
-      if(dx*dx+dy*dy+dz*dz<0.2){
+      if(dx*dx+dy*dy+dz*dz<0.25){
         sCtx.beginPath();
         sCtx.moveTo((p1.x*0.5+0.5)*w,(p1.y*0.5+0.5)*h);
         sCtx.lineTo((p2.x*0.5+0.5)*w,(p2.y*0.5+0.5)*h);
@@ -223,9 +216,7 @@ function drawScan(){
   }
 }
 
-/* -----------------------------
- * 7. 스캔 루프
- * --------------------------- */
+/* 7. 스캔 루프 */
 function scanLoop(){
   if(!scanning) return;
 
@@ -237,42 +228,35 @@ function scanLoop(){
     tctx.drawImage(video,0,0,tw,th);
     const frame=tctx.getImageData(0,0,tw,th);
 
-    const features=extractFeatures(frame);
-    const diff=Math.abs(features.length-lastFeatureCount);
+    const features = extractFeatures(frame);
+    const diff = Math.abs(features.length - lastFeatureCount);
 
     if(diff>40){
       playClick();
       addPoints(features,frame,tw,th);
     }
 
-    lastFeatureCount=features.length;
-
+    lastFeatureCount = features.length;
     drawScan();
     confirmBtn.style.display="block";
   }
-
   requestAnimationFrame(scanLoop);
 }
 requestAnimationFrame(scanLoop);
 
-/* -----------------------------
- * 8. 확인 → 3D 결과 화면
- * --------------------------- */
+/* 8. 확인 → 3D 결과 화면 */
 confirmBtn.onclick = ()=>{
   scanning=false;
   scanCanvas.style.display="none";
   modelCanvas.style.display="block";
-  statusDiv.textContent="3D 모델";
+  statusDiv.textContent="3D 결과";
 
   show3DModel();
 };
 
-/* -----------------------------
- * 9. 3D 모델 뷰어 (컬러 포인트클라우드)
- * --------------------------- */
+/* 9. 3D 포인트클라우드 뷰어 */
 let angle=0;
 function show3DModel(){
-
   function loop(){
     const w=modelCanvas.width, h=modelCanvas.height;
     const cx=w/2, cy=h/2;
@@ -302,7 +286,6 @@ function show3DModel(){
     angle+=0.003;
     requestAnimationFrame(loop);
   }
-
   requestAnimationFrame(loop);
 }
 </script>
