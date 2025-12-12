@@ -236,15 +236,15 @@
   <div class="box">
     <div class="entryTitle">LIMEN WORKSHOP – Entry</div>
     <div class="small" style="margin-bottom:12px;">
-      1) <b>Start Audio</b>로 오디오 잠금 해제<br/>
-      2) 여기서 <b>Mic / File</b> 선택 후 <b>Mic ON</b> 또는 <b>File Play</b>로 입장<br/>
-      3) TouchMe는 입장 후(또는 지금도) ⚙️ → MIDI 탭에서 <b>LEARN</b><br/>
+      1) **Start Audio (Mic ON)** 버튼을 눌러 **오디오 잠금 해제와 마이크 연결을 동시에** 진행하세요. (권한 요청)<br/>
+      2) 마이크 연결에 성공하면 Entry 화면이 닫히고 자동으로 시작됩니다.<br/>
+      3) **파일 입력은 'File' 선택 후 'Play'** 버튼으로 입장합니다.<br/>
       4) <b>⚙️ 버튼을 누르면 설정 창이 새 팝업 창으로 열립니다.</b>
     </div>
 
     <div class="row" style="justify-content:space-between;">
       <div class="row" style="margin:0;">
-        <button id="btnStartAudio">Start Audio</button>
+        <button id="btnStartAudio">Start Audio (Mic ON)</button>
         <button id="btnFS">Fullscreen</button>
       </div>
       <div class="small" id="startStatus" style="opacity:.9; margin-left:10px;"></div>
@@ -268,10 +268,9 @@
             </select>
           </div>
           <div class="row">
-            <button id="entryMicOn" class="grow" disabled>Mic ON (Enter)</button>
             <button id="entryMicOff" class="grow" disabled>Mic OFF</button>
           </div>
-          <div class="small">Mic ON을 누르면 Entry 화면이 닫히고(입장) 비주얼이 시작됩니다.</div>
+          <div class="small">Mic ON은 상단의 Start Audio 버튼으로 진행합니다.</div>
         </div>
 
         <div id="entryFileBox" style="display:none;">
@@ -298,11 +297,10 @@
           (페이지 새로고침이 아니라 “입장 단계로 복귀”)
         </div>
         <div class="small" style="margin-bottom:8px;">
-          ✅ TouchMe는 iOS Safari에서 제한될 수 있어요. (Chrome 권장)<br/>
-          그래도 지금은 잘된다고 했으니 그대로 유지!
+          ✅ 성능 문제가 있다면 ⚙️ 설정 팝업에서 **Perf limit**와 **Line density**를 낮춰주세요.
         </div>
         <div class="small">
-          ✅ Entry에서 Mic/File 선택만 추가했고, 나머지 설정(⚙️) 구조는 그대로입니다.
+          ✅ 현재 선택된 장치: <b id="currentMicDisplay">Default</b>
         </div>
       </div>
     </div>
@@ -931,6 +929,7 @@ function getEQMid(){ return Math.max(-20, Math.min(20, parseFloat(rngEQMid.value
 function getEQHigh(){ return Math.max(-20, Math.min(20, parseFloat(rngEQHigh.value)||0)); }
 
 function refreshAudioLabels(){
+  if(!txtMediaGain) return; // Skip if in entry screen or popup hasn't loaded fully
   txtMediaGain.textContent = `media gain: ${getMediaGain().toFixed(2)}×`;
   txtSens.textContent      = `analysis sens: ${getSens().toFixed(1)}×`;
   txtGamma.textContent     = `gamma: ${getGamma().toFixed(2)}`;
@@ -942,13 +941,12 @@ function refreshAudioLabels(){
 }
 ['input','change'].forEach(ev=>{
   [rngMediaGain,rngSens,rngGamma,rngCap,rngEQLow,rngEQMid,rngEQHigh].forEach(el=>{
-    el.addEventListener(ev, refreshAudioLabels);
+    if(el) el.addEventListener(ev, refreshAudioLabels);
   });
 });
 refreshAudioLabels();
 
 function applyEQ(){
-  if(!audioCtx || !eqLow) return;
   // Use parent window's audio context if in popup
   const targetCtx = isMainWindow ? audioCtx : window.opener.audioCtx;
   const targetEqLow = isMainWindow ? eqLow : window.opener.eqLow;
@@ -988,7 +986,7 @@ if(isMainWindow){
   // In the main window, hook the EQ ranges to apply the EQ change immediately
   ['input', 'change'].forEach(ev => {
     [rngEQLow, rngEQMid, rngEQHigh].forEach(el => {
-      el.addEventListener(ev, applyEQ);
+      if(el) el.addEventListener(ev, applyEQ);
     });
   });
 }
@@ -1000,6 +998,7 @@ window.applyEQ = applyEQ; // Make it available to the popup
 const selMic = document.getElementById('selMic');
 const selSpk = document.getElementById('selSpk');
 const txtSupport = document.getElementById('txtSupport');
+const currentMicDisplay = document.getElementById('currentMicDisplay');
 
 let currentMicDeviceId = S.currentMicDeviceId ?? "default";
 let outputSupported = false;
@@ -1026,6 +1025,7 @@ async function listDevices(){
 
   // SYSTEM mic select
   selMic.innerHTML = "";
+  let selectedMicLabel = "Default";
   if(mics.length===0){
     selMic.disabled = true;
     selMic.innerHTML = `<option>마이크 장치를 찾을 수 없음</option>`;
@@ -1034,8 +1034,12 @@ async function listDevices(){
     for(const d of mics){
       const opt = document.createElement('option');
       opt.value = d.deviceId;
-      opt.textContent = d.label || `Mic (${d.deviceId.slice(0,6)}…)`;
-      if(d.deviceId === currentMicDeviceId) opt.selected = true;
+      const label = d.label || `Mic (${d.deviceId.slice(0,6)}…)`;
+      opt.textContent = label;
+      if(d.deviceId === currentMicDeviceId) {
+          opt.selected = true;
+          selectedMicLabel = label;
+      }
       selMic.appendChild(opt);
     }
   }
@@ -1056,6 +1060,7 @@ async function listDevices(){
       entrySelMic.appendChild(opt);
     }
   }
+  if(currentMicDisplay) currentMicDisplay.textContent = selectedMicLabel;
 
   outputSupported = typeof monitorAudio.setSinkId === "function";
   selSpk.innerHTML = "";
@@ -1077,7 +1082,7 @@ async function listDevices(){
     }
   }
 
-  txtSupport.textContent =
+  if(txtSupport) txtSupport.textContent =
     `지원 상태: mic=${mics.length} | spk=${spks.length} | outputSelect=${outputSupported ? 'YES' : 'NO'}\n`+
     `렉/프리즈 감지 시 자동으로 Entry로 복귀 (SYSTEM > Auto Reboot)`;
 
@@ -1091,7 +1096,7 @@ async function listDevices(){
 if(isMainWindow) window.listDevices = listDevices;
 
 if(isMainWindow){
-  selMic.addEventListener('change', async ()=>{
+  if(selMic) selMic.addEventListener('change', async ()=>{
     currentMicDeviceId = selMic.value;
     S.currentMicDeviceId = currentMicDeviceId;
     saveSettings(S);
@@ -1101,15 +1106,15 @@ if(isMainWindow){
 
     if(currentSource==="mic" && micStream) await startMic(currentMicDeviceId, false);
   });
-  document.getElementById('entrySelMic').addEventListener('change', async (e)=>{
+  if(document.getElementById('entrySelMic')) document.getElementById('entrySelMic').addEventListener('change', async (e)=>{
     currentMicDeviceId = e.target.value;
     S.currentMicDeviceId = currentMicDeviceId;
     saveSettings(S);
-    selMic.value = currentMicDeviceId;
+    if(selMic) selMic.value = currentMicDeviceId;
     if(currentSource==="mic" && micStream) await startMic(currentMicDeviceId, false);
   });
 
-  selSpk.addEventListener('change', async ()=>{
+  if(selSpk) selSpk.addEventListener('change', async ()=>{
     if(!outputSupported) return;
     S.currentSpkDeviceId = selSpk.value;
     saveSettings(S);
@@ -1143,6 +1148,7 @@ async function startMic(deviceId="default", hideEntry=true){
   if(fileNode){ try{ fileNode.disconnect(); }catch(e){} fileNode = null; }
 
   try{
+    startStatus("마이크 권한 요청 중...");
     micStream = await navigator.mediaDevices.getUserMedia({
       audio: {
         deviceId: deviceId ? { exact: deviceId } : undefined,
@@ -1159,7 +1165,7 @@ async function startMic(deviceId="default", hideEntry=true){
     await listDevices();
     setMicButtons(true);
     updateTopPill(1);
-    startStatus("Mic ON. (Entry에서 바로 입장 가능)");
+    startStatus("Mic ON 성공. 비주얼 시작.");
 
     if(hideEntry) hideEntryAndEnter();
   }catch(e){
@@ -1235,9 +1241,9 @@ function setMicButtons(micOn){
   if(btnMicOff) btnMicOff.disabled = !micOn;
 
   // entry
-  const entryMicOn = document.getElementById('entryMicOn');
+  const btnStartAudio = document.getElementById('btnStartAudio');
+  if(btnStartAudio && currentSource==="mic") btnStartAudio.disabled = micOn;
   const entryMicOff = document.getElementById('entryMicOff');
-  if(entryMicOn) entryMicOn.disabled  = !audioCtx || micOn || (currentSource!=="mic");
   if(entryMicOff) entryMicOff.disabled = !micOn;
 }
 if(isMainWindow) window.setMicButtons = setMicButtons;
@@ -1275,9 +1281,11 @@ let midiLog = [];
 let midiLearn = false;
 
 function pushMidiLog(line){
+  const txtMIDI = document.getElementById('txtMIDI');
+  if(!txtMIDI) return;
   midiLog.push(line);
   if(midiLog.length>18) midiLog.shift();
-  document.getElementById('txtMIDI').textContent = `${midiName}\n` + midiLog.join('\n');
+  txtMIDI.textContent = `${midiName}\n` + midiLog.join('\n');
 }
 
 const selMIDIIn = document.getElementById('selMIDIIn');
@@ -1286,15 +1294,16 @@ const numMIDINum = document.getElementById('numMIDINum');
 const selMIDICh = document.getElementById('selMIDICh');
 const selMIDIInvert = document.getElementById('selMIDIInvert');
 
-hookSelectSave('selMIDIType');
-hookNumberSave('numMIDINum', 1);
-hookSelectSave('selMIDICh');
-hookSelectSave('selMIDIInvert');
-
-hookRangeSave('rngMIDIDead', 0.02);
-hookRangeSave('rngMIDIGain', 1.60);
-hookRangeSave('rngMIDICurve', 0.85);
-hookRangeSave('rngMIDISmooth', 0.22);
+if(isMainWindow){
+    hookSelectSave('selMIDIType');
+    hookNumberSave('numMIDINum', 1);
+    hookSelectSave('selMIDICh');
+    hookSelectSave('selMIDIInvert');
+    hookRangeSave('rngMIDIDead', 0.02);
+    hookRangeSave('rngMIDIGain', 1.60);
+    hookRangeSave('rngMIDICurve', 0.85);
+    hookRangeSave('rngMIDISmooth', 0.22);
+}
 
 const rngMIDIDead = document.getElementById('rngMIDIDead');
 const rngMIDIGain = document.getElementById('rngMIDIGain');
@@ -1310,13 +1319,16 @@ const txtMIDISupport = document.getElementById('txtMIDISupport');
 const rngSimTouch = document.getElementById('rngSimTouch');
 
 function refreshMIDILabels(){
+  if(!txtMIDIDead) return;
   txtMIDIDead.textContent = `deadzone: ${parseFloat(rngMIDIDead.value).toFixed(3)}`;
   txtMIDIGain.textContent = `gain: ${parseFloat(rngMIDIGain.value).toFixed(2)}×`;
   txtMIDICurve.textContent = `curve: ${parseFloat(rngMIDICurve.value).toFixed(2)} ( <1 = 더 예민 )`;
   txtMIDISmooth.textContent = `smooth: ${parseFloat(rngMIDISmooth.value).toFixed(2)}`;
 }
 ['input','change'].forEach(ev=>{
-  [rngMIDIDead,rngMIDIGain,rngMIDICurve,rngMIDISmooth].forEach(el=>el.addEventListener(ev, refreshMIDILabels));
+  [rngMIDIDead,rngMIDIGain,rngMIDICurve,rngMIDISmooth].forEach(el=>{
+      if(el) el.addEventListener(ev, refreshMIDILabels);
+  });
 });
 refreshMIDILabels();
 
@@ -1372,6 +1384,8 @@ function midiMsgToValue(data){
   const d1 = data[1] ?? 0;
   const d2 = data[2] ?? 0;
 
+  if(!selMIDICh || !numMIDINum || !selMIDIType) return null; // Safety check for popup
+
   const wantCh = parseInt(selMIDICh.value,10);
   if(wantCh !== -1 && ch !== wantCh) return null;
 
@@ -1392,8 +1406,7 @@ function midiMsgToValue(data){
 
 async function initMIDI(){
   if(!navigator.requestMIDIAccess){
-    midiName="MIDI: not supported";
-    txtMIDISupport.textContent = "⚠️ 이 브라우저는 WebMIDI를 지원하지 않습니다. → Sim Touch로 테스트 가능";
+    if(txtMIDISupport) txtMIDISupport.textContent = "⚠️ 이 브라우저는 WebMIDI를 지원하지 않습니다. → Sim Touch로 테스트 가능";
     pushMidiLog("requestMIDIAccess 없음");
     return;
   }
@@ -1401,22 +1414,20 @@ async function initMIDI(){
     midiAccess = await navigator.requestMIDIAccess({sysex:false});
     midiAccess.onstatechange = ()=> rebuildMIDIInputs();
     rebuildMIDIInputs(true);
-    txtMIDISupport.textContent = "✅ WebMIDI OK. TouchMe 연결 후 LEARN 누르고 한 번 터치하세요.";
+    if(txtMIDISupport) txtMIDISupport.textContent = "✅ WebMIDI OK. TouchMe 연결 후 LEARN 누르고 한 번 터치하세요.";
     pushMidiLog("MIDI ready.");
   }catch(e){
     console.error(e);
     midiName="MIDI: blocked";
-    txtMIDISupport.textContent = "⚠️ MIDI 접근이 차단됨. Chrome 권한/보안(https) 확인.";
+    if(txtMIDISupport) txtMIDISupport.textContent = "⚠️ MIDI 접근이 차단됨. Chrome 권한/보안(https) 확인.";
     pushMidiLog("MIDI access failed");
   }
 }
 if(isMainWindow) window.initMIDI = initMIDI;
 
 function rebuildMIDIInputs(autoselect=false){
-  if(!midiAccess){
-    selMIDIIn.innerHTML = `<option value="">MIDI not ready</option>`;
-    return;
-  }
+  if(!midiAccess || !selMIDIIn) return; // Safety check
+  
   const inputs = [...midiAccess.inputs.values()];
   selMIDIIn.innerHTML = "";
   if(inputs.length===0){
@@ -1448,13 +1459,14 @@ function rebuildMIDIInputs(autoselect=false){
 function setLearn(on){
   midiLearn = on;
   const b = document.getElementById('btnMIDILearn');
+  if(!b) return;
   b.classList.toggle('on', on);
   b.textContent = on ? "LEARN (ON)" : "LEARN";
   if(on) pushMidiLog("LEARN: TouchMe를 한 번 터치하세요 (CC/NOTE 자동 매핑).");
 }
 
 function attachMIDIInput(id){
-  if(!midiAccess) return;
+  if(!midiAccess || !selMIDIIn) return;
   const inp = [...midiAccess.inputs.values()].find(i=>i.id===id);
   if(!inp) return;
 
@@ -1471,7 +1483,7 @@ function attachMIDIInput(id){
     const r = midiParseRaw(data);
     lastMidiAt = performance.now();
     lastMidiRawText = `st:0x${r.st.toString(16)} | ch:${r.ch+1} | d1:${r.d1} | d2:${r.d2} | type:${r.type}`;
-    txtMIDILast.textContent = lastMidiRawText;
+    if(txtMIDILast) txtMIDILast.textContent = lastMidiRawText;
 
     if(midiLearn){
       if(r.st===0xB0){
@@ -1508,7 +1520,7 @@ function attachMIDIInput(id){
     touchRaw = parsed.raw01;
     touch = shapeMIDI(touchRaw);
 
-    txtMIDIRaw.textContent =
+    if(txtMIDIRaw) txtMIDIRaw.textContent =
       `raw01:${touchRaw.toFixed(3)} -> touch:${touch.toFixed(3)} | ${parsed.type.toUpperCase()} #${parsed.num} ch:${parsed.ch+1} val:${parsed.val}`;
 
     if(Math.random() < 0.22){
@@ -1516,12 +1528,12 @@ function attachMIDIInput(id){
     }
   };
 }
-if(isMainWindow) window.attachMIDIInput = attachMIDIInput; // Make it available to the popup
+if(isMainWindow) window.attachMIDIInput = attachMIDIInput;
 
 if(isMainWindow){
-  selMIDIIn.addEventListener('change', ()=> attachMIDIInput(selMIDIIn.value));
-  document.getElementById('btnMIDIInit').addEventListener('click', initMIDI);
-  document.getElementById('btnMIDILearn').addEventListener('click', ()=> setLearn(!midiLearn));
+  if(selMIDIIn) selMIDIIn.addEventListener('change', ()=> attachMIDIInput(selMIDIIn.value));
+  if(document.getElementById('btnMIDIInit')) document.getElementById('btnMIDIInit').addEventListener('click', initMIDI);
+  if(document.getElementById('btnMIDILearn')) document.getElementById('btnMIDILearn').addEventListener('click', ()=> setLearn(!midiLearn));
 
   /* restore midi controls */
   applySelectValue('selMIDIType', 'cc');
@@ -1532,11 +1544,13 @@ if(isMainWindow){
   hookSelectSave('selMIDIInvert');
   hookNumberSave('numMIDINum', 1);
 
-  rngSimTouch.value = (S.rngSimTouch ?? 0);
-  rngSimTouch.addEventListener('input', ()=>{
-    S.rngSimTouch = parseFloat(rngSimTouch.value);
-    saveSettings(S);
-  });
+  if(rngSimTouch){
+    rngSimTouch.value = (S.rngSimTouch ?? 0);
+    rngSimTouch.addEventListener('input', ()=>{
+      S.rngSimTouch = parseFloat(rngSimTouch.value);
+      saveSettings(S);
+    });
+  }
 }
 
 /* ==========================================================
@@ -1567,7 +1581,8 @@ function applyFX(){
   dL.delayTime.setTargetAtTime(0.0015 + t*0.014 + wob*0.0012, audioCtx.currentTime, 0.05);
   dR.delayTime.setTargetAtTime(0.0040 + t*0.020 + (1-wob)*0.0014, audioCtx.currentTime, 0.05);
 
-  document.getElementById('txtFx').textContent =
+  const txtFx = document.getElementById('txtFx');
+  if(txtFx) txtFx.textContent =
     `drive:${driveAmt.toFixed(1)} | filter:${f.toFixed(0)}Hz Q:${q.toFixed(1)} | ring:${ringHz.toFixed(1)}Hz depth:${(t*0.95).toFixed(2)} | widen:${t.toFixed(2)}`;
 }
 if(isMainWindow) window.applyFX = applyFX;
@@ -1584,24 +1599,10 @@ hookRangeSave('rngFade', 0.03);
 hookRangeSave('rngPointSize', 0.60);
 hookRangeSave('rngGlow', 0.45);
 
-applySelectValue('selPointColor', 'red');
-hookSelectSave('selPointColor');
-
-const rngIdleDrama = document.getElementById('rngIdleDrama');
-const rngVisSens   = document.getElementById('rngVisSens');
-const rngLine      = document.getElementById('rngLine');
-const rngPerf      = document.getElementById('rngPerf');
-const rngFade      = document.getElementById('rngFade');
-const rngPointSize = document.getElementById('rngPointSize');
-const rngGlow      = document.getElementById('rngGlow');
-
-const txtIdleDrama = document.getElementById('txtIdleDrama');
-const txtVisSens   = document.getElementById('txtVisSens');
-const txtLine      = document.getElementById('txtLine');
-const txtPerf      = document.getElementById('txtPerf');
-const txtFade      = document.getElementById('txtFade');
-const txtPointSize = document.getElementById('txtPointSize');
-const txtGlow      = document.getElementById('txtGlow');
+if(isMainWindow){
+    applySelectValue('selPointColor', 'red');
+    hookSelectSave('selPointColor');
+}
 
 function getIdleDrama(){ return Math.max(0, Math.min(1, parseFloat(rngIdleDrama.value)||0.20)); }
 function getVisSens(){ return Math.max(0.6, Math.min(2.6, parseFloat(rngVisSens.value)||1.55)); }
@@ -1611,25 +1612,13 @@ function getFade(){ return Math.max(0.02, Math.min(0.20, parseFloat(rngFade.valu
 function getPointSize(){ return Math.max(0.4, Math.min(1.2, parseFloat(rngPointSize.value)||0.6)); }
 function getGlow(){ return Math.max(0.10, Math.min(1.0, parseFloat(rngGlow.value)||0.45)); }
 function getPointColor(){
-  return (document.getElementById('selPointColor').value === "red") ? "#ff3b3b" : "#ffffff";
+  const selPointColor = document.getElementById('selPointColor');
+  return (selPointColor && selPointColor.value === "red") ? "#ff3b3b" : "#ffffff";
 }
-function getMode(){ return document.getElementById('selMode').value; }
-
-function refreshVisualLabels(){
-  txtIdleDrama.textContent = `idle drama: ${getIdleDrama().toFixed(2)} (천천히 움직이는 정도)`;
-  txtVisSens.textContent   = `visual sens: ${getVisSens().toFixed(2)}× (반응 민감도)`;
-  txtLine.textContent      = `line density: ${getLineMul().toFixed(2)}×`;
-  txtPerf.textContent      = `perf limit: ${getPerfLim().toFixed(2)}`;
-  txtFade.textContent      = `fade: ${getFade().toFixed(3)} (배경이 지워지는 속도)`;
-  txtPointSize.textContent = `point size: ${getPointSize().toFixed(2)}×`;
-  txtGlow.textContent      = `glow: ${getGlow().toFixed(2)}×`;
+function getMode(){ 
+    const selMode = document.getElementById('selMode');
+    return selMode ? selMode.value : 'pulse'; 
 }
-['input','change'].forEach(ev=>{
-  [rngIdleDrama,rngVisSens,rngLine,rngPerf,rngFade,rngPointSize,rngGlow].forEach(el=>{
-    el.addEventListener(ev, refreshVisualLabels);
-  });
-});
-refreshVisualLabels();
 
 /* ==========================================================
     VISUAL FIELD - MAIN WINDOW ONLY
@@ -1705,7 +1694,7 @@ function applyBounds(p, mode){
 ========================================================== */
 function updateTopPill(q=1){
   const pill = document.getElementById('topPill');
-  if(!pill) return; // For popup window, it might not exist initially
+  if(!pill) return; // Safety check
   const a = audioCtx ? audioCtx.state : 'off';
   const src = (currentSource==="mic")
     ? (micStream ? "mic:on" : "mic:off")
@@ -1720,18 +1709,6 @@ const btnHideUI = document.getElementById('btnHideUI');
 
 // Main window: Open settings in a new pop-up window
 if(isMainWindow){
-  const settingsHTML = `
-    <!doctype html>
-    <html lang="ko">
-    <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-    <title>LIMEN WORKSHOP – Settings</title>
-    </head>
-    <body style="background:#000; margin:0; padding:10px;">
-    </body>
-    </html>
-  `;
   let settingsPopup = null;
 
   btnGear.addEventListener('click', ()=>{
@@ -1739,6 +1716,160 @@ if(isMainWindow){
       settingsPopup.focus();
       return;
     }
+    
+    // Create the content HTML string
+    const uiClone = document.getElementById('ui').cloneNode(true);
+    uiClone.id = 'ui-popup';
+    uiClone.style.display = 'block';
+    uiClone.classList.remove('hidden');
+
+    // Create a temporary container to get the inner HTML
+    const tempContainer = document.createElement('div');
+    tempContainer.appendChild(uiClone);
+    
+    // The main script body for the popup window
+    // This script mirrors the logic and settings to the main window via `opener`
+    const popupScript = `
+      <script>
+        const STORE_KEY = "limen_workshop_settings_v3_entry";
+        function loadSettings(){ try{ return JSON.parse(localStorage.getItem(STORE_KEY)||"{}"); }catch(e){ return {}; } }
+        let S = loadSettings();
+        
+        // --- Mirrored Logic Functions ---
+        // These rely on the elements being present in the popup or calling the opener
+        
+        ${window.applyEQ.toString()}
+        ${window.getEQLow.toString()}
+        ${window.getEQMid.toString()}
+        ${window.getEQHigh.toString()}
+        ${window.refreshAudioLabels.toString()}
+        
+        ${window.getIdleDrama.toString()}
+        ${window.getVisSens.toString()}
+        ${window.getLineMul.toString()}
+        ${window.getPerfLim.toString()}
+        ${window.getFade.toString()}
+        ${window.getPointSize.toString()}
+        ${window.getGlow.toString()}
+        ${window.getPointColor.toString()}
+        ${window.getMode.toString()}
+        ${window.refreshVisualLabels.toString()}
+        
+        ${window.getMIDIDead.toString()}
+        ${window.getMIDIGain.toString()}
+        ${window.getMIDICurve.toString()}
+        ${window.getMIDISmooth.toString()}
+        ${window.refreshMIDILabels.toString()}
+        
+        // --- Setup and Event Handlers ---
+        window.addEventListener('DOMContentLoaded', ()=>{
+            const opener = window.opener;
+            const uiPopup = document.getElementById('ui-popup');
+            uiPopup.style.position = 'static';
+            uiPopup.style.margin = '0 auto';
+            uiPopup.style.width = 'calc(100% - 20px)';
+            uiPopup.style.maxWidth = '560px';
+
+            // Function to update local storage and notify opener
+            function updateSettings(el) {
+                const isFloat = (el.type === 'number' || el.type === 'range') && el.step.includes('.');
+                const value = isFloat ? parseFloat(el.value) : (el.type === 'number' ? parseInt(el.value, 10) : el.value);
+                
+                S[el.id] = value;
+                localStorage.setItem(STORE_KEY, JSON.stringify(S));
+                if (opener && opener.S) opener.S = S; // Update main window's settings object
+
+                refreshAudioLabels();
+                refreshVisualLabels();
+                
+                if (el.id.startsWith('rngEQ') && opener.audioCtx) {
+                    applyEQ();
+                }
+                if (el.id === 'selMode' && opener.document.getElementById('selMode')) {
+                    // Trigger mode preset change in opener if required
+                    opener.document.getElementById('selMode').dispatchEvent(new Event('change'));
+                }
+            }
+
+            // Apply saved settings and attach listeners
+            document.querySelectorAll('select, input[type="range"], input[type="number"]').forEach(el => {
+                if (S.hasOwnProperty(el.id)) {
+                    el.value = S[el.id];
+                }
+                ['input', 'change'].forEach(ev => {
+                    el.addEventListener(ev, () => updateSettings(el));
+                });
+            });
+
+            // Handle TAB switching
+            document.querySelectorAll('#ui-popup .tab').forEach(t=>{
+                t.addEventListener('click', ()=>{
+                    document.querySelectorAll('#ui-popup .tab').forEach(x=>x.classList.remove('active'));
+                    document.querySelectorAll('#ui-popup .panel').forEach(x=>x.classList.remove('active'));
+                    t.classList.add('active');
+                    document.getElementById('panel-'+t.dataset.tab).classList.add('active');
+                    S.activeTab = t.dataset.tab;
+                    localStorage.setItem(STORE_KEY, JSON.stringify(S));
+                    if (opener && opener.S) opener.S = S;
+                    
+                    if (t.dataset.tab === "system" && opener.listDevices) opener.listDevices();
+                    if (t.dataset.tab === "midi" && opener.initMIDI) opener.initMIDI();
+                });
+            });
+            
+            // Restore active tab
+            if(S.activeTab){
+                const tabEl = document.querySelector(\`#ui-popup .tab[data-tab="\${S.activeTab}"]\`);
+                if(tabEl) tabEl.click();
+            } else {
+                document.querySelector('#ui-popup .tab[data-tab="visual"]').click();
+            }
+
+
+            // --- Opener Function Proxies ---
+            document.getElementById('btnHideUI').addEventListener('click', ()=> window.close());
+            document.getElementById('btnResume').addEventListener('click', ()=> opener.document.getElementById('btnResume').click());
+            document.getElementById('btnMicOn').addEventListener('click', ()=> opener.document.getElementById('btnMicOn').click());
+            document.getElementById('btnMicOff').addEventListener('click', ()=> opener.document.getElementById('btnMicOff').click());
+            document.getElementById('btnFilePlay').addEventListener('click', ()=> opener.document.getElementById('btnFilePlay').click());
+            document.getElementById('btnFilePause').addEventListener('click', ()=> opener.document.getElementById('btnFilePause').click());
+            document.getElementById('btnFileStop').addEventListener('click', ()=> opener.document.getElementById('btnFileStop').click());
+
+            document.getElementById('selSrc').addEventListener('change', (e)=> {
+                 opener.document.getElementById('selSrc').value = e.target.value;
+                 opener.document.getElementById('selSrc').dispatchEvent(new Event('change'));
+            });
+            document.getElementById('selMic').addEventListener('change', (e)=> {
+                 opener.document.getElementById('selMic').value = e.target.value;
+                 opener.document.getElementById('selMic').dispatchEvent(new Event('change'));
+            });
+            document.getElementById('selSpk').addEventListener('change', (e)=> {
+                 opener.document.getElementById('selSpk').value = e.target.value;
+                 opener.document.getElementById('selSpk').dispatchEvent(new Event('change'));
+            });
+            
+            // File input cannot pass File object directly, let the user know
+            document.getElementById('fileAudio').addEventListener('change', (e)=>{
+                if(e.target.files.length > 0) alert("파일 로드는 메인 화면의 'SYSTEM' 탭에서 직접 진행해야 합니다.");
+            });
+            
+            // MIDI controls
+            document.getElementById('selMIDIIn').addEventListener('change', (e)=> {
+                if (opener.attachMIDIInput) opener.attachMIDIInput(e.target.value);
+            });
+            document.getElementById('btnMIDIInit').addEventListener('click', ()=> {
+                if (opener.initMIDI) opener.initMIDI();
+            });
+            document.getElementById('btnMIDILearn').addEventListener('click', ()=> {
+                if (opener.document.getElementById('btnMIDILearn')) opener.document.getElementById('btnMIDILearn').click();
+            });
+            
+            // Initial call to update visual labels in the popup
+            refreshAudioLabels();
+            refreshVisualLabels();
+        });
+      </script>
+    `;
 
     settingsPopup = window.open('about:blank', 'LimenSettings', 'width=600,height=800,scrollbars=yes');
     if(!settingsPopup) {
@@ -1746,193 +1877,28 @@ if(isMainWindow){
       return;
     }
     
-    // Write the basic HTML structure
-    settingsPopup.document.write(settingsHTML);
-    settingsPopup.document.close();
-
-    // Copy styles from the main window's head
-    const mainStyles = document.head.querySelector('style').textContent;
-    const styleEl = settingsPopup.document.createElement('style');
-    styleEl.textContent = mainStyles;
-    settingsPopup.document.head.appendChild(styleEl);
-
-    // Copy the UI element and show it
-    const uiClone = document.getElementById('ui').cloneNode(true);
-    uiClone.style.display = 'block';
-    uiClone.classList.remove('hidden');
-    uiClone.id = 'ui-popup'; // Change ID to avoid conflict
-    uiClone.style.position = 'static';
-    uiClone.style.margin = '0';
-    uiClone.style.width = 'auto';
-
-    settingsPopup.document.body.appendChild(uiClone);
-    
-    // Transfer JavaScript functionality and local storage references
-    const scriptEl = settingsPopup.document.createElement('script');
-    // We send a stripped-down version of the script that only handles UI and persistence
-    const mainScriptText = document.querySelector('script').textContent;
-
-    // Use a regex to find all functions/variables that need to be made global in the popup's context
-    // This is a simplified approach. In a real application, you'd use a modular system or postMessage.
-    const functionsToExport = [
-      'loadSettings', 'saveSettings', 'applySelectValue', 'hookSelectSave', 'hookRangeSave', 'hookNumberSave',
-      'getMediaGain', 'getSens', 'getGamma', 'getCap', 'getEQLow', 'getEQMid', 'getEQHigh', 'refreshAudioLabels', 'applyEQ',
-      'getMIDIDead', 'getMIDIGain', 'getMIDICurve', 'getMIDISmooth', 'refreshMIDILabels',
-      'getIdleDrama', 'getVisSens', 'getLineMul', 'getPerfLim', 'getFade', 'getPointSize', 'getGlow', 'getPointColor', 'getMode', 'refreshVisualLabels',
-      'setMicButtons', 'updateTopPill', 'startStatus', 'disconnectInputs', 'ensureFileAudioEl',
-      'listDevices', 'startMic', 'stopMic', 'connectFileToChain', 'afterAudioUnlocked',
-      'initMIDI', 'attachMIDIInput', 'setLearn', 'rebuildMIDIInputs', 'pushMidiLog'
-    ];
-    
-    // Define the parent-child relationship and setup the popup's environment
-    let popupScript = `
-      // Setup the environment for the popup
-      const isMainWindow = false;
-      let S = window.opener.loadSettings();
-      window.opener.settingsPopup = window; // Let the main window know who the popup is (for reload)
-
-      // Proxy functions to the opener (main window) for logic that needs access to the canvas or AudioContext
-      const opener = window.opener;
-      const audioCtx = opener.audioCtx; // Direct reference to main window's AudioContext
-      
-      const STORE_KEY = "${STORE_KEY}";
-      function loadSettings(){ try{ return JSON.parse(localStorage.getItem(STORE_KEY)||"{}"); }catch(e){ return {}; } }
-      function saveSettings(obj){ localStorage.setItem(STORE_KEY, JSON.stringify(obj)); }
-
-      // Dummy functions for elements not present in the popup but referenced by shared logic
-      const masterGain = opener.masterGain;
-
-      // Function definitions from the main window's scope
-      ${mainScriptText.split('/* ==========================================================')[1].split('function updateTouch()')[0]}
-      ${mainScriptText.split('function updateTouch(){')[1].split('/* ==========================================================')[0]}
-      ${mainScriptText.split('function applyFX(){')[1].split('/* ==========================================================')[0]}
-      ${mainScriptText.split('function updateTopPill(q=1){')[1].split('/* ==========================================================')[0]}
-      ${mainScriptText.split('function setMicButtons(micOn){')[1].split('/* ==========================================================')[0]}
-      ${mainScriptText.split('function startStatus(msg){')[1].split('/* ==========================================================')[0]}
-      ${mainScriptText.split('async function afterAudioUnlocked(){')[1].split('/* ==========================================================')[0]}
-      ${mainScriptText.split('async function initMIDI(){')[1].split('/* ==========================================================')[0]}
-      ${mainScriptText.split('function rebuildMIDIInputs(autoselect=false){')[1].split('/* ==========================================================')[0]}
-      ${mainScriptText.split('function setLearn(on){')[1].split('/* ==========================================================')[0]}
-      ${mainScriptText.split('function attachMIDIInput(id){')[1].split('/* ==========================================================')[0]}
-
-      // Run shared UI logic on the popup
-      window.addEventListener('DOMContentLoaded', ()=>{
-        // Restore values
-        const S_popup = loadSettings();
-        // Hook UI elements (re-hooking is safer in the popup context)
-        // VISUAL
-        const visHooks = ['selMode', 'selN', 'selBounds', 'selQuietLines', 'selPointColor'];
-        visHooks.forEach(id => document.getElementById(id).value = S_popup[id] ?? document.getElementById(id).value);
-        ['rngIdleDrama', 'rngVisSens', 'rngLine', 'rngPerf', 'rngFade', 'rngPointSize', 'rngGlow'].forEach(id => document.getElementById(id).value = S_popup[id] ?? document.getElementById(id).value);
-        
-        // AUDIO
-        ['rngMediaGain', 'rngSens', 'rngGamma', 'rngCap', 'rngEQLow', 'rngEQMid', 'rngEQHigh'].forEach(id => document.getElementById(id).value = S_popup[id] ?? document.getElementById(id).value);
-
-        // MIDI
-        const midiSelects = ['selMIDIType', 'selMIDICh', 'selMIDIInvert'];
-        midiSelects.forEach(id => document.getElementById(id).value = S_popup[id] ?? document.getElementById(id).value);
-        document.getElementById('numMIDINum').value = S_popup['numMIDINum'] ?? document.getElementById('numMIDINum').value;
-        ['rngMIDIDead', 'rngMIDIGain', 'rngMIDICurve', 'rngMIDISmooth'].forEach(id => document.getElementById(id).value = S_popup[id] ?? document.getElementById(id).value);
-        document.getElementById('rngSimTouch').value = S_popup['rngSimTouch'] ?? document.getElementById('rngSimTouch').value;
-
-        // SYSTEM
-        const sysSelects = ['selSrc', 'selAutoReboot'];
-        sysSelects.forEach(id => document.getElementById(id).value = S_popup[id] ?? document.getElementById(id).value);
-
-        // UI Hooks (re-apply save logic and some value mirror functions)
-        document.querySelectorAll('select, input[type="range"], input[type="number"]').forEach(el => {
-            el.addEventListener('change', (e) => {
-                S_popup[el.id] = (el.type === 'number' || el.type === 'range') ? parseFloat(el.value) : el.value;
-                if (el.id.startsWith('rngEQ')) {
-                    opener.applyEQ(); // Apply EQ immediately
-                }
-                localStorage.setItem(STORE_KEY, JSON.stringify(S_popup));
-                opener.S = S_popup; // Update main window's reference
-            });
-            el.addEventListener('input', (e) => {
-                S_popup[el.id] = (el.type === 'number' || el.type === 'range') ? parseFloat(el.value) : el.value;
-                if (el.id.startsWith('rngEQ')) {
-                    opener.applyEQ(); // Apply EQ immediately
-                }
-                localStorage.setItem(STORE_KEY, JSON.stringify(S_popup));
-                opener.S = S_popup; // Update main window's reference
-            });
-        });
-        
-        // Handle TAB switching
-        document.querySelectorAll('#ui-popup .tab').forEach(t=>{
-            t.addEventListener('click', ()=>{
-                document.querySelectorAll('#ui-popup .tab').forEach(x=>x.classList.remove('active'));
-                document.querySelectorAll('#ui-popup .panel').forEach(x=>x.classList.remove('active'));
-                t.classList.add('active');
-                document.getElementById('panel-'+t.dataset.tab).classList.add('active');
-                S_popup.activeTab = t.dataset.tab;
-                localStorage.setItem(STORE_KEY, JSON.stringify(S_popup));
-                opener.S = S_popup;
-            });
-        });
-
-        if(S_popup.activeTab){
-            const tabEl = document.querySelector(\`#ui-popup .tab[data-tab="\${S_popup.activeTab}"]\`);
-            if(tabEl) tabEl.click();
-        }
-
-        // Close button functionality
-        document.getElementById('btnHideUI').addEventListener('click', ()=>{
-            window.close();
-        });
-        
-        // Rebuild device lists and MIDI if contexts are available
-        if (opener.listDevices) opener.listDevices();
-        if (opener.initMIDI) opener.initMIDI();
-
-        // System tab controls (need to call opener's functions)
-        document.getElementById('btnResume').addEventListener('click', ()=> opener.document.getElementById('btnResume').click());
-        
-        document.getElementById('selSrc').addEventListener('change', (e)=>{
-             opener.document.getElementById('selSrc').value = e.target.value;
-             opener.document.getElementById('selSrc').dispatchEvent(new Event('change'));
-        });
-        document.getElementById('selMic').addEventListener('change', (e)=>{
-             opener.document.getElementById('selMic').value = e.target.value;
-             opener.document.getElementById('selMic').dispatchEvent(new Event('change'));
-        });
-        document.getElementById('selSpk').addEventListener('change', (e)=>{
-             opener.document.getElementById('selSpk').value = e.target.value;
-             opener.document.getElementById('selSpk').dispatchEvent(new Event('change'));
-        });
-        
-        document.getElementById('btnMicOn').addEventListener('click', ()=> opener.document.getElementById('btnMicOn').click());
-        document.getElementById('btnMicOff').addEventListener('click', ()=> opener.document.getElementById('btnMicOff').click());
-        
-        document.getElementById('fileAudio').addEventListener('change', (e)=>{
-            // Cannot transfer File object directly, need to tell opener to handle it.
-            if(e.target.files.length > 0) alert("파일은 메인 화면의 'Entry'나 'SYSTEM' 탭에서 직접 로드해주세요.");
-        });
-
-        // MIDI controls (need to call opener's functions)
-        document.getElementById('selMIDIIn').addEventListener('change', (e)=> opener.attachMIDIInput(e.target.value));
-        document.getElementById('btnMIDIInit').addEventListener('click', ()=> opener.initMIDI());
-        document.getElementById('btnMIDILearn').addEventListener('click', ()=> opener.document.getElementById('btnMIDILearn').click());
-        
-        // Initial Mirroring
-        opener.document.getElementById('selSrc').value = S_popup.currentSource;
-        
-      });
+    const finalHTML = `
+        <!doctype html>
+        <html lang="ko">
+        <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+        <title>LIMEN WORKSHOP – Settings</title>
+        <style>
+          body { background: #000; margin: 0; padding: 10px; }
+          #ui-popup { position: static !important; }
+        </style>
+        <style>${document.head.querySelector('style').textContent}</style>
+        </head>
+        <body>
+        ${tempContainer.innerHTML}
+        ${popupScript}
+        </body>
+        </html>
     `;
-
-    // Final transfer of the script to the popup window
-    scriptEl.textContent = popupScript;
-    settingsPopup.document.body.appendChild(scriptEl);
-
-    // Initial value updates (only for display, main logic runs in the main window)
-    refreshAudioLabels();
-    refreshVisualLabels();
-    refreshMIDILabels();
-
-    // Force the first load of lists
-    if (listDevices) listDevices();
-    if (initMIDI) initMIDI();
+    
+    settingsPopup.document.write(finalHTML);
+    settingsPopup.document.close();
   });
 }
 
@@ -1991,6 +1957,18 @@ function applySourceUI(){
   entrySelSrc.value = currentSource;
   entryMicBox.style.display = (currentSource==="mic") ? "" : "none";
   entryFileBox.style.display = (currentSource==="file") ? "" : "none";
+  
+  // Update Start Audio Button state
+  const btnStartAudio = document.getElementById('btnStartAudio');
+  if(btnStartAudio){
+      if(currentSource==="mic"){
+          btnStartAudio.textContent = "Start Audio (Mic ON)";
+          btnStartAudio.disabled = !!micStream;
+      } else {
+          btnStartAudio.textContent = "Start Audio (Unlock Only)";
+          btnStartAudio.disabled = !!audioCtx && audioCtx.state !== 'suspended';
+      }
+  }
 
   setMicButtons(!!micStream);
   updateTopPill(1);
@@ -2042,14 +2020,14 @@ const entryFileStop = document.getElementById('entryFileStop');
 const entryFileTxt = document.getElementById('entryFileTxt');
 
 function setSystemFileBtns(enabled){
-  btnFilePlay.disabled = !enabled;
-  btnFilePause.disabled = !enabled;
-  btnFileStop.disabled = !enabled;
+  if(btnFilePlay) btnFilePlay.disabled = !enabled;
+  if(btnFilePause) btnFilePause.disabled = !enabled;
+  if(btnFileStop) btnFileStop.disabled = !enabled;
 }
 function setEntryFileBtns(enabled){
-  entryFilePlay.disabled = !enabled;
-  entryFilePause.disabled = !enabled;
-  entryFileStop.disabled = !enabled;
+  if(entryFilePlay) entryFilePlay.disabled = !enabled;
+  if(entryFilePause) entryFilePause.disabled = !enabled;
+  if(entryFileStop) entryFileStop.disabled = !enabled;
 }
 setSystemFileBtns(false);
 setEntryFileBtns(false);
@@ -2067,11 +2045,11 @@ async function loadFileFromInput(file){
   fileAudioEl.src = url;
   fileAudioEl.loop = true;
 
-  txtFile.textContent = `loaded: ${file.name} (${Math.round(file.size/1024)} KB)`;
-  entryFileTxt.textContent = `loaded: ${file.name} (${Math.round(file.size/1024)} KB)`;
+  if(txtFile) txtFile.textContent = `loaded: ${file.name} (${Math.round(file.size/1024)} KB)`;
+  if(entryFileTxt) entryFileTxt.textContent = `loaded: ${file.name} (${Math.round(file.size/1024)} KB)`;
 
   if(currentSource!=="file"){
-    selSrc.value = "file";
+    if(selSrc) selSrc.value = "file";
     applySourceUI();
   }
 
@@ -2082,13 +2060,12 @@ async function loadFileFromInput(file){
 }
 
 if(isMainWindow){
-  fileAudio.addEventListener('change', async ()=>{
+  if(fileAudio) fileAudio.addEventListener('change', async ()=>{
     const f = fileAudio.files && fileAudio.files[0];
     if(!f) return;
-    // mirror to entry input is not possible programmatically; just load
     await loadFileFromInput(f);
   });
-  entryFileAudio.addEventListener('change', async ()=>{
+  if(entryFileAudio) entryFileAudio.addEventListener('change', async ()=>{
     const f = entryFileAudio.files && entryFileAudio.files[0];
     if(!f) return;
     await loadFileFromInput(f);
@@ -2098,15 +2075,22 @@ if(isMainWindow){
       ENTRY ENTER: Mic ON / File Play -> hide entry
   ========================================================== */
   function hideEntryAndEnter(){
-    document.getElementById('hint').style.display='none';
+    const hint = document.getElementById('hint');
+    if(hint) hint.style.display='none';
   }
   function showEntry(msg=""){
-    document.getElementById('hint').style.display='flex';
+    const hint = document.getElementById('hint');
+    if(hint) hint.style.display='flex';
     if(msg) startStatus(msg);
   }
 
-  entryFilePlay.addEventListener('click', async ()=>{
-    if(!fileAudioEl || !fileAudioEl.src) return;
+  // --- File Entry Buttons ---
+  if(entryFilePlay) entryFilePlay.addEventListener('click', async ()=>{
+    if(currentSource!=="file") return;
+    if(!fileAudioEl || !fileAudioEl.src) {
+        startStatus("파일을 먼저 선택해 주세요.");
+        return;
+    }
     ensureAudio(); await audioCtx.resume();
     connectFileToChain();
     try{ await fileAudioEl.play(); }catch(e){
@@ -2116,18 +2100,19 @@ if(isMainWindow){
     updateTopPill(1);
     hideEntryAndEnter();
   });
-  entryFilePause.addEventListener('click', ()=>{
+  if(entryFilePause) entryFilePause.addEventListener('click', ()=>{
     if(!fileAudioEl) return;
     try{ fileAudioEl.pause(); }catch(e){}
     updateTopPill(1);
   });
-  entryFileStop.addEventListener('click', ()=>{
+  if(entryFileStop) entryFileStop.addEventListener('click', ()=>{
     if(!fileAudioEl) return;
     try{ fileAudioEl.pause(); fileAudioEl.currentTime = 0; }catch(e){}
     updateTopPill(1);
   });
 
-  btnFilePlay.addEventListener('click', async ()=>{
+  // --- System File Buttons ---
+  if(btnFilePlay) btnFilePlay.addEventListener('click', async ()=>{
     if(!fileAudioEl || !fileAudioEl.src) return;
     ensureAudio(); await audioCtx.resume();
     connectFileToChain();
@@ -2136,12 +2121,12 @@ if(isMainWindow){
     }
     updateTopPill(1);
   });
-  btnFilePause.addEventListener('click', ()=>{
+  if(btnFilePause) btnFilePause.addEventListener('click', ()=>{
     if(!fileAudioEl) return;
     try{ fileAudioEl.pause(); }catch(e){}
     updateTopPill(1);
   });
-  btnFileStop.addEventListener('click', ()=>{
+  if(btnFileStop) btnFileStop.addEventListener('click', ()=>{
     if(!fileAudioEl) return;
     try{ fileAudioEl.pause(); fileAudioEl.currentTime = 0; }catch(e){}
     updateTopPill(1);
@@ -2150,28 +2135,30 @@ if(isMainWindow){
   /* ==========================================================
       SYSTEM mic buttons
   ========================================================== */
-  document.getElementById('btnMicOn').addEventListener('click', async ()=>{
+  if(document.getElementById('btnMicOn')) document.getElementById('btnMicOn').addEventListener('click', async ()=>{
     if(currentSource!=="mic") return;
-    await startMic(currentMicDeviceId, true);
+    await startMic(currentMicDeviceId, false);
   });
-  document.getElementById('btnMicOff').addEventListener('click', ()=> stopMic());
+  if(document.getElementById('btnMicOff')) document.getElementById('btnMicOff').addEventListener('click', ()=> stopMic());
 
-  /* ENTRY mic buttons */
-  document.getElementById('entryMicOn').addEventListener('click', async ()=>{
-    if(currentSource!=="mic") return;
-    await startMic(currentMicDeviceId, true);
-  });
-  document.getElementById('entryMicOff').addEventListener('click', ()=> stopMic());
 
   /* ==========================================================
       ENTRY: Start Audio (unlock) + device list + MIDI init
+      >>> THIS IS THE CRITICAL START BUTTON <<<
   ========================================================== */
   document.getElementById('btnStartAudio').addEventListener('click', async ()=>{
-    ensureAudio();
-    await audioCtx.resume();
-    await afterAudioUnlocked();
-    await initMIDI();
-    startStatus("Audio unlocked. 이제 Mic/File 선택 후 Enter 버튼으로 입장!");
+    if(currentSource === "mic"){
+        // If Mic is selected, try to start mic directly and enter
+        await startMic(currentMicDeviceId, true);
+    } else {
+        // If File is selected, just unlock audio and proceed to file selection/play
+        ensureAudio();
+        await audioCtx.resume();
+        await afterAudioUnlocked();
+        await initMIDI();
+        startStatus("Audio unlocked. 이제 File을 선택하고 Play 버튼으로 입장!");
+    }
+    
   });
 
   addEventListener('pointerdown', async ()=>{
@@ -2193,54 +2180,60 @@ if(isMainWindow){
 
   ['selMode','selN','selBounds','selQuietLines','selAutoReboot'].forEach(hookSelectSave);
 
-  document.getElementById('selN').addEventListener('change', (e)=>{
+  if(document.getElementById('selN')) document.getElementById('selN').addEventListener('change', (e)=>{
     N = parseInt(e.target.value,10);
     initPoints();
   });
   
   // Custom logic for Mode presets
-  document.getElementById('selMode').addEventListener('change', (e) => {
+  if(document.getElementById('selMode')) document.getElementById('selMode').addEventListener('change', (e) => {
       const mode = e.target.value;
+      const rngIdleDramaEl = document.getElementById('rngIdleDrama');
+      const rngVisSensEl = document.getElementById('rngVisSens');
+      const rngLineEl = document.getElementById('rngLine');
+      const rngPointSizeEl = document.getElementById('rngPointSize');
+      const selPointColorEl = document.getElementById('selPointColor');
+      
+      const updateAndDispatch = (el, value) => {
+          if (el) {
+              el.value = value;
+              el.dispatchEvent(new Event('input'));
+              el.dispatchEvent(new Event('change'));
+          }
+      };
+      
       switch (mode) {
           case 'piano':
-              // Low idle drama, very high visual sens, high line density for a more 'grid-like' reactive feel
-              document.getElementById('rngIdleDrama').value = 0.10;
-              document.getElementById('rngVisSens').value = 2.0;
-              document.getElementById('rngLine').value = 1.0;
-              document.getElementById('rngPointSize').value = 0.80;
-              document.getElementById('selPointColor').value = 'white';
+              updateAndDispatch(rngIdleDramaEl, 0.10);
+              updateAndDispatch(rngVisSensEl, 2.0);
+              updateAndDispatch(rngLineEl, 1.0);
+              updateAndDispatch(rngPointSizeEl, 0.80);
+              updateAndDispatch(selPointColorEl, 'white');
               break;
           case 'melancholy':
-              // Very low idle drama, low visual sens, low line density for a slow, subtle feel
-              document.getElementById('rngIdleDrama').value = 0.05;
-              document.getElementById('rngVisSens').value = 0.8;
-              document.getElementById('rngLine').value = 0.45;
-              document.getElementById('rngPointSize').value = 0.50;
-              document.getElementById('selPointColor').value = 'red';
+              updateAndDispatch(rngIdleDramaEl, 0.05);
+              updateAndDispatch(rngVisSensEl, 0.8);
+              updateAndDispatch(rngLineEl, 0.45);
+              updateAndDispatch(rngPointSizeEl, 0.50);
+              updateAndDispatch(selPointColorEl, 'red');
               break;
           case 'calm':
-              document.getElementById('rngIdleDrama').value = 0.55;
-              document.getElementById('rngVisSens').value = 1.0;
-              document.getElementById('rngLine').value = 0.75;
-              document.getElementById('rngPointSize').value = 0.60;
-              document.getElementById('selPointColor').value = 'red';
+              updateAndDispatch(rngIdleDramaEl, 0.55);
+              updateAndDispatch(rngVisSensEl, 1.0);
+              updateAndDispatch(rngLineEl, 0.75);
+              updateAndDispatch(rngPointSizeEl, 0.60);
+              updateAndDispatch(selPointColorEl, 'red');
               break;
           case 'pulse':
           case 'burst':
           default:
-              document.getElementById('rngIdleDrama').value = 0.20;
-              document.getElementById('rngVisSens').value = 1.55;
-              document.getElementById('rngLine').value = 0.75;
-              document.getElementById('rngPointSize').value = 0.60;
-              document.getElementById('selPointColor').value = 'red';
+              updateAndDispatch(rngIdleDramaEl, 0.20);
+              updateAndDispatch(rngVisSensEl, 1.55);
+              updateAndDispatch(rngLineEl, 0.75);
+              updateAndDispatch(rngPointSizeEl, 0.60);
+              updateAndDispatch(selPointColorEl, 'red');
               break;
       }
-      // Manually trigger the input event to save values and update labels
-      ['rngIdleDrama', 'rngVisSens', 'rngLine', 'rngPointSize', 'selPointColor'].forEach(id => {
-          const el = document.getElementById(id);
-          el.dispatchEvent(new Event('input'));
-          el.dispatchEvent(new Event('change'));
-      });
   });
 }
 
@@ -2272,8 +2265,6 @@ async function entryReboot(reason="lag"){
   try{
     if(fileAudioEl){
       try{ fileAudioEl.pause(); }catch(e){}
-      // keep file selected (so Entry Play can work again) — but audio chain will be reattached on play
-      // do not clear src
     }
   }catch(e){}
 
@@ -2281,7 +2272,7 @@ async function entryReboot(reason="lag"){
   fileNode = null;
   inputNode = null;
 
-  // close audio context to truly clear overload (user wants "Start Audio" stage again)
+  // close audio context to truly clear overload
   try{
     if(audioCtx){
       try{ await audioCtx.close(); }catch(e){}
@@ -2311,12 +2302,15 @@ async function entryReboot(reason="lag"){
   updateTopPill(1);
 
   // Entry UI states (enable/disable) — Start Audio must be pressed again
-  document.getElementById('entrySelMic').disabled = true;
-  document.getElementById('entrySelMic').innerHTML = `<option>Start Audio 후 목록 로드</option>`;
-  document.getElementById('entryMicOn').disabled = true;
-  document.getElementById('entryMicOff').disabled = true;
-
+  const entrySelMic = document.getElementById('entrySelMic');
+  if(entrySelMic) entrySelMic.disabled = true;
+  if(entrySelMic) entrySelMic.innerHTML = `<option>Start Audio 후 목록 로드</option>`;
+  
   showEntry(`렉 감지 → Entry로 복귀 (reason: ${reason})`);
+  // Re-enable the main Start Audio button
+  const btnStartAudio = document.getElementById('btnStartAudio');
+  if(btnStartAudio) btnStartAudio.disabled = false;
+  if(btnStartAudio) btnStartAudio.textContent = currentSource === "mic" ? "Start Audio (Mic ON)" : "Start Audio (Unlock Only)";
 }
 if(isMainWindow) window.entryReboot = entryReboot;
 
@@ -2326,7 +2320,7 @@ document.getElementById("btnReset").addEventListener("click", ()=> entryReboot("
     AUTO REBOOT ON LAG / FREEZE - MAIN WINDOW ONLY
 ========================================================== */
 const selAutoReboot = document.getElementById('selAutoReboot');
-function autoRebootEnabled(){ return (selAutoReboot.value === "1"); }
+function autoRebootEnabled(){ return (selAutoReboot && selAutoReboot.value === "1"); }
 
 let lastFrameT = performance.now();
 let frameMsSmooth = 16.7;
@@ -2396,8 +2390,9 @@ if(isMainWindow){
     if(now - lastUiT > 110){
       lastUiT = now;
       const inPct = Math.max(0, Math.min(1, amp*6.0));
-      meterIn.style.width = (inPct*100).toFixed(1)+"%";
-      document.getElementById('txtAmp').textContent =
+      if(meterIn) meterIn.style.width = (inPct*100).toFixed(1)+"%";
+      const txtAmp = document.getElementById('txtAmp');
+      if(txtAmp) txtAmp.textContent =
         `amp: ${amp.toFixed(4)} | dAmp: ${ampDelta.toFixed(4)} | frame:${frameMsSmooth.toFixed(1)}ms | q:${q.toFixed(2)}`;
 
       const sim = Math.max(0, Math.min(1, parseFloat(rngSimTouch.value)||0));
@@ -2624,7 +2619,7 @@ if(isMainWindow){
   N = parseInt(document.getElementById('selN').value,10);
   initPoints();
   updateTopPill(1);
-  startStatus("Start Audio → Mic/File 선택 → Enter");
+  startStatus("Start Audio 버튼을 눌러 마이크 연결을 시작하세요.");
 
   window.addEventListener('pagehide', ()=>{
     try{ stopMic(); }catch(e){}
