@@ -5,9 +5,6 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
 <title>LIMEN WORKSHOP – Monitorable Sound/Touch Reactive Field</title>
 <style>
-/* ==========================================================
-   MAIN WINDOW STYLES
-========================================================== */
   html,body{margin:0;height:100%;background:#000;overflow:hidden;touch-action:none;}
   canvas{display:block;width:100vw;height:100vh;}
 
@@ -19,8 +16,7 @@
     color:#ddd; font-family:system-ui, -apple-system, sans-serif;
     text-align:center; padding:20px;
     z-index:50;
-    /* 힌트 영역 전체가 클릭 가능한 영역임을 명시 */
-    cursor:pointer; 
+    pointer-events:auto; /* ✅ 혹시 모를 클릭 막힘 방지 */
   }
   #hint .box{
     width:min(720px, 94vw);
@@ -29,8 +25,6 @@
     padding:18px 16px;
     background:rgba(0,0,0,.55);
     text-align:left;
-    /* 내부 요소는 포인터 이벤트 허용 (버튼 클릭 가능) */
-    pointer-events: auto; 
   }
 
   /* Top-left / Top-right buttons */
@@ -64,42 +58,6 @@
   }
   .iconBtn.danger:hover{border-color:rgba(255,120,120,.75)}
 
-  /* Settings panel (Hidden in main window, visible in popup) */
-  #ui{
-    /* 메인 창에서는 완전히 숨김. 팝업 창에서만 보이도록 */
-    display:none;
-    position:fixed; right:12px; top:62px;
-    width:min(560px, calc(100vw - 24px));
-    color:#ddd;
-    font-family:system-ui, -apple-system, sans-serif;
-    background:rgba(0,0,0,.42);
-    border:1px solid rgba(255,255,255,.12);
-    border-radius:14px;
-    box-shadow:0 0 0 1px rgba(255,255,255,.06) inset;
-    backdrop-filter: blur(10px);
-    overflow:hidden;
-    z-index:40;
-    transform-origin: top right;
-  }
-  
-  /* The rest of the styles are for the settings UI, used in the pop-up */
-  #bar{
-    display:flex; align-items:center; gap:8px;
-    padding:10px 10px;
-    border-bottom:1px solid rgba(255,255,255,.08);
-  }
-  #bar .title{font-weight:750; font-size:13px; color:#eee;}
-  #bar .pill{
-    margin-left:auto;
-    font-family:ui-monospace, SFMono-Regular, Menlo, monospace;
-    font-size:11px; color:#bbb;
-    padding:6px 8px;
-    border:1px solid rgba(255,255,255,.12);
-    border-radius:999px;
-    background:rgba(0,0,0,.25);
-    white-space:nowrap;
-  }
-
   button, select, input[type="range"], input[type="number"]{
     background:#0f0f0f; color:#eee;
     border:1px solid rgba(255,255,255,.16);
@@ -111,29 +69,6 @@
   input[type="range"]{padding:6px 10px;}
   button:hover, select:hover{border-color:rgba(255,255,255,.32)}
   button:disabled, select:disabled{opacity:.5; cursor:not-allowed}
-
-  #tabs{
-    display:flex; gap:6px; padding:10px;
-    border-bottom:1px solid rgba(255,255,255,.08);
-  }
-  .tab{
-    flex:1;
-    padding:8px 10px;
-    font-size:12px;
-    border-radius:10px;
-    border:1px solid rgba(255,255,255,.12);
-    background:rgba(0,0,0,.22);
-    cursor:pointer;
-    text-align:center;
-    user-select:none;
-  }
-  .tab.active{
-    border-color:rgba(255,255,255,.34);
-    background:rgba(255,255,255,.06);
-  }
-  #panels{padding:10px;}
-  .panel{display:none;}
-  .panel.active{display:block;}
 
   .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin:8px 0;}
   .label{font-size:12px; color:#aaa; width:132px;}
@@ -175,30 +110,6 @@
     color:#ddd;
   }
 
-  .two{
-    display:flex; gap:10px; flex-wrap:wrap;
-  }
-  .two > .box{
-    flex:1; min-width:240px;
-    border:1px solid rgba(255,255,255,.10);
-    border-radius:12px;
-    padding:10px;
-    background:rgba(0,0,0,.20);
-  }
-
-  .pillBtn{
-    border-radius:999px;
-    padding:6px 10px;
-    font-size:12px;
-    border:1px solid rgba(255,255,255,.14);
-    background:rgba(255,255,255,.06);
-    cursor:pointer;
-  }
-  .pillBtn.on{
-    border-color:rgba(255,255,255,.34);
-    background:rgba(255,255,255,.10);
-  }
-
   /* tiny HUD for touch */
   #touchHUD{
     position:fixed; left:12px; bottom:12px;
@@ -236,24 +147,26 @@
 </head>
 <body>
 
+<!-- ENTRY (렉 시 여기로 되돌아옴) -->
 <div id="hint">
   <div class="box">
     <div class="entryTitle">LIMEN WORKSHOP – Entry</div>
     <div class="small" style="margin-bottom:12px;">
-      1) **Start Audio (Unlock Only)** 버튼을 **가장 먼저** 누르거나, **화면 아무 곳이나 클릭**하여 오디오 잠금 해제<br/>
-      2) 오디오가 준비되면 <b>Mic ON</b> 또는 <b>File Play</b> 버튼으로 입장합니다.<br/>
-      3) <b>⚙️ 버튼을 누르면 설정 창이 새 팝업 창으로 열립니다.</b>
+      1) <b>Start Audio</b>로 오디오 잠금 해제<br/>
+      2) 여기서 <b>Mic / File</b> 선택 후 <b>Mic ON</b> 또는 <b>Play</b>로 입장<br/>
+      3) TouchMe는 입장 후(또는 지금도) ⚙️ → 팝업 컨트롤 타워에서 <b>MIDI Connect / LEARN</b>
     </div>
 
     <div class="row" style="justify-content:space-between;">
       <div class="row" style="margin:0;">
-        <button id="btnStartAudio" onclick="handleAudioUnlock(event)">Start Audio (Unlock Only)</button> 
+        <button id="btnStartAudio">Start Audio</button>
         <button id="btnFS">Fullscreen</button>
       </div>
-      <div class="small" id="startStatus" style="opacity:.9; margin-left:10px;">Audio Context Locked.</div>
+      <div class="small" id="startStatus" style="opacity:.9; margin-left:10px;"></div>
     </div>
 
     <div class="entryGrid">
+      <!-- MIC/FILE ENTRY -->
       <div class="entryCard">
         <div class="row" style="margin-top:0;">
           <div class="label">Input</div>
@@ -295,16 +208,18 @@
         </div>
       </div>
 
+      <!-- QUICK INFO -->
       <div class="entryCard">
         <div class="small" style="margin-bottom:8px;">
           ✅ 렉(프리즈/과부하) 감지 시 <b>자동으로 이 Entry 화면으로 되돌아옵니다</b>.<br/>
           (페이지 새로고침이 아니라 “입장 단계로 복귀”)
         </div>
         <div class="small" style="margin-bottom:8px;">
-          ✅ 성능 문제가 있다면 ⚙️ 설정 팝업에서 **Perf limit**와 **Line density**를 낮춰주세요.
+          ✅ 컨트롤은 ⚙️ 팝업(컨트롤 타워)에서 조절됩니다.<br/>
+          (빔프로젝터 풀스크린 띄워두고, 노트북에서 팝업으로 컨트롤)
         </div>
         <div class="small">
-          ✅ 현재 선택된 장치: <b id="currentMicDisplay">Default</b>
+          ✅ 점 속도가 느려지도록 기본값/모션 슬라이더 반영됨.
         </div>
       </div>
     </div>
@@ -319,433 +234,38 @@
   <div class="bar"><i id="hudTouchBar"></i></div>
 </div>
 
+<!-- Left top quick -->
 <div id="topLeft">
   <div class="iconBtn danger" id="btnReset" title="RESET (Back to Entry)">⟲</div>
 </div>
 
+<!-- Top right quick -->
 <div id="topRight">
-  <div class="iconBtn" id="btnGear" title="Settings (Open Pop-up)">⚙️</div>
+  <div class="iconBtn" id="btnGear" title="Control Tower (Popup)">⚙️</div>
   <div class="iconBtn" id="btnMuteQuick" title="Mute">🔈</div>
   <div class="iconBtn" id="btnFSQuick" title="Fullscreen">⛶</div>
 </div>
 
-<div id="ui" class="hidden">
-  <div id="bar">
-    <div class="title">Settings</div>
-    <button id="btnHideUI" title="Close">팝업 닫기</button>
-    <div class="pill" id="topPill">audio:off | src:off | q:1.00</div>
-  </div>
-
-  <div id="tabs">
-    <div class="tab active" data-tab="visual">VISUAL</div>
-    <div class="tab" data-tab="audio">AUDIO</div>
-    <div class="tab" data-tab="midi">MIDI</div>
-    <div class="tab" data-tab="system">SYSTEM</div>
-  </div>
-
-  <div id="panels">
-    <div class="panel active" id="panel-visual">
-      <div class="row">
-        <div class="label">Mode</div>
-        <select id="selMode" class="grow">
-          <option value="calm">Calm (quiet 3D dots)</option>
-          <option value="pulse" selected>Pulse (amp-driven)</option>
-          <option value="burst">Burst (delta-driven)</option>
-          <option value="piano">Piano (low chaos, high reaction)</option>
-          <option value="melancholy">Melancholy (slow, subtle)</option>
-        </select>
-      </div>
-
-      <div class="row">
-        <div class="label">Particles</div>
-        <select id="selN" class="grow">
-          <option value="160">160</option>
-          <option value="220" selected>220</option>
-          <option value="320">320</option>
-        </select>
-      </div>
-
-      <div class="row">
-        <div class="label">Keep in screen</div>
-        <select id="selBounds" class="grow">
-          <option value="soft" selected>Soft boundary</option>
-          <option value="bounce">Bounce</option>
-          <option value="wrap">Wrap</option>
-        </select>
-      </div>
-
-      <div class="row">
-        <div class="label">Quiet lines</div>
-        <select id="selQuietLines" class="grow">
-          <option value="0">Off</option>
-          <option value="1" selected>Very subtle</option>
-          <option value="2">On</option>
-        </select>
-      </div>
-
-      <div class="row">
-        <div class="label">Point color</div>
-        <select id="selPointColor" class="grow">
-          <option value="red" selected>Red</option>
-          <option value="white">White</option>
-        </select>
-      </div>
-
-      <div class="row">
-        <div class="label">Idle Drama</div>
-        <div class="grow">
-          <input id="rngIdleDrama" type="range" min="0" max="1" step="0.01" value="0.20" style="width:100%;">
-          <div class="small" id="txtIdleDrama">idle drama: 0.20 (천천히 움직이는 정도)</div>
-        </div>
-      </div>
-
-      <div class="row">
-        <div class="label">Visual Sens</div>
-        <div class="grow">
-          <input id="rngVisSens" type="range" min="0.6" max="2.6" step="0.01" value="1.55" style="width:100%;">
-          <div class="small" id="txtVisSens">visual sens: 1.55× (반응 민감도)</div>
-        </div>
-      </div>
-
-      <div class="row">
-        <div class="label">Line density</div>
-        <div class="grow">
-          <input id="rngLine" type="range" min="0.2" max="1.2" step="0.01" value="0.75" style="width:100%;">
-          <div class="small" id="txtLine">line density: 0.75×</div>
-        </div>
-      </div>
-
-      <div class="row">
-        <div class="label">Perf limit</div>
-        <div class="grow">
-          <input id="rngPerf" type="range" min="0.25" max="1" step="0.01" value="0.72" style="width:100%;">
-          <div class="small" id="txtPerf">perf limit: 0.72</div>
-        </div>
-      </div>
-
-      <div class="row">
-        <div class="label">BG fade</div>
-        <div class="grow">
-          <input id="rngFade" type="range" min="0.02" max="0.20" step="0.005" value="0.03" style="width:100%;">
-          <div class="small" id="txtFade">fade: 0.030 (배경이 지워지는 속도)</div>
-        </div>
-      </div>
-
-      <div class="row">
-        <div class="label">Point size</div>
-        <div class="grow">
-          <input id="rngPointSize" type="range" min="0.4" max="1.2" step="0.01" value="0.60" style="width:100%;">
-          <div class="small" id="txtPointSize">point size: 0.60×</div>
-        </div>
-      </div>
-
-      <div class="row">
-        <div class="label">Glow</div>
-        <div class="grow">
-          <input id="rngGlow" type="range" min="0.10" max="1.0" step="0.01" value="0.45" style="width:100%;">
-          <div class="small" id="txtGlow">glow: 0.45×</div>
-        </div>
-      </div>
-
-      <div class="small">
-        ✅ 렉/멈춤 오면 <b>Perf limit↓</b> → <b>Line density↓</b> → <b>Particles↓</b><br/>
-        ✅ 심하게 멈추면 시스템이 <b>자동으로 Entry</b>로 복귀합니다.
-      </div>
-    </div>
-
-    <div class="panel" id="panel-audio">
-      <div class="row">
-        <div class="label">Input level</div>
-        <div class="grow"><div class="meter"><i id="meterIn"></i></div></div>
-      </div>
-
-      <div class="row">
-        <div class="label">Media Gain</div>
-        <div class="grow">
-          <input id="rngMediaGain" type="range" min="0.2" max="3.0" step="0.01" value="1.00" style="width:100%;">
-          <div class="small" id="txtMediaGain">media gain: 1.00× (입력 볼륨 증폭)</div>
-        </div>
-      </div>
-
-      <div class="row">
-        <div class="label">Analysis Sens</div>
-        <div class="grow">
-          <input id="rngSens" type="range" min="1" max="12" step="0.1" value="7.0" style="width:100%;">
-          <div class="small" id="txtSens">analysis sens: 7.0× (분석 민감도)</div>
-        </div>
-      </div>
-
-      <div class="row">
-        <div class="label">Gamma boost</div>
-        <div class="grow">
-          <input id="rngGamma" type="range" min="0.45" max="1.20" step="0.01" value="0.72" style="width:100%;">
-          <div class="small" id="txtGamma">gamma: 0.72 (작은 소리 증폭)</div>
-        </div>
-      </div>
-
-      <div class="row">
-        <div class="label">Amp cap</div>
-        <div class="grow">
-          <input id="rngCap" type="range" min="0.10" max="0.70" step="0.01" value="0.42" style="width:100%;">
-          <div class="small" id="txtCap">amp cap: 0.42 (최대 진폭 제한)</div>
-        </div>
-      </div>
-
-      <div class="row">
-        <div class="label">EQ Low</div>
-        <div class="grow">
-          <input id="rngEQLow" type="range" min="-20" max="20" step="0.5" value="0" style="width:100%;">
-          <div class="small" id="txtEQLow">low: 0 dB (200Hz)</div>
-        </div>
-      </div>
-      <div class="row">
-        <div class="label">EQ Mid</div>
-        <div class="grow">
-          <input id="rngEQMid" type="range" min="-20" max="20" step="0.5" value="0" style="width:100%;">
-          <div class="small" id="txtEQMid">mid: 0 dB (1kHz)</div>
-        </div>
-      </div>
-      <div class="row">
-        <div class="label">EQ High</div>
-        <div class="grow">
-          <input id="rngEQHigh" type="range" min="-20" max="20" step="0.5" value="0" style="width:100%;">
-          <div class="small" id="txtEQHigh">high: 0 dB (4kHz)</div>
-        </div>
-      </div>
-
-      <div class="row">
-        <div class="label">Amp / Δ</div>
-        <div class="mono grow" id="txtAmp">amp: 0.0000 | dAmp: 0.0000</div>
-      </div>
-      <div class="row">
-        <div class="label">FX (Touch)</div>
-        <div class="mono grow" id="txtFx">drive: - | filter: - | ring: - | widen: -</div>
-      </div>
-
-      <div class="small">
-        EQ는 <b>마이크/파일</b> 공통 적용. <b>TouchMe(MIDI)</b>는 FX/비주얼을 강하게 흔듭니다.
-      </div>
-    </div>
-
-    <div class="panel" id="panel-midi">
-      <div class="row" style="justify-content:space-between;">
-        <div class="small" id="txtMIDISupport" style="opacity:.95"></div>
-        <div style="display:flex; gap:6px; flex-wrap:wrap;">
-          <button id="btnMIDIInit" class="pillBtn">Connect MIDI</button>
-          <button id="btnMIDILearn" class="pillBtn">LEARN</button>
-        </div>
-      </div>
-
-      <div class="two">
-        <div class="box">
-          <div class="row">
-            <div class="label">MIDI Input</div>
-            <select id="selMIDIIn" class="grow">
-              <option value="">Loading…</option>
-            </select>
-          </div>
-
-          <div class="row">
-            <div class="label">Map Source</div>
-            <select id="selMIDIType" class="grow">
-              <option value="cc" selected>Control Change (CC)</option>
-              <option value="note">Note Velocity</option>
-            </select>
-          </div>
-
-          <div class="row">
-            <div class="label">CC / Note#</div>
-            <input id="numMIDINum" class="grow" type="number" min="0" max="127" step="1" value="1" />
-          </div>
-
-          <div class="row">
-            <div class="label">Channel</div>
-            <select id="selMIDICh" class="grow">
-              <option value="-1" selected>Any</option>
-              <option value="0">1</option><option value="1">2</option><option value="2">3</option><option value="3">4</option>
-              <option value="4">5</option><option value="5">6</option><option value="6">7</option><option value="7">8</option>
-              <option value="8">9</option><option value="9">10</option><option value="10">11</option><option value="11">12</option>
-              <option value="12">13</option><option value="13">14</option><option value="14">15</option><option value="15">16</option>
-            </select>
-          </div>
-
-          <div class="row">
-            <div class="label">Invert</div>
-            <select id="selMIDIInvert" class="grow">
-              <option value="0" selected>Normal</option>
-              <option value="1">Invert (1-x)</option>
-            </select>
-          </div>
-
-          <div class="row">
-            <div class="label">Deadzone</div>
-            <div class="grow">
-              <input id="rngMIDIDead" type="range" min="0" max="0.25" step="0.005" value="0.02" style="width:100%;">
-              <div class="small" id="txtMIDIDead">deadzone: 0.020</div>
-            </div>
-          </div>
-
-          <div class="row">
-            <div class="label">Gain</div>
-            <div class="grow">
-              <input id="rngMIDIGain" type="range" min="0.3" max="3.0" step="0.01" value="1.60" style="width:100%;">
-              <div class="small" id="txtMIDIGain">gain: 1.60×</div>
-            </div>
-          </div>
-
-          <div class="row">
-            <div class="label">Curve</div>
-            <div class="grow">
-              <input id="rngMIDICurve" type="range" min="0.4" max="2.8" step="0.01" value="0.85" style="width:100%;">
-              <div class="small" id="txtMIDICurve">curve: 0.85 ( <1 = 더 예민 )</div>
-            </div>
-          </div>
-
-          <div class="row">
-            <div class="label">Smoothing</div>
-            <div class="grow">
-              <input id="rngMIDISmooth" type="range" min="0.02" max="0.50" step="0.01" value="0.22" style="width:100%;">
-              <div class="small" id="txtMIDISmooth">smooth: 0.22</div>
-            </div>
-          </div>
-
-          <div class="row">
-            <div class="label">Sim Touch</div>
-            <div class="grow">
-              <input id="rngSimTouch" type="range" min="0" max="1" step="0.001" value="0" style="width:100%;">
-              <div class="small">미디가 막힌 환경에서 이 슬라이더로 FX/비주얼 테스트</div>
-            </div>
-          </div>
-        </div>
-
-        <div class="box">
-          <div class="row">
-            <div class="label">Touch value</div>
-            <div class="grow"><div class="meter"><i id="meterTouch"></i></div></div>
-          </div>
-
-          <div class="row">
-            <div class="label">Mapped</div>
-            <div class="mono grow" id="txtMIDIRaw">raw: -</div>
-          </div>
-
-          <div class="row">
-            <div class="label">Last MIDI (raw)</div>
-            <div class="mono grow" id="txtMIDILast">Waiting…</div>
-          </div>
-
-          <div class="row">
-            <div class="label">MIDI log</div>
-            <div class="mono grow" id="txtMIDI">Waiting…</div>
-          </div>
-
-          <div class="small">
-            ✅ <b>LEARN</b> 누르고 TouchMe 한번 터치 → 자동으로 CC/NOTE#, 채널이 설정됩니다<br/>
-            ✅ “Last MIDI(raw)”가 갱신되면 <b>미디는 들어오고 있는 것</b>입니다
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="panel" id="panel-system">
-      <div class="row">
-        <div class="label">Audio context</div>
-        <button id="btnResume" class="grow">Resume / Unlock Audio</button>
-      </div>
-
-      <div class="row">
-        <div class="label">Input source</div>
-        <select id="selSrc" class="grow">
-          <option value="mic" selected>Mic (Live input)</option>
-          <option value="file">File (MP3/WAV)</option>
-        </select>
-      </div>
-
-      <div class="row" id="rowMic">
-        <div class="label">Mic input</div>
-        <select id="selMic" class="grow" disabled>
-          <option>장치 목록 불러오는 중…</option>
-        </select>
-      </div>
-
-      <div class="row" id="rowFile" style="display:none;">
-        <div class="label">Audio file</div>
-        <div class="grow">
-          <div class="fileLine">
-            <input id="fileAudio" type="file" accept="audio/*">
-            <button id="btnFilePlay" disabled>Play</button>
-            <button id="btnFilePause" disabled>Pause</button>
-            <button id="btnFileStop" disabled>Stop</button>
-          </div>
-          <div class="small" id="txtFile">파일을 선택하면 입력 체인(preGain→EQ→FX→analyser)으로 들어갑니다.</div>
-        </div>
-      </div>
-
-      <div class="row">
-        <div class="label">Speaker output</div>
-        <select id="selSpk" class="grow" disabled>
-          <option>브라우저 지원 확인 중…</option>
-        </select>
-      </div>
-
-      <div class="row">
-        <div class="label">Mic control</div>
-        <button id="btnMicOn" class="grow" disabled>Mic ON</button>
-        <button id="btnMicOff" class="grow" disabled>Mic OFF</button>
-      </div>
-
-      <div class="row">
-        <div class="label">Auto Reboot</div>
-        <select id="selAutoReboot" class="grow">
-          <option value="1" selected>ON (lag/freeze → ENTRY)</option>
-          <option value="0">OFF</option>
-        </select>
-      </div>
-
-      <div class="small" id="txtSupport"></div>
-      <div class="small">
-        ⟲ RESET / 자동 복귀는 “완전 처음 안내 페이지”가 아니라 <b>Entry(입장 화면)</b>로 복귀합니다.
-      </div>
-    </div>
-  </div>
-</div>
-
 <script>
 /* ==========================================================
-    SETTINGS PERSISTENCE (localStorage) - GLOBAL/SHARED
+   SETTINGS PERSISTENCE (localStorage)
 ========================================================== */
-const STORE_KEY = "limen_workshop_settings_v3_entry";
+const STORE_KEY = "limen_workshop_settings_v4_popup";
 function loadSettings(){ try{ return JSON.parse(localStorage.getItem(STORE_KEY)||"{}"); }catch(e){ return {}; } }
 function saveSettings(obj){ localStorage.setItem(STORE_KEY, JSON.stringify(obj)); }
-let S = loadSettings(); 
+let S = loadSettings();
 
-function applySelectValue(id, fallback){
-  const el = document.getElementById(id);
-  const v = (S[id] ?? fallback);
-  if(el) el.value = v;
+/* main-side helpers */
+function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
+function startStatus(msg){
+  const el = document.getElementById('startStatus');
+  if(el) el.textContent = msg;
 }
-function hookSelectSave(id){
-  const el = document.getElementById(id);
-  if(!el) return;
-  el.addEventListener('change', ()=>{ S[id] = el.value; saveSettings(S); });
-}
-function hookRangeSave(id, fallback){
-  const el = document.getElementById(id);
-  if(!el) return;
-  el.value = (S[id] ?? fallback);
-  el.addEventListener('input', ()=>{ S[id] = parseFloat(el.value); saveSettings(S); });
-}
-function hookNumberSave(id, fallback){
-  const el = document.getElementById(id);
-  if(!el) return;
-  el.value = (S[id] ?? fallback);
-  el.addEventListener('input', ()=>{ S[id] = parseInt(el.value,10); saveSettings(S); });
-}
+function updateLocal(k,v){ S[k]=v; saveSettings(S); }
 
 /* ==========================================================
-    CANVAS / DPR - MAIN WINDOW ONLY
+   CANVAS / DPR
 ========================================================== */
-const isMainWindow = (window.opener === null);
 const canvas = document.getElementById('c');
 const ctx = canvas.getContext('2d', { alpha:false });
 let W=0,H=0,DPR=1;
@@ -757,14 +277,11 @@ function resize(){
   canvas.height = (H*DPR)|0;
   ctx.setTransform(DPR,0,0,DPR,0,0);
 }
-if(isMainWindow){
-  addEventListener('resize', resize);
-  resize();
-}
-
+addEventListener('resize', resize);
+resize();
 
 /* ==========================================================
-    AUDIO CORE + ANALYSER - MAIN WINDOW ONLY
+   AUDIO CORE + ANALYSER
 ========================================================== */
 let audioCtx;
 let analyser, timeData;
@@ -801,6 +318,7 @@ function makeWaveshaper(amount=20){
 
 function ensureAudio(){
   if(audioCtx) return;
+
   audioCtx = new (window.AudioContext||window.webkitAudioContext)();
 
   analyser = audioCtx.createAnalyser();
@@ -889,79 +407,42 @@ function ensureAudio(){
   masterGain.connect(audioCtx.destination);
 
   ringOsc.start();
-  updateTopPill(1);
 }
-if(isMainWindow) window.ensureAudio = ensureAudio;
 
 /* ==========================================================
-    AUDIO UI + PARAMS - SHARED
+   PARAM GETTERS (main reads from localStorage S)
 ========================================================== */
-hookRangeSave('rngMediaGain', 1.00);
-hookRangeSave('rngSens', 7.0);
-hookRangeSave('rngGamma', 0.72);
-hookRangeSave('rngCap', 0.42);
+function getMediaGain(){ return clamp(parseFloat(S.rngMediaGain ?? 1.00), 0.2, 3.0); }
+function getSens(){ return clamp(parseFloat(S.rngSens ?? 7.0), 1, 12); }
+function getGamma(){ return clamp(parseFloat(S.rngGamma ?? 0.72), 0.45, 1.20); }
+function getCap(){ return clamp(parseFloat(S.rngCap ?? 0.42), 0.10, 0.70); }
 
-hookRangeSave('rngEQLow', 0);
-hookRangeSave('rngEQMid', 0);
-hookRangeSave('rngEQHigh', 0);
+function getEQLow(){ return clamp(parseFloat(S.rngEQLow ?? 0), -20, 20); }
+function getEQMid(){ return clamp(parseFloat(S.rngEQMid ?? 0), -20, 20); }
+function getEQHigh(){ return clamp(parseFloat(S.rngEQHigh ?? 0), -20, 20); }
 
-const rngMediaGain = document.getElementById('rngMediaGain');
-const rngSens = document.getElementById('rngSens');
-const rngGamma = document.getElementById('rngGamma');
-const rngCap = document.getElementById('rngCap');
-
-const rngEQLow = document.getElementById('rngEQLow');
-const rngEQMid = document.getElementById('rngEQMid');
-const rngEQHigh = document.getElementById('rngEQHigh');
-
-const txtMediaGain = document.getElementById('txtMediaGain');
-const txtSens = document.getElementById('txtSens');
-const txtGamma = document.getElementById('txtGamma');
-const txtCap = document.getElementById('txtCap');
-
-const txtEQLow = document.getElementById('txtEQLow');
-const txtEQMid = document.getElementById('txtEQMid');
-const txtEQHigh = document.getElementById('txtEQHigh');
-
-function getMediaGain(){ return Math.max(0.2, Math.min(3.0, parseFloat(rngMediaGain.value)||1)); }
-function getSens(){ return Math.max(1, Math.min(12, parseFloat(rngSens.value)||7)); }
-function getGamma(){ return Math.max(0.45, Math.min(1.20, parseFloat(rngGamma.value)||0.72)); }
-function getCap(){ return Math.max(0.10, Math.min(0.70, parseFloat(rngCap.value)||0.42)); }
-
-function getEQLow(){ return Math.max(-20, Math.min(20, parseFloat(rngEQLow.value)||0)); }
-function getEQMid(){ return Math.max(-20, Math.min(20, parseFloat(rngEQMid.value)||0)); }
-function getEQHigh(){ return Math.max(-20, Math.min(20, parseFloat(rngEQHigh.value)||0)); }
-
-function refreshAudioLabels(){
-  if(!txtMediaGain) return; 
-  txtMediaGain.textContent = `media gain: ${getMediaGain().toFixed(2)}×`;
-  txtSens.textContent      = `analysis sens: ${getSens().toFixed(1)}×`;
-  txtGamma.textContent     = `gamma: ${getGamma().toFixed(2)}`;
-  txtCap.textContent       = `amp cap: ${getCap().toFixed(2)}`;
-
-  txtEQLow.textContent  = `low: ${getEQLow().toFixed(1)} dB (200Hz)`;
-  txtEQMid.textContent  = `mid: ${getEQMid().toFixed(1)} dB (1kHz)`;
-  txtEQHigh.textContent = `high: ${getEQHigh().toFixed(1)} dB (4kHz)`;
+function getIdleDrama(){ return clamp(parseFloat(S.rngIdleDrama ?? 0.55), 0, 1); }
+function getVisSens(){ return clamp(parseFloat(S.rngVisSens ?? 1.55), 0.6, 2.6); }
+function getLineMul(){ return clamp(parseFloat(S.rngLine ?? 0.75), 0.2, 1.2); }
+function getPerfLim(){ return clamp(parseFloat(S.rngPerf ?? 0.72), 0.25, 1.0); }
+function getFade(){ return clamp(parseFloat(S.rngFade ?? 0.03), 0.02, 0.20); }
+function getPointSize(){ return clamp(parseFloat(S.rngPointSize ?? 0.60), 0.4, 1.2); }
+function getGlow(){ return clamp(parseFloat(S.rngGlow ?? 0.45), 0.10, 1.0); }
+function getPointColor(){
+  return ((S.selPointColor ?? "red") === "red") ? "#ff3b3b" : "#ffffff";
 }
-['input','change'].forEach(ev=>{
-  [rngMediaGain,rngSens,rngGamma,rngCap,rngEQLow,rngEQMid,rngEQHigh].forEach(el=>{
-    if(el) el.addEventListener(ev, refreshAudioLabels);
-  });
-});
-refreshAudioLabels();
 
+/* ✅ 속도 슬라이더 추가(느리게) */
+function getMotionSpeed(){ return clamp(parseFloat(S.rngMotionSpeed ?? 0.62), 0.25, 1.2); }
+
+/* ==========================================================
+   ANALYSIS
+========================================================== */
 function applyEQ(){
-  // Use parent window's audio context if in popup
-  const targetCtx = isMainWindow ? audioCtx : (window.opener ? window.opener.audioCtx : null);
-  const targetEqLow = isMainWindow ? eqLow : (window.opener ? window.opener.eqLow : null);
-  const targetEqMid = isMainWindow ? eqMid : (window.opener ? window.opener.eqMid : null);
-  const targetEqHigh = isMainWindow ? eqHigh : (window.opener ? window.opener.eqHigh : null);
-
-  if(!targetCtx || !targetEqLow) return;
-
-  targetEqLow.gain.setTargetAtTime(getEQLow(), targetCtx.currentTime, 0.02);
-  targetEqMid.gain.setTargetAtTime(getEQMid(), targetCtx.currentTime, 0.02);
-  targetEqHigh.gain.setTargetAtTime(getEQHigh(), targetCtx.currentTime, 0.02);
+  if(!audioCtx || !eqLow) return;
+  eqLow.gain.setTargetAtTime(getEQLow(), audioCtx.currentTime, 0.02);
+  eqMid.gain.setTargetAtTime(getEQMid(), audioCtx.currentTime, 0.02);
+  eqHigh.gain.setTargetAtTime(getEQHigh(), audioCtx.currentTime, 0.02);
 }
 
 function updateAmp(){
@@ -986,24 +467,9 @@ function updateAmp(){
   prevAmp = amp;
 }
 
-if(isMainWindow){
-  // In the main window, hook the EQ ranges to apply the EQ change immediately
-  ['input', 'change'].forEach(ev => {
-    [rngEQLow, rngEQMid, rngEQHigh].forEach(el => {
-      if(el) el.addEventListener(ev, applyEQ);
-    });
-  });
-}
-window.applyEQ = applyEQ; 
-
 /* ==========================================================
-    OUTPUT ROUTING (optional) - MAIN WINDOW ONLY
+   OUTPUT ROUTING (optional)
 ========================================================== */
-const selMic = document.getElementById('selMic');
-const selSpk = document.getElementById('selSpk');
-const txtSupport = document.getElementById('txtSupport');
-const currentMicDisplay = document.getElementById('currentMicDisplay');
-
 let currentMicDeviceId = S.currentMicDeviceId ?? "default";
 let outputSupported = false;
 
@@ -1022,146 +488,45 @@ function setupOutputRouting(){
 
 async function listDevices(){
   let devices = [];
-  try{ 
-      // Only request permission if AudioContext is running and mic is the source
-      if (audioCtx && audioCtx.state === 'running' && currentSource === "mic") {
-          await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-      }
-      devices = await navigator.mediaDevices.enumerateDevices(); 
-  }catch(e){
-      // console.warn("Could not enumerate devices or get mic permission initially:", e);
-  }
+  try{ devices = await navigator.mediaDevices.enumerateDevices(); }catch(e){}
 
   const mics = devices.filter(d=>d.kind==="audioinput");
-  const spks = devices.filter(d=>d.kind==="audiooutput");
-
-  // SYSTEM mic select
-  let selectedMicLabel = "Default";
-  if(selMic) {
-      selMic.innerHTML = "";
-      if(mics.length===0){
-        selMic.disabled = true;
-        selMic.innerHTML = `<option>마이크 장치를 찾을 수 없음</option>`;
-      }else{
-        selMic.disabled = false;
-        for(const d of mics){
-          const opt = document.createElement('option');
-          opt.value = d.deviceId;
-          const label = d.label || `Mic (${d.deviceId.slice(0,6)}…)`;
-          opt.textContent = label;
-          if(d.deviceId === currentMicDeviceId) {
-              opt.selected = true;
-              selectedMicLabel = label;
-          }
-          selMic.appendChild(opt);
-        }
-      }
-  }
-
-
-  // ENTRY mic select (mirror)
   const entrySelMic = document.getElementById('entrySelMic');
-  if(entrySelMic) {
-      entrySelMic.innerHTML = "";
-      if(mics.length===0){
-        entrySelMic.disabled = true;
-        entrySelMic.innerHTML = `<option>마이크 장치를 찾을 수 없음</option>`;
-      }else{
-        entrySelMic.disabled = false;
-        for(const d of mics){
-          const opt = document.createElement('option');
-          opt.value = d.deviceId;
-          opt.textContent = d.label || `Mic (${d.deviceId.slice(0,6)}…)`;
-          if(d.deviceId === currentMicDeviceId) opt.selected = true;
-          entrySelMic.appendChild(opt);
-        }
-      }
+  entrySelMic.innerHTML = "";
+  if(mics.length===0){
+    entrySelMic.disabled = true;
+    entrySelMic.innerHTML = `<option>마이크 장치를 찾을 수 없음</option>`;
+  }else{
+    entrySelMic.disabled = false;
+    for(const d of mics){
+      const opt = document.createElement('option');
+      opt.value = d.deviceId;
+      opt.textContent = d.label || `Mic (${d.deviceId.slice(0,6)}…)`;
+      if(d.deviceId === currentMicDeviceId) opt.selected = true;
+      entrySelMic.appendChild(opt);
+    }
   }
-  if(currentMicDisplay) currentMicDisplay.textContent = selectedMicLabel;
 
   outputSupported = typeof monitorAudio.setSinkId === "function";
-  if(selSpk) {
-      selSpk.innerHTML = "";
-      if(!outputSupported){
-        selSpk.disabled = true;
-        selSpk.innerHTML = `<option>브라우저가 출력 선택을 지원하지 않음</option>`;
-      }else{
-        selSpk.disabled = false;
-        if(spks.length===0){
-          selSpk.innerHTML = `<option value="default">default</option>`;
-        }else{
-          for(const d of spks){
-            const opt = document.createElement('option');
-            opt.value = d.deviceId;
-            opt.textContent = d.label || `Speaker (${d.deviceId.slice(0,6)}…)`;
-            if(S.currentSpkDeviceId && d.deviceId===S.currentSpkDeviceId) opt.selected = true;
-            selSpk.appendChild(opt);
-          }
-        }
-      }
-  }
-
-  if(txtSupport) txtSupport.textContent =
-    `지원 상태: mic=${mics.length} | spk=${spks.length} | outputSelect=${outputSupported ? 'YES' : 'NO'}\n`+
-    `렉/프리즈 감지 시 자동으로 Entry로 복귀 (SYSTEM > Auto Reboot)`;
-
-  if(outputSupported && S.currentSpkDeviceId){
-    try{
-      setupOutputRouting();
-      await monitorAudio.setSinkId(S.currentSpkDeviceId);
-    }catch(e){}
-  }
 }
-if(isMainWindow) window.listDevices = listDevices;
 
-if(isMainWindow){
-  if(selMic) selMic.addEventListener('change', async ()=>{
-    currentMicDeviceId = selMic.value;
-    S.currentMicDeviceId = currentMicDeviceId;
-    saveSettings(S);
-    const entrySelMic = document.getElementById('entrySelMic');
-    if(entrySelMic) entrySelMic.value = currentMicDeviceId;
-
-    if(currentSource==="mic" && micStream) await startMic(currentMicDeviceId, false);
-  });
-  if(document.getElementById('entrySelMic')) document.getElementById('entrySelMic').addEventListener('change', async (e)=>{
-    currentMicDeviceId = e.target.value;
-    S.currentMicDeviceId = currentMicDeviceId;
-    saveSettings(S);
-    if(selMic) selMic.value = currentMicDeviceId;
-    if(currentSource==="mic" && micStream) await startMic(currentMicDeviceId, false);
-  });
-
-  if(selSpk) selSpk.addEventListener('change', async ()=>{
-    if(!outputSupported) return;
-    S.currentSpkDeviceId = selSpk.value;
-    saveSettings(S);
-    try{
-      setupOutputRouting();
-      await monitorAudio.setSinkId(selSpk.value);
-    }catch(e){
-      console.warn(e);
-      alert("이 환경에서는 스피커 출력 선택이 실패했어요.");
-    }
-  });
-}
+document.getElementById('entrySelMic').addEventListener('change', async (e)=>{
+  currentMicDeviceId = e.target.value;
+  updateLocal("currentMicDeviceId", currentMicDeviceId);
+  if(currentSource==="mic" && micStream) await startMic(currentMicDeviceId, false);
+});
 
 /* ==========================================================
-    INPUT SOURCE: MIC / FILE - MAIN WINDOW ONLY
+   INPUT SOURCE: MIC / FILE
 ========================================================== */
 function disconnectInputs(){
   if(inputNode){ try{ inputNode.disconnect(); }catch(e){} inputNode = null; }
   if(micStream){ micStream.getTracks().forEach(t=>t.stop()); micStream = null; }
   if(fileNode){ try{ fileNode.disconnect(); }catch(e){} fileNode = null; }
 }
-if(isMainWindow) window.disconnectInputs = disconnectInputs;
 
 async function startMic(deviceId="default", hideEntry=true){
-  if(!audioCtx || audioCtx.state !== 'running') {
-      startStatus("Audio Context가 잠금 해제되지 않았습니다. Start Audio를 먼저 눌러주세요.");
-      return;
-  }
-  
+  ensureAudio();
   await audioCtx.resume();
   setupOutputRouting();
 
@@ -1170,7 +535,6 @@ async function startMic(deviceId="default", hideEntry=true){
   if(fileNode){ try{ fileNode.disconnect(); }catch(e){} fileNode = null; }
 
   try{
-    startStatus("마이크 권한 요청 및 연결 중...");
     micStream = await navigator.mediaDevices.getUserMedia({
       audio: {
         deviceId: deviceId ? { exact: deviceId } : undefined,
@@ -1186,18 +550,15 @@ async function startMic(deviceId="default", hideEntry=true){
 
     await listDevices();
     setMicButtons(true);
-    updateTopPill(1);
-    startStatus("Mic ON 성공. 비주얼 시작.");
+    startStatus("Mic ON. (Entry에서 바로 입장 가능)");
 
     if(hideEntry) hideEntryAndEnter();
   }catch(e){
     console.error(e);
     startStatus("Mic ON 실패. 권한/장치 선택 확인.");
-    alert("마이크 권한 또는 장치 선택에 실패했어요. 크롬 권한 확인! (console 확인 요망)");
-    setMicButtons(false);
+    alert("마이크 권한 또는 장치 선택에 실패했어요. 크롬 권한 확인!");
   }
 }
-if(isMainWindow) window.startMic = startMic;
 
 function stopMic(){
   if(micStream){
@@ -1209,9 +570,7 @@ function stopMic(){
     inputNode = null;
   }
   setMicButtons(false);
-  updateTopPill(1);
 }
-if(isMainWindow) window.stopMic = stopMic;
 
 function ensureFileAudioEl(){
   if(fileAudioEl) return;
@@ -1221,7 +580,6 @@ function ensureFileAudioEl(){
   fileAudioEl.preload = "auto";
   fileAudioEl.playsInline = true;
 }
-if(isMainWindow) window.ensureFileAudioEl = ensureFileAudioEl;
 
 function connectFileToChain(){
   ensureAudio();
@@ -1251,421 +609,310 @@ function connectFileToChain(){
     }
   }
   setMicButtons(false);
-  updateTopPill(1);
 }
-if(isMainWindow) window.connectFileToChain = connectFileToChain;
 
-/* ENTRY <-> SYSTEM 버튼 상태를 동시에 관리 */
+/* ENTRY <-> 버튼 상태 */
 function setMicButtons(micOn){
-  const audioUnlocked = !!audioCtx && audioCtx.state === 'running';
-
-  // System UI
-  const btnMicOn = document.getElementById('btnMicOn');
-  const btnMicOff = document.getElementById('btnMicOff');
-  if(btnMicOn) btnMicOn.disabled  = !audioUnlocked || micOn || (currentSource!=="mic");
-  if(btnMicOff) btnMicOff.disabled = !micOn;
-
-  // Entry UI
-  const btnStartAudio = document.getElementById('btnStartAudio');
-  // Unlock button is enabled only if audio is suspended
-  if(btnStartAudio) btnStartAudio.disabled = audioUnlocked; 
-
-  const entryMicOn = document.getElementById('entryMicOn');
-  const entryMicOff = document.getElementById('entryMicOff');
-  if(entryMicOn) entryMicOn.disabled  = !audioUnlocked || micOn || (currentSource!=="mic");
-  if(entryMicOff) entryMicOff.disabled = !micOn;
-  
-  // File buttons in Entry
-  const fileLoaded = (currentSource === "file" && fileAudioEl && fileAudioEl.src);
-  const filePlaying = fileLoaded && !fileAudioEl.paused;
-  
-  const entryFilePlay = document.getElementById('entryFilePlay');
-  const entryFilePause = document.getElementById('entryFilePause');
-  const entryFileStop = document.getElementById('entryFileStop');
-  
-  if(entryFilePlay) entryFilePlay.disabled = !audioUnlocked || !fileLoaded || filePlaying || (currentSource!=="file");
-  if(entryFilePause) entryFilePause.disabled = !audioUnlocked || !filePlaying;
-  if(entryFileStop) entryFileStop.disabled = !audioUnlocked || !fileLoaded;
+  document.getElementById('entryMicOn').disabled  = !audioCtx || micOn || (currentSource!=="mic");
+  document.getElementById('entryMicOff').disabled = !micOn;
 }
-if(isMainWindow) window.setMicButtons = setMicButtons;
-
-function startStatus(msg){
-  const el = document.getElementById('startStatus');
-  if(el) el.textContent = msg;
-}
-if(isMainWindow) window.startStatus = startStatus;
 
 /* ==========================================================
-    OUTPUT ROUTING SETUP + DEVICE LIST ONCE AUDIO UNLOCKED - MAIN WINDOW ONLY
+   ENTRY UI (Mic/File)
 ========================================================== */
-async function afterAudioUnlocked(){
-  await listDevices();
+const entrySelSrc = document.getElementById('entrySelSrc');
+const entryMicBox = document.getElementById('entryMicBox');
+const entryFileBox = document.getElementById('entryFileBox');
+
+function applySourceUI(){
+  currentSource = entrySelSrc.value;
+  updateLocal("currentSource", currentSource);
+
+  entryMicBox.style.display = (currentSource==="mic") ? "" : "none";
+  entryFileBox.style.display = (currentSource==="file") ? "" : "none";
+
   setMicButtons(!!micStream);
-  updateTopPill(1);
 }
-if(isMainWindow) window.afterAudioUnlocked = afterAudioUnlocked;
+entrySelSrc.value = currentSource;
+entrySelSrc.addEventListener('change', ()=>{
+  applySourceUI();
+  if(currentSource==="file") stopMic();
+});
+applySourceUI();
+
+/* file controls (entry) */
+const entryFileAudio = document.getElementById('entryFileAudio');
+const entryFilePlay = document.getElementById('entryFilePlay');
+const entryFilePause = document.getElementById('entryFilePause');
+const entryFileStop = document.getElementById('entryFileStop');
+const entryFileTxt = document.getElementById('entryFileTxt');
+
+function setEntryFileBtns(enabled){
+  entryFilePlay.disabled = !enabled;
+  entryFilePause.disabled = !enabled;
+  entryFileStop.disabled = !enabled;
+}
+setEntryFileBtns(false);
+
+async function loadFileFromInput(file){
+  if(!file) return;
+
+  ensureAudio();
+  await audioCtx.resume();
+  setupOutputRouting();
+  ensureFileAudioEl();
+
+  const url = URL.createObjectURL(file);
+  try{ fileAudioEl.pause(); }catch(e){}
+  fileAudioEl.src = url;
+  fileAudioEl.loop = true;
+
+  entryFileTxt.textContent = `loaded: ${file.name} (${Math.round(file.size/1024)} KB)`;
+
+  if(currentSource!=="file"){
+    entrySelSrc.value = "file";
+    applySourceUI();
+  }
+
+  connectFileToChain();
+  setEntryFileBtns(true);
+}
+
+entryFileAudio.addEventListener('change', async ()=>{
+  const f = entryFileAudio.files && entryFileAudio.files[0];
+  if(!f) return;
+  await loadFileFromInput(f);
+});
 
 /* ==========================================================
-    MIDI (TouchMe) - SHARED (but MIDI access only in main window)
+   ENTRY ENTER
 ========================================================== */
-let midiAccess = null;
-let midiInput = null;
+function hideEntryAndEnter(){
+  document.getElementById('hint').style.display='none';
+}
+function showEntry(msg=""){
+  document.getElementById('hint').style.display='flex';
+  if(msg) startStatus(msg);
+}
 
+entryFilePlay.addEventListener('click', async ()=>{
+  if(!fileAudioEl || !fileAudioEl.src) return;
+  ensureAudio(); await audioCtx.resume();
+  connectFileToChain();
+  try{ await fileAudioEl.play(); }catch(e){
+    alert("재생이 막혔어요. 화면을 한번 터치/클릭한 뒤 다시 Play 눌러주세요.");
+    return;
+  }
+  hideEntryAndEnter();
+});
+entryFilePause.addEventListener('click', ()=>{
+  if(!fileAudioEl) return;
+  try{ fileAudioEl.pause(); }catch(e){}
+});
+entryFileStop.addEventListener('click', ()=>{
+  if(!fileAudioEl) return;
+  try{ fileAudioEl.pause(); fileAudioEl.currentTime = 0; }catch(e){}
+});
+
+/* ENTRY mic buttons */
+document.getElementById('entryMicOn').addEventListener('click', async ()=>{
+  if(currentSource!=="mic") return;
+  await startMic(currentMicDeviceId, true);
+});
+document.getElementById('entryMicOff').addEventListener('click', ()=> stopMic());
+
+/* ==========================================================
+   ✅ START AUDIO (안 눌림 대응 강화)
+   - click + pointerdown + touchstart 모두 연결
+========================================================== */
+async function doStartAudio(){
+  try{
+    ensureAudio();
+    await audioCtx.resume();
+    await listDevices();
+    startStatus("Audio unlocked. Mic/File 선택 후 Enter로 입장!");
+    // 팝업 컨트롤을 쓰는 구조라, MIDI init은 팝업에서 버튼으로 실행
+  }catch(e){
+    console.error(e);
+    startStatus("Audio unlock 실패. 화면을 한번 더 탭/클릭 후 재시도!");
+    alert("오디오 언락이 실패했어요. (브라우저 정책) 화면을 한번 탭/클릭 후 다시 Start Audio!");
+  }
+}
+
+const btnStartAudio = document.getElementById('btnStartAudio');
+btnStartAudio.addEventListener('click', doStartAudio);
+btnStartAudio.addEventListener('pointerdown', (e)=>{ e.preventDefault(); doStartAudio(); }, {passive:false});
+btnStartAudio.addEventListener('touchstart', (e)=>{ e.preventDefault(); doStartAudio(); }, {passive:false});
+
+/* 그래도 막혀있는 환경에서 한번이라도 “유저 제스처”를 잡기 */
+addEventListener('pointerdown', async ()=>{
+  if(audioCtx && audioCtx.state==='suspended'){
+    try{ await audioCtx.resume(); }catch(e){}
+  }
+},{passive:true});
+
+/* ==========================================================
+   MUTE / FULLSCREEN
+========================================================== */
+document.getElementById('btnMuteQuick').addEventListener('click', ()=>{
+  if(!audioCtx) return;
+  isMuted = !isMuted;
+  masterGain.gain.setTargetAtTime(isMuted?0:0.9, audioCtx.currentTime, 0.02);
+  document.getElementById('btnMuteQuick').textContent = isMuted ? '🔇' : '🔈';
+});
+
+function toggleFullscreen(){
+  const el = document.documentElement;
+  if(!document.fullscreenElement) el.requestFullscreen?.();
+  else document.exitFullscreen?.();
+}
+document.getElementById('btnFS').addEventListener('click', toggleFullscreen);
+document.getElementById('btnFSQuick').addEventListener('click', toggleFullscreen);
+
+/* ==========================================================
+   MIDI / Touch (main receives mapped touch from popup via localStorage)
+   - 팝업이 MIDI 입력을 받아서 S.touchFromMIDI (0..1) 값을 localStorage에 기록
+   - 메인은 storage 이벤트로 S 갱신 → touchSmooth 업데이트
+========================================================== */
 let touchRaw = 0;
 let touch = 0;
 let touchSmooth = 0;
 let lastMidiAt = 0;
-let lastMidiRawText = "Waiting…";
-
-let midiName="MIDI: ?";
-let midiLog = [];
-let midiLearn = false;
-
-function pushMidiLog(line){
-  const txtMIDI = document.getElementById('txtMIDI');
-  if(!txtMIDI) return;
-  midiLog.push(line);
-  if(midiLog.length>18) midiLog.shift();
-  txtMIDI.textContent = `${midiName}\n` + midiLog.join('\n');
-}
-
-const selMIDIIn = document.getElementById('selMIDIIn');
-const selMIDIType = document.getElementById('selMIDIType');
-const numMIDINum = document.getElementById('numMIDINum');
-const selMIDICh = document.getElementById('selMIDICh');
-const selMIDIInvert = document.getElementById('selMIDIInvert');
-
-if(isMainWindow){
-    hookSelectSave('selMIDIType');
-    hookNumberSave('numMIDINum', 1);
-    hookSelectSave('selMIDICh');
-    hookSelectSave('selMIDIInvert');
-    hookRangeSave('rngMIDIDead', 0.02);
-    hookRangeSave('rngMIDIGain', 1.60);
-    hookRangeSave('rngMIDICurve', 0.85);
-    hookRangeSave('rngMIDISmooth', 0.22);
-}
-
-const rngMIDIDead = document.getElementById('rngMIDIDead');
-const rngMIDIGain = document.getElementById('rngMIDIGain');
-const rngMIDICurve = document.getElementById('rngMIDICurve');
-const rngMIDISmooth = document.getElementById('rngMIDISmooth');
-const txtMIDIDead = document.getElementById('txtMIDIDead');
-const txtMIDIGain = document.getElementById('txtMIDIGain');
-const txtMIDICurve = document.getElementById('txtMIDICurve');
-const txtMIDISmooth = document.getElementById('txtMIDISmooth');
-const txtMIDIRaw = document.getElementById('txtMIDIRaw');
-const txtMIDILast = document.getElementById('txtMIDILast');
-const txtMIDISupport = document.getElementById('txtMIDISupport');
-const rngSimTouch = document.getElementById('rngSimTouch');
-
-function refreshMIDILabels(){
-  if(!txtMIDIDead) return;
-  txtMIDIDead.textContent = `deadzone: ${parseFloat(rngMIDIDead.value).toFixed(3)}`;
-  txtMIDIGain.textContent = `gain: ${parseFloat(rngMIDIGain.value).toFixed(2)}×`;
-  txtMIDICurve.textContent = `curve: ${parseFloat(rngMIDICurve.value).toFixed(2)} ( <1 = 더 예민 )`;
-  txtMIDISmooth.textContent = `smooth: ${parseFloat(rngMIDISmooth.value).toFixed(2)}`;
-}
-['input','change'].forEach(ev=>{
-  [rngMIDIDead,rngMIDIGain,rngMIDICurve,rngMIDISmooth].forEach(el=>{
-      if(el) el.addEventListener(ev, refreshMIDILabels);
-  });
-});
-refreshMIDILabels();
-
-function getMIDIDead(){ return Math.max(0, Math.min(0.25, parseFloat(rngMIDIDead.value)||0)); }
-function getMIDIGain(){ return Math.max(0.3, Math.min(3.0, parseFloat(rngMIDIGain.value)||1)); }
-function getMIDICurve(){ return Math.max(0.4, Math.min(2.8, parseFloat(rngMIDICurve.value)||1)); }
-function getMIDISmooth(){ return Math.max(0.02, Math.min(0.50, parseFloat(rngMIDISmooth.value)||0.18)); }
-
-function shapeMIDI(x){
-  if(!selMIDIInvert) return 0; // Safety check
-  const inv = (selMIDIInvert.value==="1");
-  if(inv) x = 1-x;
-
-  const dead = getMIDIDead();
-  if(x < dead) x = 0;
-  else x = (x-dead) / (1-dead);
-
-  x *= getMIDIGain();
-  x = Math.max(0, Math.min(1, x));
-
-  const curve = getMIDICurve();
-  x = Math.pow(x, curve);
-  return Math.max(0, Math.min(1, x));
-}
 
 function updateTouch(){
-  const k = getMIDISmooth();
+  // popup에서 넘어온 값 우선
+  const v = clamp(parseFloat(S.touchFromMIDI ?? 0), 0, 1);
+  touch = v;
+
+  // smoothing
+  const k = clamp(parseFloat(S.rngMIDISmooth ?? 0.22), 0.02, 0.50);
   touchSmooth += (touch - touchSmooth) * k;
 
   const now = performance.now();
   const idleMs = now - lastMidiAt;
-  if(idleMs > 250 && !midiLearn){
-    touch *= 0.985;
-  }
-}
-if(isMainWindow) window.updateTouch = updateTouch;
-
-function midiParseRaw(data){
-  const st = data[0] & 0xF0;
-  const ch = data[0] & 0x0F;
-  const d1 = data[1] ?? 0;
-  const d2 = data[2] ?? 0;
-
-  let type = "other";
-  if(st===0xB0) type="cc";
-  else if(st===0x90) type="noteon";
-  else if(st===0x80) type="noteoff";
-  return {st, ch, d1, d2, type};
-}
-
-function midiMsgToValue(data){
-  const st = data[0] & 0xF0;
-  const ch = data[0] & 0x0F;
-  const d1 = data[1] ?? 0;
-  const d2 = data[2] ?? 0;
-
-  if(!selMIDICh || !numMIDINum || !selMIDIType) return null; // Safety check for popup
-
-  const wantCh = parseInt(selMIDICh.value,10);
-  if(wantCh !== -1 && ch !== wantCh) return null;
-
-  const mode = selMIDIType.value;
-  const num = Math.max(0, Math.min(127, parseInt(numMIDINum.value,10)||0));
-
-  if(mode==="cc"){
-    if(st !== 0xB0) return null;
-    if(d1 !== num) return null;
-    return { raw01: d2/127, ch, type:"cc", num:d1, val:d2 };
-  }else{
-    if(st !== 0x90 && st !== 0x80) return null;
-    if(d1 !== num) return null;
-    const vel = (st===0x80) ? 0 : d2;
-    return { raw01: vel/127, ch, type:"note", num:d1, val:vel };
-  }
-}
-
-async function initMIDI(){
-  if(!navigator.requestMIDIAccess){
-    if(txtMIDISupport) txtMIDISupport.textContent = "⚠️ 이 브라우저는 WebMIDI를 지원하지 않습니다. → Sim Touch로 테스트 가능";
-    pushMidiLog("requestMIDIAccess 없음");
-    return;
-  }
-  try{
-    midiAccess = await navigator.requestMIDIAccess({sysex:false});
-    midiAccess.onstatechange = ()=> rebuildMIDIInputs();
-    rebuildMIDIInputs(true);
-    if(txtMIDISupport) txtMIDISupport.textContent = "✅ WebMIDI OK. TouchMe 연결 후 LEARN 누르고 한 번 터치하세요.";
-    pushMidiLog("MIDI ready.");
-  }catch(e){
-    console.error(e);
-    midiName="MIDI: blocked";
-    if(txtMIDISupport) txtMIDISupport.textContent = "⚠️ MIDI 접근이 차단됨. Chrome 권한/보안(https) 확인.";
-    pushMidiLog("MIDI access failed");
-  }
-}
-if(isMainWindow) window.initMIDI = initMIDI;
-
-function rebuildMIDIInputs(autoselect=false){
-  if(!midiAccess || !selMIDIIn) return; // Safety check
-  
-  const inputs = [...midiAccess.inputs.values()];
-  selMIDIIn.innerHTML = "";
-  if(inputs.length===0){
-    selMIDIIn.innerHTML = `<option value="">No MIDI inputs</option>`;
-    midiName="MIDI: no inputs";
-    pushMidiLog("No MIDI devices. TouchMe USB/BT 확인.");
-    return;
-  }
-
-  for(const inp of inputs){
-    const opt = document.createElement('option');
-    opt.value = inp.id;
-    opt.textContent = inp.name || `MIDI (${inp.id.slice(0,6)}…)`;
-    selMIDIIn.appendChild(opt);
-  }
-
-  const savedId = S.midiInputId ?? "";
-  const hasSaved = inputs.some(i=>i.id===savedId);
-
-  if(hasSaved){
-    selMIDIIn.value = savedId;
-    attachMIDIInput(savedId);
-  }else if(autoselect){
-    selMIDIIn.value = inputs[0].id;
-    attachMIDIInput(inputs[0].id);
-  }
-}
-
-function setLearn(on){
-  midiLearn = on;
-  const b = document.getElementById('btnMIDILearn');
-  if(!b) return;
-  b.classList.toggle('on', on);
-  b.textContent = on ? "LEARN (ON)" : "LEARN";
-  if(on) pushMidiLog("LEARN: TouchMe를 한 번 터치하세요 (CC/NOTE 자동 매핑).");
-}
-
-function attachMIDIInput(id){
-  if(!midiAccess || !selMIDIIn) return;
-  const inp = [...midiAccess.inputs.values()].find(i=>i.id===id);
-  if(!inp) return;
-
-  if(midiInput) midiInput.onmidimessage = null;
-  midiInput = inp;
-  S.midiInputId = id;
-  saveSettings(S);
-
-  midiName = "MIDI: " + (midiInput.name || "input");
-  pushMidiLog("Connected: " + midiName);
-
-  midiInput.onmidimessage = (e)=>{
-    const data = e.data;
-    const r = midiParseRaw(data);
-    lastMidiAt = performance.now();
-    lastMidiRawText = `st:0x${r.st.toString(16)} | ch:${r.ch+1} | d1:${r.d1} | d2:${r.d2} | type:${r.type}`;
-    if(txtMIDILast) txtMIDILast.textContent = lastMidiRawText;
-
-    if(midiLearn){
-      if(r.st===0xB0){
-        selMIDIType.value = "cc";
-        numMIDINum.value = r.d1;
-        selMIDICh.value = String(r.ch);
-        saveSettings(Object.assign(S, {
-          selMIDIType:"cc",
-          numMIDINum: r.d1,
-          selMIDICh: String(r.ch)
-        }));
-        pushMidiLog(`LEARN OK: CC #${r.d1} ch:${r.ch+1}`);
-        setLearn(false);
-      }else if(r.st===0x90 || r.st===0x80){
-        selMIDIType.value = "note";
-        numMIDINum.value = r.d1;
-        selMIDICh.value = String(r.ch);
-        saveSettings(Object.assign(S, {
-          selMIDIType:"note",
-          numMIDINum: r.d1,
-          selMIDICh: String(r.ch)
-        }));
-        pushMidiLog(`LEARN OK: NOTE #${r.d1} ch:${r.ch+1}`);
-        setLearn(false);
-      }
-    }
-
-    const parsed = midiMsgToValue(data);
-    if(!parsed){
-      if(Math.random() < 0.18) pushMidiLog(`raw=[${[...data].join(',')}] (not mapped)`);
-      return;
-    }
-
-    touchRaw = parsed.raw01;
-    touch = shapeMIDI(touchRaw);
-
-    if(txtMIDIRaw) txtMIDIRaw.textContent =
-      `raw01:${touchRaw.toFixed(3)} -> touch:${touch.toFixed(3)} | ${parsed.type.toUpperCase()} #${parsed.num} ch:${parsed.ch+1} val:${parsed.val}`;
-
-    if(Math.random() < 0.22){
-      pushMidiLog(`mapped ${parsed.type} #${parsed.num} ch:${parsed.ch+1} -> touch=${touch.toFixed(3)}`);
-    }
-  };
-}
-if(isMainWindow) window.attachMIDIInput = attachMIDIInput;
-
-if(isMainWindow){
-  if(selMIDIIn) selMIDIIn.addEventListener('change', ()=> attachMIDIInput(selMIDIIn.value));
-  if(document.getElementById('btnMIDIInit')) document.getElementById('btnMIDIInit').addEventListener('click', initMIDI);
-  if(document.getElementById('btnMIDILearn')) document.getElementById('btnMIDILearn').addEventListener('click', ()=> setLearn(!midiLearn));
-
-  /* restore midi controls */
-  applySelectValue('selMIDIType', 'cc');
-  applySelectValue('selMIDICh', '-1');
-  applySelectValue('selMIDIInvert', '0');
-  hookSelectSave('selMIDIType');
-  hookSelectSave('selMIDICh');
-  hookSelectSave('selMIDIInvert');
-  hookNumberSave('numMIDINum', 1);
-
-  if(rngSimTouch){
-    rngSimTouch.value = (S.rngSimTouch ?? 0);
-    rngSimTouch.addEventListener('input', ()=>{
-      S.rngSimTouch = parseFloat(rngSimTouch.value);
-      saveSettings(S);
-    });
+  if(v > 0.0001) lastMidiAt = now;
+  if(idleMs > 250){
+    // 자연 감쇠(팝업에서 값이 0이 되어도 잔향처럼)
+    touchSmooth *= 0.985;
   }
 }
 
 /* ==========================================================
-    FX MAPPING (Touch) - MAIN WINDOW ONLY
+   ✅ TOUCH FX PRESET (5개)
 ========================================================== */
+function getFXPreset(){
+  return (S.selFXPreset ?? "digital"); // digital | piano | bell | pad | pluck
+}
 function applyFX(){
   if(!audioCtx) return;
 
-  const sim = Math.max(0, Math.min(1, parseFloat(rngSimTouch.value)||0));
+  const sim = clamp(parseFloat(S.rngSimTouch ?? 0), 0, 1);
   const t = Math.max(touchSmooth, sim);
+  const preset = getFXPreset();
 
-  const driveAmt = 10 + t*95;
+  // 공통: 살짝 흔들리는 스테레오
+  const wob = (Math.sin(performance.now()*0.0014)*0.5+0.5);
+
+  // preset별 기본 성격
+  let driveMin=8, driveMax=105;
+  let preMin=0.85, preMax=2.10;
+  let dgMin=0.95, dgMax=2.05;
+
+  let fType="bandpass";
+  let fMin=160, fMax=7200, qMin=1.0, qMax=18.0;
+
+  let ringMin=8, ringMax=360, ringDepth=0.95;
+
+  let dlMin=0.0015, dlMax=0.014, drMin=0.0040, drMax=0.020;
+
+  if(preset==="piano"){
+    // 따뜻하고 덜 우울: 과한 링/왜곡 줄이고, 로우패스 기반 “톤” 느낌
+    driveMin=6; driveMax=28;
+    preMin=0.95; preMax=1.45;
+    dgMin=0.85; dgMax=1.25;
+
+    fType="lowpass";
+    fMin=700; fMax=5200;
+    qMin=0.55; qMax=2.2;
+
+    ringMin=0; ringMax=90; ringDepth=0.20;
+
+    dlMin=0.0020; dlMax=0.010;
+    drMin=0.0042; drMax=0.013;
+  }
+  else if(preset==="bell"){
+    // 맑은 벨/글라시: 하이쪽, 링 더 강하게
+    driveMin=10; driveMax=55;
+    preMin=0.85; preMax=1.65;
+    dgMin=1.00; dgMax=1.75;
+
+    fType="bandpass";
+    fMin=900; fMax=8600;
+    qMin=2.0; qMax=22.0;
+
+    ringMin=40; ringMax=620; ringDepth=0.85;
+
+    dlMin=0.0010; dlMax=0.018;
+    drMin=0.0035; drMax=0.026;
+  }
+  else if(preset==="pad"){
+    // 소프트 패드: 로우패스+넓은 스테레오, 부드러운 왜곡
+    driveMin=6; driveMax=38;
+    preMin=0.90; preMax=1.70;
+    dgMin=0.90; dgMax=1.35;
+
+    fType="lowpass";
+    fMin=450; fMax=3600;
+    qMin=0.50; qMax=1.6;
+
+    ringMin=0; ringMax=70; ringDepth=0.14;
+
+    dlMin=0.0040; dlMax=0.020;
+    drMin=0.0065; drMax=0.030;
+  }
+  else if(preset==="pluck"){
+    // 퍼커시브/플럭: 밴드패스 Q 높게, 펀치/짧은 링
+    driveMin=12; driveMax=80;
+    preMin=0.80; preMax=2.15;
+    dgMin=1.00; dgMax=2.10;
+
+    fType="bandpass";
+    fMin=220; fMax=5200;
+    qMin=2.5; qMax=26.0;
+
+    ringMin=8; ringMax=260; ringDepth=0.55;
+
+    dlMin=0.0012; dlMax=0.012;
+    drMin=0.0032; drMax=0.016;
+  }
+  // digital = 기존 느낌(강함)
+
+  const driveAmt = driveMin + t*(driveMax-driveMin);
   driveWS.curve = makeWaveshaper(driveAmt);
 
-  preGain.gain.setTargetAtTime(0.85 + t*1.25, audioCtx.currentTime, 0.03);
-  driveGain.gain.setTargetAtTime(0.95 + t*1.10, audioCtx.currentTime, 0.03);
+  preGain.gain.setTargetAtTime(preMin + t*(preMax-preMin), audioCtx.currentTime, 0.03);
+  driveGain.gain.setTargetAtTime(dgMin + t*(dgMax-dgMin), audioCtx.currentTime, 0.03);
 
-  const f = 180 + Math.pow(t, 1.35) * 7200;
-  const q = 1.0 + t*18.0;
+  filter.type = fType;
+  const f = fMin + Math.pow(t, 1.20) * (fMax-fMin);
+  const q = qMin + t*(qMax-qMin);
   filter.frequency.setTargetAtTime(f, audioCtx.currentTime, 0.03);
   filter.Q.setTargetAtTime(q, audioCtx.currentTime, 0.03);
 
-  const ringHz = 10 + t*360;
+  const ringHz = ringMin + t*(ringMax-ringMin);
   ringOsc.frequency.setTargetAtTime(ringHz, audioCtx.currentTime, 0.03);
-  ringGain.gain.setTargetAtTime(t*0.95, audioCtx.currentTime, 0.03);
+  ringGain.gain.setTargetAtTime(t*ringDepth, audioCtx.currentTime, 0.03);
 
-  const wob = (Math.sin(performance.now()*0.0017)*0.5+0.5);
-  dL.delayTime.setTargetAtTime(0.0015 + t*0.014 + wob*0.0012, audioCtx.currentTime, 0.05);
-  dR.delayTime.setTargetAtTime(0.0040 + t*0.020 + (1-wob)*0.0014, audioCtx.currentTime, 0.05);
-
-  const txtFx = document.getElementById('txtFx');
-  if(txtFx) txtFx.textContent =
-    `drive:${driveAmt.toFixed(1)} | filter:${f.toFixed(0)}Hz Q:${q.toFixed(1)} | ring:${ringHz.toFixed(1)}Hz depth:${(t*0.95).toFixed(2)} | widen:${t.toFixed(2)}`;
-}
-if(isMainWindow) window.applyFX = applyFX;
-
-/* ==========================================================
-    VISUAL UI + PARAMS - SHARED
-========================================================== */
-// Idle Drama 기본값을 0.55에서 0.20으로 낮춰 전반적인 움직임 속도를 줄입니다.
-hookRangeSave('rngIdleDrama', 0.20);
-hookRangeSave('rngVisSens', 1.55);
-hookRangeSave('rngLine', 0.75);
-hookRangeSave('rngPerf', 0.72);
-hookRangeSave('rngFade', 0.03);
-hookRangeSave('rngPointSize', 0.60);
-hookRangeSave('rngGlow', 0.45);
-
-if(isMainWindow){
-    applySelectValue('selPointColor', 'red');
-    hookSelectSave('selPointColor');
-}
-
-function getIdleDrama(){ return Math.max(0, Math.min(1, parseFloat(rngIdleDrama.value)||0.20)); }
-function getVisSens(){ return Math.max(0.6, Math.min(2.6, parseFloat(rngVisSens.value)||1.55)); }
-function getLineMul(){ return Math.max(0.2, Math.min(1.2, parseFloat(rngLine.value)||0.75)); }
-function getPerfLim(){ return Math.max(0.25, Math.min(1.0, parseFloat(rngPerf.value)||0.72)); }
-function getFade(){ return Math.max(0.02, Math.min(0.20, parseFloat(rngFade.value)||0.03)); }
-function getPointSize(){ return Math.max(0.4, Math.min(1.2, parseFloat(rngPointSize.value)||0.6)); }
-function getGlow(){ return Math.max(0.10, Math.min(1.0, parseFloat(rngGlow.value)||0.45)); }
-function getPointColor(){
-  const selPointColor = document.getElementById('selPointColor');
-  return (selPointColor && selPointColor.value === "red") ? "#ff3b3b" : "#ffffff";
-}
-function getMode(){ 
-    const selMode = document.getElementById('selMode');
-    return selMode ? selMode.value : 'pulse'; 
+  const dl = dlMin + t*(dlMax-dlMin) + wob*0.0011;
+  const dr = drMin + t*(drMax-drMin) + (1-wob)*0.0013;
+  dL.delayTime.setTargetAtTime(dl, audioCtx.currentTime, 0.05);
+  dR.delayTime.setTargetAtTime(dr, audioCtx.currentTime, 0.05);
 }
 
 /* ==========================================================
-    VISUAL FIELD - MAIN WINDOW ONLY
+   VISUAL FIELD
 ========================================================== */
-let N = 220;
+let N = parseInt(S.selN ?? 220, 10);
 let pts = [];
 let rot = 0;
 
@@ -1687,7 +934,7 @@ function initPoints(){
     });
   }
 }
-if(isMainWindow) window.initPoints = initPoints;
+initPoints();
 
 function project(p){
   const s=Math.sin(rot), c=Math.cos(rot);
@@ -1732,612 +979,7 @@ function applyBounds(p, mode){
 }
 
 /* ==========================================================
-    UI / TOGGLES - MAIN WINDOW ONLY
-========================================================== */
-function updateTopPill(q=1){
-  const pill = document.getElementById('topPill');
-  if(!pill) return; // Safety check
-  const a = audioCtx ? audioCtx.state : 'off';
-  const src = (currentSource==="mic")
-    ? (micStream ? "mic:on" : "mic:off")
-    : (fileAudioEl && fileAudioEl.src ? (fileAudioEl.paused ? "file:loaded" : "file:play") : "file:empty");
-  pill.textContent = `audio:${a} | src:${src} | q:${q.toFixed(2)}`;
-}
-if(isMainWindow) window.updateTopPill = updateTopPill;
-
-const ui = document.getElementById('ui');
-const btnGear = document.getElementById('btnGear');
-const btnHideUI = document.getElementById('btnHideUI');
-
-// Main window: Open settings in a new pop-up window
-if(isMainWindow){
-  let settingsPopup = null;
-
-  btnGear.addEventListener('click', ()=>{
-    if(settingsPopup && !settingsPopup.closed){
-      settingsPopup.focus();
-      return;
-    }
-    
-    // Create the content HTML string
-    const uiClone = document.getElementById('ui').cloneNode(true);
-    uiClone.id = 'ui-popup';
-    uiClone.style.display = 'block';
-    uiClone.classList.remove('hidden');
-
-    // Create a temporary container to get the inner HTML
-    const tempContainer = document.createElement('div');
-    tempContainer.appendChild(uiClone);
-    
-    // The main script body for the popup window
-    const popupScript = `
-      <script>
-        const STORE_KEY = "limen_workshop_settings_v3_entry";
-        function loadSettings(){ try{ return JSON.parse(localStorage.getItem(STORE_KEY)||"{}"); }catch(e){ return {}; } }
-        let S = loadSettings();
-        
-        // --- Mirrored Logic Functions ---
-        // These rely on the elements being present in the popup or calling the opener
-        
-        ${window.applyEQ.toString()}
-        ${window.getEQLow.toString()}
-        ${window.getEQMid.toString()}
-        ${window.getEQHigh.toString()}
-        ${window.refreshAudioLabels.toString()}
-        
-        ${window.getIdleDrama.toString()}
-        ${window.getVisSens.toString()}
-        ${window.getLineMul.toString()}
-        ${window.getPerfLim.toString()}
-        ${window.getFade.toString()}
-        ${window.getPointSize.toString()}
-        ${window.getGlow.toString()}
-        ${window.getPointColor.toString()}
-        ${window.getMode.toString()}
-        ${window.refreshVisualLabels.toString()}
-        
-        ${window.getMIDIDead.toString()}
-        ${window.getMIDIGain.toString()}
-        ${window.getMIDICurve.toString()}
-        ${window.getMIDISmooth.toString()}
-        ${window.refreshMIDILabels.toString()}
-        
-        // --- Setup and Event Handlers ---
-        window.addEventListener('DOMContentLoaded', ()=>{
-            const opener = window.opener;
-            if(!opener) {
-                alert("설정 팝업이 메인 창을 찾을 수 없습니다. 창을 닫아주세요.");
-                return;
-            }
-            const uiPopup = document.getElementById('ui-popup');
-            uiPopup.style.position = 'static';
-            uiPopup.style.margin = '0 auto';
-            uiPopup.style.width = 'calc(100% - 20px)';
-            uiPopup.style.maxWidth = '560px';
-
-            // Function to update local storage and notify opener
-            function updateSettings(el) {
-                const isFloat = (el.type === 'number' || el.type === 'range') && el.step.includes('.');
-                const value = isFloat ? parseFloat(el.value) : (el.type === 'number' ? parseInt(el.value, 10) : el.value);
-                
-                S[el.id] = value;
-                localStorage.setItem(STORE_KEY, JSON.stringify(S));
-                if (opener.S) opener.S = S; 
-
-                refreshAudioLabels();
-                refreshVisualLabels();
-                
-                if (el.id.startsWith('rngEQ') && opener.audioCtx) {
-                    applyEQ();
-                }
-                if (el.id === 'selMode' && opener.document.getElementById('selMode')) {
-                    // Trigger mode preset change in opener if required
-                    opener.document.getElementById('selMode').dispatchEvent(new Event('change'));
-                }
-            }
-
-            // Apply saved settings and attach listeners
-            document.querySelectorAll('select, input[type="range"], input[type="number"]').forEach(el => {
-                if (S.hasOwnProperty(el.id)) {
-                    el.value = S[el.id];
-                }
-                ['input', 'change'].forEach(ev => {
-                    el.addEventListener(ev, () => updateSettings(el));
-                });
-            });
-
-            // Handle TAB switching
-            document.querySelectorAll('#ui-popup .tab').forEach(t=>{
-                t.addEventListener('click', ()=>{
-                    document.querySelectorAll('#ui-popup .tab').forEach(x=>x.classList.remove('active'));
-                    document.querySelectorAll('#ui-popup .panel').forEach(x=>x.classList.remove('active'));
-                    t.classList.add('active');
-                    document.getElementById('panel-'+t.dataset.tab).classList.add('active');
-                    S.activeTab = t.dataset.tab;
-                    localStorage.setItem(STORE_KEY, JSON.stringify(S));
-                    if (opener.S) opener.S = S;
-                    
-                    if (t.dataset.tab === "system" && opener.listDevices) opener.listDevices();
-                    if (t.dataset.tab === "midi" && opener.initMIDI) opener.initMIDI();
-                });
-            });
-            
-            // Restore active tab
-            if(S.activeTab){
-                const tabEl = document.querySelector(\`#ui-popup .tab[data-tab="\${S.activeTab}"]\`);
-                if(tabEl) tabEl.click();
-            } else {
-                document.querySelector('#ui-popup .tab[data-tab="visual"]').click();
-            }
-
-
-            // --- Opener Function Proxies ---
-            document.getElementById('btnHideUI').addEventListener('click', ()=> window.close());
-            document.getElementById('btnResume').addEventListener('click', ()=> opener.document.getElementById('btnResume').click());
-            document.getElementById('btnMicOn').addEventListener('click', ()=> opener.document.getElementById('btnMicOn').click());
-            document.getElementById('btnMicOff').addEventListener('click', ()=> opener.document.getElementById('btnMicOff').click());
-            document.getElementById('btnFilePlay').addEventListener('click', ()=> opener.document.getElementById('btnFilePlay').click());
-            document.getElementById('btnFilePause').addEventListener('click', ()=> opener.document.getElementById('btnFilePause').click());
-            document.getElementById('btnFileStop').addEventListener('click', ()=> opener.document.getElementById('btnFileStop').click());
-
-            document.getElementById('selSrc').addEventListener('change', (e)=> {
-                 opener.document.getElementById('selSrc').value = e.target.value;
-                 opener.document.getElementById('selSrc').dispatchEvent(new Event('change'));
-                 opener.setMicButtons(!!opener.micStream);
-            });
-            document.getElementById('selMic').addEventListener('change', (e)=> {
-                 opener.document.getElementById('selMic').value = e.target.value;
-                 opener.document.getElementById('selMic').dispatchEvent(new Event('change'));
-            });
-            document.getElementById('selSpk').addEventListener('change', (e)=> {
-                 opener.document.getElementById('selSpk').value = e.target.value;
-                 opener.document.getElementById('selSpk').dispatchEvent(new Event('change'));
-            });
-            
-            // File input cannot pass File object directly, let the user know
-            document.getElementById('fileAudio').addEventListener('change', (e)=>{
-                if(e.target.files.length > 0) alert("파일 로드는 메인 화면의 'SYSTEM' 탭에서 직접 진행해야 합니다.");
-            });
-            
-            // MIDI controls
-            document.getElementById('selMIDIIn').addEventListener('change', (e)=> {
-                if (opener.attachMIDIInput) opener.attachMIDIInput(e.target.value);
-            });
-            document.getElementById('btnMIDIInit').addEventListener('click', ()=> {
-                if (opener.initMIDI) opener.initMIDI();
-            });
-            document.getElementById('btnMIDILearn').addEventListener('click', ()=> {
-                if (opener.document.getElementById('btnMIDILearn')) opener.document.getElementById('btnMIDILearn').click();
-            });
-            
-            // Initial call to update visual labels in the popup
-            refreshAudioLabels();
-            refreshVisualLabels();
-        });
-      </script>
-    `;
-
-    settingsPopup = window.open('about:blank', 'LimenSettings', 'width=600,height=800,scrollbars=yes');
-    if(!settingsPopup) {
-      alert("팝업 차단으로 설정 창을 열 수 없습니다. 팝업 차단을 해제해주세요.");
-      return;
-    }
-    
-    const finalHTML = `
-        <!doctype html>
-        <html lang="ko">
-        <head>
-        <meta charset="utf-8" />
-        <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-        <title>LIMEN WORKSHOP – Settings</title>
-        <style>
-          body { background: #000; margin: 0; padding: 10px; }
-          #ui-popup { position: static !important; }
-        </style>
-        <style>${document.head.querySelector('style').textContent}</style>
-        </head>
-        <body>
-        ${tempContainer.innerHTML}
-        ${popupScript}
-        </body>
-        </html>
-    `;
-    
-    settingsPopup.document.write(finalHTML);
-    settingsPopup.document.close();
-  });
-}
-
-
-function toggleFullscreen(){
-  const el = document.documentElement;
-  if(!document.fullscreenElement) el.requestFullscreen?.();
-  else document.exitFullscreen?.();
-}
-document.getElementById('btnFS').addEventListener('click', toggleFullscreen);
-document.getElementById('btnFSQuick').addEventListener('click', toggleFullscreen);
-
-// System Tab resume button handler
-document.getElementById('btnResume').addEventListener('click', async ()=>{
-  ensureAudio();
-  await audioCtx.resume();
-  await afterAudioUnlocked();
-});
-
-document.querySelectorAll('.tab').forEach(t=>{
-  t.addEventListener('click', ()=>{
-    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
-    document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));
-    t.classList.add('active');
-    document.getElementById('panel-'+t.dataset.tab).classList.add('active');
-    S.activeTab = t.dataset.tab;
-    saveSettings(S);
-    
-    if(t.dataset.tab === "system"){
-        if(listDevices) listDevices();
-    }else if(t.dataset.tab === "midi"){
-        if(initMIDI) initMIDI();
-    }
-  });
-});
-
-/* ==========================================================
-    SOURCE SELECT UI (SYSTEM) + (ENTRY mirror) - MAIN WINDOW ONLY
-========================================================== */
-const selSrc = document.getElementById('selSrc');
-const rowMic = document.getElementById('rowMic');
-const rowFile = document.getElementById('rowFile');
-
-const entrySelSrc = document.getElementById('entrySelSrc');
-const entryMicBox = document.getElementById('entryMicBox');
-const entryFileBox = document.getElementById('entryFileBox');
-
-function applySourceUI(){
-  currentSource = selSrc.value;
-  S.currentSource = currentSource;
-  saveSettings(S);
-
-  rowMic.style.display = (currentSource==="mic") ? "" : "none";
-  rowFile.style.display = (currentSource==="file") ? "" : "none";
-
-  // entry mirror
-  entrySelSrc.value = currentSource;
-  entryMicBox.style.display = (currentSource==="mic") ? "" : "none";
-  entryFileBox.style.display = (currentSource==="file") ? "" : "none";
-  
-  // Update Start Audio Button state
-  const btnStartAudio = document.getElementById('btnStartAudio');
-  if(btnStartAudio){
-      btnStartAudio.textContent = "Start Audio (Unlock Only)";
-      // Audio is unlocked if context exists and is running
-      btnStartAudio.disabled = !!audioCtx && audioCtx.state !== 'suspended';
-  }
-
-  setMicButtons(!!micStream);
-  
-  if(currentSource === "mic" && !!audioCtx && audioCtx.state === 'running'){
-      listDevices();
-  }
-  
-  updateTopPill(1);
-}
-if(isMainWindow){
-  selSrc.addEventListener('change', async ()=>{
-    applySourceUI();
-    if(currentSource==="mic"){
-      if(fileAudioEl){ try{ fileAudioEl.pause(); }catch(e){} }
-      if(fileNode){ try{ fileNode.disconnect(); }catch(e){} fileNode=null; }
-      ampSmooth=amp=ampDelta=prevAmp=0;
-    }else{
-      stopMic();
-      if(inputNode){ try{ inputNode.disconnect(); }catch(e){} inputNode=null; }
-      ampSmooth=amp=ampDelta=prevAmp=0;
-      if(fileAudioEl && fileAudioEl.src){
-        ensureAudio(); await audioCtx.resume();
-        connectFileToChain();
-      }
-    }
-  });
-  entrySelSrc.addEventListener('change', async ()=>{
-    selSrc.value = entrySelSrc.value;
-    applySourceUI();
-    if(currentSource==="file"){
-      stopMic();
-    }
-  });
-
-  applySelectValue('selSrc', (S.currentSource ?? 'mic'));
-  hookSelectSave('selSrc');
-  applySourceUI();
-}
-
-
-/* ==========================================================
-    FILE CONTROLS (SYSTEM + ENTRY mirror) - MAIN WINDOW ONLY
-========================================================== */
-const fileAudio = document.getElementById('fileAudio');
-const btnFilePlay = document.getElementById('btnFilePlay');
-const btnFilePause = document.getElementById('btnFilePause');
-const btnFileStop = document.getElementById('btnFileStop');
-const txtFile = document.getElementById('txtFile');
-
-const entryFileAudio = document.getElementById('entryFileAudio');
-const entryFilePlay = document.getElementById('entryFilePlay');
-const entryFilePause = document.getElementById('entryFilePause');
-const entryFileStop = document.getElementById('entryFileStop');
-const entryFileTxt = document.getElementById('entryFileTxt');
-
-function setSystemFileBtns(enabled){
-  if(btnFilePlay) btnFilePlay.disabled = !enabled;
-  if(btnFilePause) btnFilePause.disabled = !enabled;
-  if(btnFileStop) btnFileStop.disabled = !enabled;
-}
-
-async function loadFileFromInput(file){
-  if(!file) return;
-  if(!audioCtx || audioCtx.state !== 'running') {
-      startStatus("Audio Context가 잠금 해제되지 않았습니다. Start Audio를 먼저 눌러주세요.");
-      return;
-  }
-
-  ensureAudio();
-  await audioCtx.resume();
-  setupOutputRouting();
-  ensureFileAudioEl();
-
-  const url = URL.createObjectURL(file);
-  try{ fileAudioEl.pause(); }catch(e){}
-  fileAudioEl.src = url;
-  fileAudioEl.loop = true;
-
-  if(txtFile) txtFile.textContent = `loaded: ${file.name} (${Math.round(file.size/1024)} KB)`;
-  if(entryFileTxt) entryFileTxt.textContent = `loaded: ${file.name} (${Math.round(file.size/1024)} KB)`;
-
-  if(currentSource!=="file"){
-    if(selSrc) selSrc.value = "file";
-    applySourceUI();
-  }
-
-  connectFileToChain();
-  setSystemFileBtns(true);
-  setMicButtons(!!micStream);
-  updateTopPill(1);
-}
-
-if(isMainWindow){
-  if(fileAudio) fileAudio.addEventListener('change', async ()=>{
-    const f = fileAudio.files && fileAudio.files[0];
-    if(!f) return;
-    await loadFileFromInput(f);
-  });
-  if(entryFileAudio) entryFileAudio.addEventListener('change', async ()=>{
-    const f = entryFileAudio.files && entryFileAudio.files[0];
-    if(!f) return;
-    await loadFileFromInput(f);
-  });
-
-  /* ==========================================================
-      ENTRY ENTER: Mic ON / File Play -> hide entry
-  ========================================================== */
-  function hideEntryAndEnter(){
-    const hint = document.getElementById('hint');
-    if(hint) hint.style.display='none';
-  }
-  function showEntry(msg=""){
-    const hint = document.getElementById('hint');
-    if(hint) hint.style.display='flex';
-    if(msg) startStatus(msg);
-  }
-
-  // --- Mic Entry Buttons ---
-  if(document.getElementById('entryMicOn')) document.getElementById('entryMicOn').addEventListener('click', async ()=>{
-    if(currentSource!=="mic") return;
-    await startMic(currentMicDeviceId, true);
-  });
-  if(document.getElementById('entryMicOff')) document.getElementById('entryMicOff').addEventListener('click', ()=> stopMic());
-
-
-  // --- File Entry Buttons ---
-  if(entryFilePlay) entryFilePlay.addEventListener('click', async ()=>{
-    if(currentSource!=="file") return;
-    if(!fileAudioEl || !fileAudioEl.src) {
-        startStatus("파일을 먼저 선택해 주세요.");
-        return;
-    }
-    if(!audioCtx || audioCtx.state !== 'running') {
-        startStatus("Audio Context가 잠금 해제되지 않았습니다. Start Audio를 먼저 눌러주세요.");
-        return;
-    }
-
-    ensureAudio(); await audioCtx.resume();
-    connectFileToChain();
-    try{ await fileAudioEl.play(); }catch(e){
-      alert("재생이 막혔어요. 화면을 한번 터치/클릭한 뒤 다시 Play 눌러주세요.");
-      return;
-    }
-    updateTopPill(1);
-    hideEntryAndEnter();
-  });
-  if(entryFilePause) entryFilePause.addEventListener('click', ()=>{
-    if(!fileAudioEl) return;
-    try{ fileAudioEl.pause(); }catch(e){}
-    updateTopPill(1);
-    setMicButtons(!!micStream);
-  });
-  if(entryFileStop) entryFileStop.addEventListener('click', ()=>{
-    if(!fileAudioEl) return;
-    try{ fileAudioEl.pause(); fileAudioEl.currentTime = 0; }catch(e){}
-    updateTopPill(1);
-    setMicButtons(!!micStream);
-  });
-
-  // --- System File Buttons ---
-  if(btnFilePlay) btnFilePlay.addEventListener('click', async ()=>{
-    if(!fileAudioEl || !fileAudioEl.src) return;
-    ensureAudio(); await audioCtx.resume();
-    connectFileToChain();
-    try{ await fileAudioEl.play(); }catch(e){
-      alert("재생이 막혔어요. 화면을 한번 터치/클릭한 뒤 다시 Play 눌러주세요.");
-    }
-    updateTopPill(1);
-    setMicButtons(!!micStream);
-  });
-  if(btnFilePause) btnFilePause.addEventListener('click', ()=>{
-    if(!fileAudioEl) return;
-    try{ fileAudioEl.pause(); }catch(e){}
-    updateTopPill(1);
-    setMicButtons(!!micStream);
-  });
-  if(btnFileStop) btnFileStop.addEventListener('click', ()=>{
-    if(!fileAudioEl) return;
-    try{ fileAudioEl.pause(); fileAudioEl.currentTime = 0; }catch(e){}
-    updateTopPill(1);
-    setMicButtons(!!micStream);
-  });
-
-  /* ==========================================================
-      SYSTEM mic buttons
-  ========================================================== */
-  if(document.getElementById('btnMicOn')) document.getElementById('btnMicOn').addEventListener('click', async ()=>{
-    if(currentSource!=="mic") return;
-    await startMic(currentMicDeviceId, false);
-  });
-  if(document.getElementById('btnMicOff')) document.getElementById('btnMicOff').addEventListener('click', ()=> stopMic());
-
-
-  /* ==========================================================
-      AUDIO UNLOCK HANDLER (Final Attempt)
-  ========================================================== */
-  async function handleAudioUnlock(e){
-    // 만약 이미 오디오가 실행 중이거나, AudioContext가 아직 정의되지 않았다면 초기화 시도
-    if (audioCtx && audioCtx.state !== 'suspended') return;
-    
-    // 이 이벤트가 버튼 클릭 이벤트로부터 시작되었는지 확인 (중복 실행 방지)
-    if(e && e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT')) return;
-    
-    // 버튼을 제외한 힌트 박스 자체를 클릭했을 경우, 버튼 이벤트를 막지 않도록 처리
-    if (e && e.target.tagName !== 'BUTTON' && e.target.id !== 'hint') {
-         // 힌트 박스 내의 텍스트나 div를 클릭한 경우, 잠금 해제를 시도합니다.
-         // 하지만 버튼 클릭이 아닌 경우, e.preventDefault();를 호출하지 않도록 주의합니다.
-    }
-      
-    ensureAudio();
-    
-    // 오디오 컨텍스트가 정지 상태(suspended)일 때만 재개 시도
-    if (audioCtx.state === 'suspended') {
-        startStatus("Audio Context 재개 시도...");
-        try {
-            const state = await audioCtx.resume();
-            
-            if (state === 'running') {
-                await afterAudioUnlocked();
-                await initMIDI();
-                startStatus("✅ Audio Context 잠금 해제 성공! Mic ON 또는 File Play를 눌러 입장하세요.");
-                setMicButtons(!!micStream); 
-                
-                // 오디오 잠금 해제에 성공했으므로, 전역 리스너는 제거
-                document.getElementById('hint').removeEventListener('click', handleAudioUnlock, false);
-                window.removeEventListener('pointerdown', handleAudioUnlock, true);
-                
-            } else {
-                 startStatus(`⚠️ Audio Context 재개 실패. 상태: ${state}`);
-                 console.error("Audio Context Resume failed. State:", state);
-                 alert(`오디오 잠금 해제 실패. 브라우저 상태: ${state}. 다른 브라우저를 시도하거나, F12 콘솔 창을 확인하세요.`);
-            }
-        } catch (error) {
-            startStatus(`❌ Audio Context 재개 중 치명적인 오류 발생!`);
-            console.error("Critical error during audio resume:", error);
-            alert(`오디오 시스템 오류: ${error.name} - ${error.message}. F12 콘솔 창을 확인해주세요.`);
-        }
-    }
-  }
-  
-  // 1. Button Click Listener (Primary method, used via inline onclick="handleAudioUnlock(event)")
-  // event.preventDefault()는 인라인에서 처리되지 않도록 주의
-
-  // 2. Hint Area Click Listener (Fallback for touch gestures on mobile)
-  document.getElementById('hint').addEventListener('click', handleAudioUnlock, false);
-
-  // 3. Global Fallback Listener (Most robust attempt)
-  // Use capture phase (true) to ensure it runs *before* other elements consume it
-  window.addEventListener('pointerdown', handleAudioUnlock, true); 
-  
-  // Make the function globally accessible for the inline handler
-  window.handleAudioUnlock = handleAudioUnlock;
-}
-
-/* ==========================================================
-    VISUAL SELECT RESTORE - MAIN WINDOW ONLY
-========================================================== */
-if(isMainWindow){
-  applySelectValue('selMode', 'pulse');
-  applySelectValue('selN', '220');
-  applySelectValue('selBounds', 'soft');
-  applySelectValue('selQuietLines', '1');
-  applySelectValue('selAutoReboot', '1');
-
-  ['selMode','selN','selBounds','selQuietLines','selAutoReboot'].forEach(hookSelectSave);
-
-  if(document.getElementById('selN')) document.getElementById('selN').addEventListener('change', (e)=>{
-    N = parseInt(e.target.value,10);
-    initPoints();
-  });
-  
-  // Custom logic for Mode presets
-  if(document.getElementById('selMode')) document.getElementById('selMode').addEventListener('change', (e) => {
-      const mode = e.target.value;
-      const rngIdleDramaEl = document.getElementById('rngIdleDrama');
-      const rngVisSensEl = document.getElementById('rngVisSens');
-      const rngLineEl = document.getElementById('rngLine');
-      const rngPointSizeEl = document.getElementById('rngPointSize');
-      const selPointColorEl = document.getElementById('selPointColor');
-      
-      const updateAndDispatch = (el, value) => {
-          if (el) {
-              el.value = value;
-              el.dispatchEvent(new Event('input'));
-              el.dispatchEvent(new Event('change'));
-          }
-      };
-      
-      switch (mode) {
-          case 'piano':
-              updateAndDispatch(rngIdleDramaEl, 0.10);
-              updateAndDispatch(rngVisSensEl, 2.0);
-              updateAndDispatch(rngLineEl, 1.0);
-              updateAndDispatch(rngPointSizeEl, 0.80);
-              updateAndDispatch(selPointColorEl, 'white');
-              break;
-          case 'melancholy':
-              updateAndDispatch(rngIdleDramaEl, 0.05);
-              updateAndDispatch(rngVisSensEl, 0.8);
-              updateAndDispatch(rngLineEl, 0.45);
-              updateAndDispatch(rngPointSizeEl, 0.50);
-              updateAndDispatch(selPointColorEl, 'red');
-              break;
-          case 'calm':
-              updateAndDispatch(rngIdleDramaEl, 0.55);
-              updateAndDispatch(rngVisSensEl, 1.0);
-              updateAndDispatch(rngLineEl, 0.75);
-              updateAndDispatch(rngPointSizeEl, 0.60);
-              updateAndDispatch(selPointColorEl, 'red');
-              break;
-          case 'pulse':
-          case 'burst':
-          default:
-              updateAndDispatch(rngIdleDramaEl, 0.20);
-              updateAndDispatch(rngVisSensEl, 1.55);
-              updateAndDispatch(rngLineEl, 0.75);
-              updateAndDispatch(rngPointSizeEl, 0.60);
-              updateAndDispatch(selPointColorEl, 'red');
-              break;
-      }
-  });
-}
-
-
-/* ==========================================================
-    ENTRY REBOOT (핵심 변경!) - MAIN WINDOW ONLY
+   ENTRY REBOOT (same concept)
 ========================================================== */
 function clearRuntime(){
   amp = 0; ampSmooth = 0; ampDelta = 0; prevAmp = 0;
@@ -2358,7 +1000,6 @@ function clearRuntime(){
 async function entryReboot(reason="lag"){
   console.warn("ENTRY REBOOT:", reason);
 
-  // stop inputs
   try{ stopMic(); }catch(e){}
   try{
     if(fileAudioEl){
@@ -2370,7 +1011,6 @@ async function entryReboot(reason="lag"){
   fileNode = null;
   inputNode = null;
 
-  // close audio context to truly clear overload
   try{
     if(audioCtx){
       try{ await audioCtx.close(); }catch(e){}
@@ -2395,340 +1035,644 @@ async function entryReboot(reason="lag"){
 
   clearRuntime();
 
-  // buttons back to "locked"
-  setMicButtons(false);
-  updateTopPill(1);
+  document.getElementById('entrySelMic').disabled = true;
+  document.getElementById('entrySelMic').innerHTML = `<option>Start Audio 후 목록 로드</option>`;
+  document.getElementById('entryMicOn').disabled = true;
+  document.getElementById('entryMicOff').disabled = true;
 
-  // Entry UI states (enable/disable) — Start Audio must be pressed again
-  const entrySelMic = document.getElementById('entrySelMic');
-  if(entrySelMic) entrySelMic.disabled = true;
-  if(entrySelMic) entrySelMic.innerHTML = `<option>Start Audio 후 목록 로드</option>`;
-  
   showEntry(`렉 감지 → Entry로 복귀 (reason: ${reason})`);
-  
-  // Re-enable the main Start Audio button
-  const btnStartAudio = document.getElementById('btnStartAudio');
-  if(btnStartAudio) btnStartAudio.disabled = false;
-  
-  // Re-add global listeners if they were removed
-  window.handleAudioUnlock = handleAudioUnlock;
-  document.getElementById('hint').addEventListener('click', handleAudioUnlock, false);
-  window.addEventListener('pointerdown', handleAudioUnlock, true); 
 }
-if(isMainWindow) window.entryReboot = entryReboot;
 
 document.getElementById("btnReset").addEventListener("click", ()=> entryReboot("manual reset"));
 
 /* ==========================================================
-    AUTO REBOOT ON LAG / FREEZE - MAIN WINDOW ONLY
+   AUTO REBOOT ON LAG / FREEZE
 ========================================================== */
-const selAutoReboot = document.getElementById('selAutoReboot');
-function autoRebootEnabled(){ return (selAutoReboot && selAutoReboot.value === "1"); }
+function autoRebootEnabled(){ return (String(S.selAutoReboot ?? "1") === "1"); }
 
 let lastFrameT = performance.now();
 let frameMsSmooth = 16.7;
 let lagTimer = 0;
 
 let lastAnimTick = performance.now();
-if(isMainWindow){
-  setInterval(()=>{
-    const now = performance.now();
-    if(!autoRebootEnabled()) return;
-    if(now - lastAnimTick > 1600){
-      entryReboot("freeze watchdog");
-      lastAnimTick = now;
-    }
-  }, 400);
+setInterval(()=>{
+  const now = performance.now();
+  if(!autoRebootEnabled()) return;
+  if(now - lastAnimTick > 1600){
+    entryReboot("freeze watchdog");
+    lastAnimTick = now;
+  }
+}, 400);
 
-  function checkLag(dt){
-    if(!autoRebootEnabled()) return;
-    if(dt > 45){
-      lagTimer += dt;
-      if(lagTimer > 2200){
-        entryReboot("lag reboot");
-        lagTimer = 0;
-      }
-    }else{
-      lagTimer = Math.max(0, lagTimer - 50);
+function checkLag(dt){
+  if(!autoRebootEnabled()) return;
+  if(dt > 45){
+    lagTimer += dt;
+    if(lagTimer > 2200){
+      entryReboot("lag reboot");
+      lagTimer = 0;
     }
+  }else{
+    lagTimer = Math.max(0, lagTimer - 50);
   }
 }
 
 /* ==========================================================
-    MAIN LOOP - MAIN WINDOW ONLY
+   MAIN LOOP
 ========================================================== */
-const meterIn = document.getElementById('meterIn');
-const meterTouch = document.getElementById('meterTouch');
 let lastUiT = 0;
 
-if(isMainWindow){
-  function loop(){
-    const now = performance.now();
-    lastAnimTick = now;
+function loop(){
+  const now = performance.now();
+  lastAnimTick = now;
 
-    const dt = now - lastFrameT;
-    lastFrameT = now;
-    frameMsSmooth += (dt - frameMsSmooth) * 0.08;
+  const dt = now - lastFrameT;
+  lastFrameT = now;
+  frameMsSmooth += (dt - frameMsSmooth) * 0.08;
 
-    checkLag(dt);
+  checkLag(dt);
 
-    let qAuto = 1 - Math.max(0, (frameMsSmooth - 16) / 45);
-    qAuto = Math.max(0.28, Math.min(1, qAuto));
-    const q = Math.min(qAuto, getPerfLim());
+  let qAuto = 1 - Math.max(0, (frameMsSmooth - 16) / 45);
+  qAuto = clamp(qAuto, 0.28, 1);
+  const q = Math.min(qAuto, getPerfLim());
 
-    ctx.fillStyle = `rgba(0,0,0,${getFade().toFixed(3)})`;
-    ctx.fillRect(0,0,W,H);
+  ctx.fillStyle = `rgba(0,0,0,${getFade().toFixed(3)})`;
+  ctx.fillRect(0,0,W,H);
 
-    if(audioCtx){
-      applyEQ();
-      updateAmp();
-    }else{
-      // audio locked 상태에서도 visuals가 돌아가되 amp=0로 유지
-      amp = 0; ampDelta = 0;
+  if(audioCtx){
+    applyEQ();
+    updateAmp();
+  }else{
+    amp = 0; ampDelta = 0;
+  }
+
+  updateTouch();
+  if(audioCtx) applyFX();
+
+  if(now - lastUiT > 110){
+    lastUiT = now;
+
+    const tv = Math.max(touchSmooth, clamp(parseFloat(S.rngSimTouch ?? 0),0,1));
+    document.getElementById('hudTouch').textContent = tv.toFixed(3);
+    document.getElementById('hudAmp').textContent = amp.toFixed(3);
+    document.getElementById('hudMidi').textContent = "midi: popup";
+    document.getElementById('hudTouchBar').style.width = (tv*100).toFixed(1)+"%";
+  }
+
+  const visSens = getVisSens();
+  const idleDrama = getIdleDrama();
+
+  const QUIET_TH = BASE_QUIET_TH / visSens;
+  const ACTIVE_TH = BASE_ACTIVE_TH / visSens;
+  const ONSET_TH  = BASE_ONSET_TH / visSens;
+
+  const targetEnergy = (amp > ACTIVE_TH) ? 1 : (amp < QUIET_TH ? 0 : energy);
+  energy += (targetEnergy - energy) * 0.05;
+
+  const energyFloor = 0.04 + idleDrama * 0.20;
+  energy = Math.max(energyFloor, energy);
+
+  const onset = Math.max(0, (ampDelta - ONSET_TH));
+  burstEnergy += (onset*8.0 - burstEnergy) * 0.12;
+  burstEnergy *= 0.92;
+  burstEnergy = Math.min(1.5, burstEnergy);
+
+  const mode = (S.selMode ?? "pulse");
+  const boundsMode = (S.selBounds ?? "soft");
+  const quietLines = parseInt(S.selQuietLines ?? "1",10);
+
+  const t = now*0.001;
+  const breathe = 0.5 + 0.5*Math.sin(t*1.2);
+
+  const sim = clamp(parseFloat(S.rngSimTouch ?? 0),0,1);
+  const touchV = Math.max(touchSmooth, sim);
+
+  /* ✅ 속도 전체 느리게: MotionSpeed 곱 */
+  const motion = getMotionSpeed();
+
+  const baseSpeedQuiet = (0.10 + idleDrama*0.05) * motion * 0.72;
+  const baseChaosQuiet = (0.55 + idleDrama*1.10) * 0.85;
+
+  const baseSpeedActive = ((0.12 + Math.min(0.30, amp*2.6)) * visSens) * motion * 0.70;
+
+  const baseChaosActive =
+    Math.min(30,
+      (ampDelta*110) +
+      (touchV*120) +
+      burstEnergy*55
+    ) * visSens * 0.92;
+
+  let speed = baseSpeedQuiet*(1-energy) + baseSpeedActive*energy;
+  let chaos = baseChaosQuiet*(1-energy) + baseChaosActive*energy;
+
+  if(mode==="calm"){ speed *= 0.88; chaos *= 0.75; }
+  if(mode==="burst"){ speed *= 1.05; chaos *= 1.18; }
+
+  const lineMul = getLineMul();
+  const linkDistQuiet = 26 + idleDrama*10;
+  const linkDistActiveRaw = (64 + amp*240 + touchV*520 + burstEnergy*110) * lineMul * visSens;
+  const linkDistActive = Math.min(180, linkDistActiveRaw);
+  const linkDist = linkDistQuiet*(1-energy) + linkDistActive*energy;
+
+  const centerPull = (0.008 + touchV*0.028) * (1.0 - Math.min(1, amp*1.2)) * (0.75 + idleDrama*0.6);
+  const burst = (amp*0.017 + ampDelta*0.060 + touchV*0.020 + burstEnergy*0.020) * visSens;
+
+  const freeze = energy * Math.max(0, 1 - (ampDelta*20));
+  const rotSpeedBase = (0.0012 + energy*0.010 + burstEnergy*0.008 + touchV*0.010) * (1 - 0.7*freeze);
+  const rotSpeed = rotSpeedBase * (0.65 + idleDrama*0.8) * motion * 0.82;
+  rot += rotSpeed;
+
+  const scale = 1.0 + energy*(breathe-0.5)*0.25;
+
+  for(const p of pts){
+    p.vx += (Math.random()-0.5)*chaos;
+    p.vy += (Math.random()-0.5)*chaos;
+    p.vz += (Math.random()-0.5)*chaos*0.55;
+
+    p.vx += (-p.x)*centerPull*(0.9 - energy*0.4);
+    p.vy += (-p.y)*centerPull*(0.9 - energy*0.4);
+    p.vz += (-p.z)*centerPull*(0.6 - energy*0.2);
+
+    p.vx += (p.x)*burst*energy;
+    p.vy += (p.y)*burst*energy;
+    p.vz += (p.z)*burst*energy*0.6;
+
+    p.vx *= 0.90 - energy*0.05;
+    p.vy *= 0.90 - energy*0.05;
+    p.vz *= 0.92 - energy*0.04;
+
+    p.x = (p.x + p.vx*speed) * scale + (1-scale)*p.x;
+    p.y = (p.y + p.vy*speed) * scale + (1-scale)*p.y;
+    p.z = (p.z + p.vz*speed) * (0.92 + 0.08*scale) + (1-(0.92 + 0.08*scale))*p.z;
+
+    applyBounds(p, boundsMode);
+  }
+
+  const pr = pts.map(project);
+
+  if(energy > 0.05 || quietLines>0){
+    const cell = Math.max(22, Math.floor(linkDist));
+    const inv = 1 / cell;
+    const grid = new Map();
+
+    for(let i=0;i<N;i++){
+      const a = pr[i];
+      const cx = (a.x*inv)|0;
+      const cy = (a.y*inv)|0;
+      const key = (cx<<16) ^ (cy & 0xffff);
+      let arr = grid.get(key);
+      if(!arr){ arr=[]; grid.set(key, arr); }
+      arr.push(i);
     }
 
-    updateTouch();
-    if(audioCtx) applyFX();
+    const baseMax = (1100 + energy*850 + burstEnergy*750 + touchV*700) * lineMul;
+    const maxLines = Math.floor(baseMax * q);
 
-    if(now - lastUiT > 110){
-      lastUiT = now;
-      const inPct = Math.max(0, Math.min(1, amp*6.0));
-      if(meterIn) meterIn.style.width = (inPct*100).toFixed(1)+"%";
-      const txtAmp = document.getElementById('txtAmp');
-      if(txtAmp) txtAmp.textContent =
-        `amp: ${amp.toFixed(4)} | dAmp: ${ampDelta.toFixed(4)} | frame:${frameMsSmooth.toFixed(1)}ms | q:${q.toFixed(2)}`;
+    let linesDrawn = 0;
+    const stride = (q < 0.45) ? 2 : 1;
 
-      const sim = Math.max(0, Math.min(1, parseFloat(rngSimTouch.value)||0));
-      const tv = Math.max(touchSmooth, sim);
-      if(meterTouch) meterTouch.style.width = (tv*100).toFixed(1)+"%";
+    for(let i=0;i<N;i+=stride){
+      if(linesDrawn >= maxLines) break;
+      const a = pr[i];
+      const cx = (a.x*inv)|0;
+      const cy = (a.y*inv)|0;
 
-      document.getElementById('hudTouch').textContent = tv.toFixed(3);
-      document.getElementById('hudAmp').textContent = amp.toFixed(3);
-      document.getElementById('hudMidi').textContent = midiName;
-      document.getElementById('hudTouchBar').style.width = (tv*100).toFixed(1)+"%";
+      for(let oy=-1; oy<=1; oy++){
+        for(let ox=-1; ox<=1; ox++){
+          if(linesDrawn >= maxLines) break;
 
-      updateTopPill(q);
-    }
+          const k = ((cx+ox)<<16) ^ ((cy+oy) & 0xffff);
+          const bucket = grid.get(k);
+          if(!bucket) continue;
 
-    const visSens = getVisSens();
-    const idleDrama = getIdleDrama();
+          for(let bi=0; bi<bucket.length; bi++){
+            const j = bucket[bi];
+            if(j<=i) continue;
 
-    // Visual Sens Multiplier Adjustment for slower movement
-    const visSensFactor = 0.65; 
+            const b = pr[j];
+            const dx=a.x-b.x, dy=a.y-b.y;
+            const d = Math.hypot(dx,dy);
+            if(d<linkDist){
+              const alpha = 1 - d/linkDist;
 
-    const QUIET_TH = BASE_QUIET_TH / visSens * visSensFactor;
-    const ACTIVE_TH = BASE_ACTIVE_TH / visSens * visSensFactor;
-    const ONSET_TH  = BASE_ONSET_TH / visSens * visSensFactor;
+              const quietGain = (quietLines===0) ? 0 : (quietLines===1 ? 0.12 : 0.24);
+              const onGain = 0.34 + amp*1.5*visSens + burstEnergy*1.6*visSens + touchV*1.4;
+              const punch = Math.min(1, alpha * (quietGain*(1-energy) + onGain*energy));
 
-    const targetEnergy = (amp > ACTIVE_TH) ? 1 : (amp < QUIET_TH ? 0 : energy);
-    energy += (targetEnergy - energy) * 0.05;
+              ctx.globalAlpha = punch * getGlow();
+              ctx.strokeStyle = "rgba(255,255,255,0.9)";
+              ctx.lineWidth = 1;
+              ctx.beginPath();
+              ctx.moveTo(a.x,a.y);
+              ctx.lineTo(b.x,b.y);
+              ctx.stroke();
 
-    const energyFloor = 0.02 + idleDrama * 0.10; // Lowered idle floor
-    energy = Math.max(energyFloor, energy);
-
-    const onset = Math.max(0, (ampDelta - ONSET_TH));
-    burstEnergy += (onset*8.0 - burstEnergy) * 0.12;
-    burstEnergy *= 0.92;
-    burstEnergy = Math.min(1.5, burstEnergy);
-
-    const mode = getMode();
-    const boundsMode = document.getElementById('selBounds').value;
-    const quietLines = parseInt(document.getElementById('selQuietLines').value,10);
-
-    const t = now*0.001;
-    const breathe = 0.5 + 0.5*Math.sin(t*1.2);
-
-    const sim = Math.max(0, Math.min(1, parseFloat(rngSimTouch.value)||0));
-    const touchV = Math.max(touchSmooth, sim);
-
-    // BASE SPEED: Slower Defaults for a calmer feel
-    let baseSpeedQuiet = 0.05 + idleDrama*0.03; // Lowered
-    let baseChaosQuiet = 0.25 + idleDrama*0.50; // Lowered
-
-    let baseSpeedActive = (0.08 + Math.min(0.20, amp*1.8)) * visSens; // Lowered multiplier
-    
-    let baseChaosActive =
-      Math.min(20, // Max chaos reduced
-        (ampDelta*80) + // Lowered multiplier
-        (touchV*60) +   // Lowered multiplier
-        burstEnergy*30  // Lowered multiplier
-      ) * visSens;
-      
-    // Mode specific adjustments
-    if(mode==="calm"){ baseSpeedQuiet *= 0.88; baseChaosQuiet *= 0.75; }
-    if(mode==="burst"){ baseSpeedQuiet *= 1.05; baseChaosQuiet *= 1.18; }
-    if(mode==="piano"){ 
-        baseSpeedQuiet *= 0.70; baseChaosQuiet *= 0.15; // Very low idle chaos
-        baseSpeedActive *= 1.1; baseChaosActive *= 1.5; // High reactive chaos
-    }
-    if(mode==="melancholy"){
-        baseSpeedQuiet *= 0.50; baseChaosQuiet *= 0.05; // Extremely slow and low chaos
-        baseSpeedActive *= 0.6; baseChaosActive *= 0.4;
-    }
-
-
-    let speed = baseSpeedQuiet*(1-energy) + baseSpeedActive*energy;
-    let chaos = baseChaosQuiet*(1-energy) + baseChaosActive*energy;
-
-    const lineMul = getLineMul();
-    const linkDistQuiet = 26 + idleDrama*10;
-    const linkDistActiveRaw = (50 + amp*200 + touchV*400 + burstEnergy*80) * lineMul * visSens;
-    const linkDistActive = Math.min(180, linkDistActiveRaw);
-    const linkDist = linkDistQuiet*(1-energy) + linkDistActive*energy;
-
-    const centerPull = (0.005 + touchV*0.020) * (1.0 - Math.min(1, amp*1.2)) * (0.75 + idleDrama*0.6); // Lowered pull
-    const burst = (amp*0.012 + ampDelta*0.040 + touchV*0.015 + burstEnergy*0.015) * visSens; // Lowered burst
-
-    const freeze = energy * Math.max(0, 1 - (ampDelta*20));
-    const rotSpeedBase = (0.0012 + energy*0.010 + burstEnergy*0.008 + touchV*0.010) * (1 - 0.7*freeze);
-    const rotSpeed = rotSpeedBase * (0.65 + idleDrama*0.8);
-    rot += rotSpeed;
-
-    const scale = 1.0 + energy*(breathe-0.5)*0.25;
-
-    for(const p of pts){
-      p.vx += (Math.random()-0.5)*chaos;
-      p.vy += (Math.random()-0.5)*chaos;
-      p.vz += (Math.random()-0.5)*chaos*0.55;
-
-      p.vx += (-p.x)*centerPull*(0.9 - energy*0.4);
-      p.vy += (-p.y)*centerPull*(0.9 - energy*0.4);
-      p.vz += (-p.z)*centerPull*(0.6 - energy*0.2);
-
-      p.vx += (p.x)*burst*energy;
-      p.vy += (p.y)*burst*energy;
-      p.vz += (p.z)*burst*energy*0.6;
-
-      p.vx *= 0.90 - energy*0.05;
-      p.vy *= 0.90 - energy*0.05;
-      p.vz *= 0.92 - energy*0.04;
-
-      p.x = (p.x + p.vx*speed) * scale + (1-scale)*p.x;
-      p.y = (p.y + p.vy*speed) * scale + (1-scale)*p.y;
-      p.z = (p.z + p.vz*speed) * (0.92 + 0.08*scale) + (1-(0.92 + 0.08*scale))*p.z;
-
-      applyBounds(p, boundsMode);
-    }
-
-    const pr = pts.map(project);
-
-    if(energy > 0.05 || quietLines>0){
-      const cell = Math.max(22, Math.floor(linkDist));
-      const inv = 1 / cell;
-      const grid = new Map();
-
-      for(let i=0;i<N;i++){
-        const a = pr[i];
-        const cx = (a.x*inv)|0;
-        const cy = (a.y*inv)|0;
-        const key = (cx<<16) ^ (cy & 0xffff);
-        let arr = grid.get(key);
-        if(!arr){ arr=[]; grid.set(key, arr); }
-        arr.push(i);
-      }
-
-      const baseMax = (900 + energy*700 + burstEnergy*600 + touchV*500) * lineMul; // Lowered base max
-      const maxLines = Math.floor(baseMax * q);
-
-      let linesDrawn = 0;
-      const stride = (q < 0.45) ? 2 : 1;
-
-      for(let i=0;i<N;i+=stride){
-        if(linesDrawn >= maxLines) break;
-        const a = pr[i];
-        const cx = (a.x*inv)|0;
-        const cy = (a.y*inv)|0;
-
-        for(let oy=-1; oy<=1; oy++){
-          for(let ox=-1; ox<=1; ox++){
-            if(linesDrawn >= maxLines) break;
-
-            const k = ((cx+ox)<<16) ^ ((cy+oy) & 0xffff);
-            const bucket = grid.get(k);
-            if(!bucket) continue;
-
-            for(let bi=0; bi<bucket.length; bi++){
-              const j = bucket[bi];
-              if(j<=i) continue;
-
-              const b = pr[j];
-              const dx=a.x-b.x, dy=a.y-b.y;
-              const d = Math.hypot(dx,dy);
-              if(d<linkDist){
-                const alpha = 1 - d/linkDist;
-
-                const quietGain = (quietLines===0) ? 0 : (quietLines===1 ? 0.12 : 0.24);
-                const onGain = 0.30 + amp*1.2*visSens + burstEnergy*1.2*visSens + touchV*1.0; // Lowered OnGain
-                const punch = Math.min(1, alpha * (quietGain*(1-energy) + onGain*energy));
-
-                ctx.globalAlpha = punch * getGlow();
-                ctx.strokeStyle = "rgba(255,255,255,0.9)";
-                ctx.lineWidth = 1;
-                ctx.beginPath();
-                ctx.moveTo(a.x,a.y);
-                ctx.lineTo(b.x,b.y);
-                ctx.stroke();
-
-                linesDrawn++;
-                if(linesDrawn >= maxLines) break;
-              }
+              linesDrawn++;
+              if(linesDrawn >= maxLines) break;
             }
           }
         }
       }
     }
-
-    const glow = getGlow();
-    const pSize = getPointSize();
-    const pCol = getPointColor();
-
-    for(let i=0;i<N;i++){
-      const p = pr[i];
-
-      const baseR = (0.6 + p.k*0.3) * pSize;
-      const rQuiet = Math.max(0.9, baseR * (1.05 + idleDrama*0.15));
-      const rActive = baseR * (1.15 + amp*2.2*visSens + touchV*1.6 + burstEnergy*0.9);
-      const r = rQuiet*(1-energy) + rActive*energy;
-
-      const aQuiet = 0.32 + idleDrama*0.12;
-      const aActive = Math.min(1, 0.40 + amp*0.95*visSens + touchV*0.65 + burstEnergy*0.60);
-      const a = aQuiet*(1-energy) + aActive*energy;
-
-      ctx.globalAlpha = a * glow;
-      ctx.fillStyle = pCol;
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, r, 0, Math.PI*2);
-      ctx.fill();
-    }
-    ctx.globalAlpha = 1;
-
-    requestAnimationFrame(loop);
   }
-  loop();
+
+  const glow = getGlow();
+  const pSize = getPointSize();
+  const pCol = getPointColor();
+
+  for(let i=0;i<N;i++){
+    const p = pr[i];
+
+    const baseR = (0.6 + p.k*0.3) * pSize;
+    const rQuiet = Math.max(0.9, baseR * (1.05 + idleDrama*0.15));
+    const rActive = baseR * (1.15 + amp*2.2*visSens + touchV*1.6 + burstEnergy*0.9);
+    const r = rQuiet*(1-energy) + rActive*energy;
+
+    const aQuiet = 0.32 + idleDrama*0.12;
+    const aActive = Math.min(1, 0.40 + amp*0.95*visSens + touchV*0.65 + burstEnergy*0.60);
+    const a = aQuiet*(1-energy) + aActive*energy;
+
+    ctx.globalAlpha = a * glow;
+    ctx.fillStyle = pCol;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, r, 0, Math.PI*2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+
+  requestAnimationFrame(loop);
 }
+loop();
 
 /* ==========================================================
-    SYSTEM / RESTORE
+   POPUP CONTROL TOWER
+   - 팝업에서 localStorage(STORE_KEY) 수정
+   - 메인은 storage 이벤트로 실시간 반영
 ========================================================== */
-if(isMainWindow){
-  if(S.activeTab){
-    const tabEl = document.querySelector(`.tab[data-tab="${S.activeTab}"]`);
-    if(tabEl) tabEl.click();
+function openControlTower(){
+  const w = window.open("", "LIMEN_CONTROL_TOWER", "width=560,height=860,resizable=yes,scrollbars=yes");
+  if(!w){
+    alert("팝업이 차단됐어요. 브라우저에서 팝업 허용 후 다시 ⚙️를 눌러주세요.");
+    return;
   }
+  const safeS = loadSettings();
 
-  /* ==========================================================
-      STARTUP
-  ========================================================== */
-  N = parseInt(document.getElementById('selN').value,10);
-  initPoints();
-  updateTopPill(1);
-  startStatus("Start Audio 버튼을 누르거나, 화면을 클릭하여 오디오 시스템을 준비하세요.");
+  w.document.open();
+  w.document.write(`
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>LIMEN – Control Tower</title>
+<style>
+  body{margin:0;background:#0b0b0b;color:#ddd;font-family:system-ui,-apple-system,sans-serif;}
+  header{position:sticky;top:0;background:rgba(0,0,0,.75);backdrop-filter:blur(10px);border-bottom:1px solid rgba(255,255,255,.10);padding:12px 14px;z-index:5}
+  .title{font-weight:900}
+  .sub{font-size:12px;color:#9aa;margin-top:4px;line-height:1.4}
+  main{padding:14px}
+  .card{border:1px solid rgba(255,255,255,.10);border-radius:14px;background:rgba(255,255,255,.04);padding:12px;margin:10px 0}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:10px 0}
+  .label{width:160px;color:#aaa;font-size:12px}
+  .grow{flex:1;min-width:220px}
+  input[type=range],select,button{background:#111;color:#eee;border:1px solid rgba(255,255,255,.16);border-radius:10px;padding:8px 10px;font-weight:700}
+  input[type=range]{padding:6px 10px;width:100%}
+  button{cursor:pointer}
+  button:hover,select:hover{border-color:rgba(255,255,255,.32)}
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:#bbb}
+  .pill{display:inline-block;padding:6px 10px;border:1px solid rgba(255,255,255,.12);border-radius:999px;background:rgba(0,0,0,.35);font-size:12px;color:#bbb}
+</style>
+</head>
+<body>
+<header>
+  <div class="title">LIMEN – Control Tower</div>
+  <div class="sub">
+    이 팝업에서 조절하면 메인 화면(빔프로젝터)로 즉시 반영됩니다.<br/>
+    MIDI는 여기에서 Connect/LEARN 하세요.
+  </div>
+</header>
 
-  window.addEventListener('pagehide', ()=>{
-    try{ stopMic(); }catch(e){}
-    try{ if(fileAudioEl) fileAudioEl.pause(); }catch(e){}
-  });
+<main>
+  <div class="card">
+    <div class="row" style="justify-content:space-between">
+      <div class="pill">localStorage sync</div>
+      <button id="btnResetTouch" title="touch value reset">touch reset</button>
+    </div>
+    <div class="mono" id="dbg"></div>
+  </div>
+
+  <div class="card">
+    <div class="row"><div class="label">Touch FX Preset</div>
+      <select id="selFXPreset" class="grow">
+        <option value="digital">1) Digital Glitch (current vibe)</option>
+        <option value="piano">2) Warm Piano-ish (덜 우울, 따뜻)</option>
+        <option value="bell">3) Bright Bell / Glass</option>
+        <option value="pad">4) Soft Pad / Air</option>
+        <option value="pluck">5) Percussive Pluck</option>
+      </select>
+    </div>
+
+    <div class="row"><div class="label">Sim Touch (test)</div>
+      <div class="grow">
+        <input id="rngSimTouch" type="range" min="0" max="1" step="0.001">
+        <div class="mono" id="txtSimTouch"></div>
+      </div>
+    </div>
+
+    <div class="row"><div class="label">MIDI Smooth</div>
+      <div class="grow">
+        <input id="rngMIDISmooth" type="range" min="0.02" max="0.50" step="0.01">
+        <div class="mono" id="txtMIDISmooth"></div>
+      </div>
+    </div>
+
+    <div class="row">
+      <button id="btnMIDIInit" class="grow">Connect MIDI (WebMIDI)</button>
+      <button id="btnLearn" class="grow">LEARN</button>
+    </div>
+    <div class="mono" id="midiStatus">midi: -</div>
+    <div class="mono" id="midiLast">last: -</div>
+  </div>
+
+  <div class="card">
+    <div class="row"><div class="label">Motion Speed (slower)</div>
+      <div class="grow">
+        <input id="rngMotionSpeed" type="range" min="0.25" max="1.2" step="0.01">
+        <div class="mono" id="txtMotionSpeed"></div>
+      </div>
+    </div>
+    <div class="row"><div class="label">Idle Drama</div>
+      <div class="grow"><input id="rngIdleDrama" type="range" min="0" max="1" step="0.01"><div class="mono" id="txtIdleDrama"></div></div>
+    </div>
+    <div class="row"><div class="label">Visual Sens</div>
+      <div class="grow"><input id="rngVisSens" type="range" min="0.6" max="2.6" step="0.01"><div class="mono" id="txtVisSens"></div></div>
+    </div>
+    <div class="row"><div class="label">Line density</div>
+      <div class="grow"><input id="rngLine" type="range" min="0.2" max="1.2" step="0.01"><div class="mono" id="txtLine"></div></div>
+    </div>
+    <div class="row"><div class="label">Perf limit</div>
+      <div class="grow"><input id="rngPerf" type="range" min="0.25" max="1" step="0.01"><div class="mono" id="txtPerf"></div></div>
+    </div>
+    <div class="row"><div class="label">BG fade</div>
+      <div class="grow"><input id="rngFade" type="range" min="0.02" max="0.20" step="0.005"><div class="mono" id="txtFade"></div></div>
+    </div>
+    <div class="row"><div class="label">Point size</div>
+      <div class="grow"><input id="rngPointSize" type="range" min="0.4" max="1.2" step="0.01"><div class="mono" id="txtPointSize"></div></div>
+    </div>
+    <div class="row"><div class="label">Glow</div>
+      <div class="grow"><input id="rngGlow" type="range" min="0.10" max="1.0" step="0.01"><div class="mono" id="txtGlow"></div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="row"><div class="label">Media Gain</div>
+      <div class="grow"><input id="rngMediaGain" type="range" min="0.2" max="3.0" step="0.01"><div class="mono" id="txtMediaGain"></div></div>
+    </div>
+    <div class="row"><div class="label">Analysis Sens</div>
+      <div class="grow"><input id="rngSens" type="range" min="1" max="12" step="0.1"><div class="mono" id="txtSens"></div></div>
+    </div>
+    <div class="row"><div class="label">Gamma</div>
+      <div class="grow"><input id="rngGamma" type="range" min="0.45" max="1.20" step="0.01"><div class="mono" id="txtGamma"></div></div>
+    </div>
+    <div class="row"><div class="label">Amp cap</div>
+      <div class="grow"><input id="rngCap" type="range" min="0.10" max="0.70" step="0.01"><div class="mono" id="txtCap"></div></div>
+    </div>
+    <div class="row"><div class="label">EQ Low (200Hz)</div>
+      <div class="grow"><input id="rngEQLow" type="range" min="-20" max="20" step="0.5"><div class="mono" id="txtEQLow"></div></div>
+    </div>
+    <div class="row"><div class="label">EQ Mid (1kHz)</div>
+      <div class="grow"><input id="rngEQMid" type="range" min="-20" max="20" step="0.5"><div class="mono" id="txtEQMid"></div></div>
+    </div>
+    <div class="row"><div class="label">EQ High (4kHz)</div>
+      <div class="grow"><input id="rngEQHigh" type="range" min="-20" max="20" step="0.5"><div class="mono" id="txtEQHigh"></div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="row"><div class="label">Auto Reboot</div>
+      <select id="selAutoReboot" class="grow">
+        <option value="1">ON (lag/freeze → ENTRY)</option>
+        <option value="0">OFF</option>
+      </select>
+    </div>
+  </div>
+</main>
+
+<script>
+const STORE_KEY = ${JSON.stringify(STORE_KEY)};
+function load(){ try{ return JSON.parse(localStorage.getItem(STORE_KEY)||"{}"); }catch(e){ return {}; } }
+function save(S){ localStorage.setItem(STORE_KEY, JSON.stringify(S)); }
+let S = load();
+
+function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
+
+function bindRange(id, fallback, fmt){
+  const el = document.getElementById(id);
+  el.value = (S[id] ?? fallback);
+  const txt = document.getElementById("txt"+id.slice(3));
+  const update = ()=>{
+    S[id] = parseFloat(el.value);
+    save(S);
+    if(txt) txt.textContent = fmt(S[id]);
+  };
+  el.addEventListener("input", update);
+  update();
 }
+function bindSelect(id, fallback){
+  const el = document.getElementById(id);
+  el.value = (S[id] ?? fallback);
+  const update = ()=>{
+    S[id] = el.value;
+    save(S);
+  };
+  el.addEventListener("change", update);
+  update();
+}
+function dbg(){
+  const d = document.getElementById("dbg");
+  const preset = S.selFXPreset ?? "digital";
+  d.textContent =
+    "preset=" + preset + "\\n" +
+    "touchFromMIDI=" + (S.touchFromMIDI ?? 0) + "\\n" +
+    "simTouch=" + (S.rngSimTouch ?? 0) + "\\n";
+}
+window.addEventListener("storage", (e)=>{
+  if(e.key===STORE_KEY){ S = load(); syncUI(); dbg(); }
+});
+
+bindSelect("selFXPreset","digital");
+bindRange("rngSimTouch", 0, v=>"sim: "+v.toFixed(3));
+bindRange("rngMIDISmooth", 0.22, v=>"smooth: "+v.toFixed(2));
+
+bindRange("rngMotionSpeed", 0.62, v=>"motion: "+v.toFixed(2)+"×");
+bindRange("rngIdleDrama", 0.55, v=>"idle: "+v.toFixed(2));
+bindRange("rngVisSens", 1.55, v=>"sens: "+v.toFixed(2)+"×");
+bindRange("rngLine", 0.75, v=>"line: "+v.toFixed(2)+"×");
+bindRange("rngPerf", 0.72, v=>"perf: "+v.toFixed(2));
+bindRange("rngFade", 0.03, v=>"fade: "+v.toFixed(3));
+bindRange("rngPointSize", 0.60, v=>"size: "+v.toFixed(2)+"×");
+bindRange("rngGlow", 0.45, v=>"glow: "+v.toFixed(2)+"×");
+
+bindRange("rngMediaGain", 1.00, v=>"gain: "+v.toFixed(2)+"×");
+bindRange("rngSens", 7.0, v=>"analysis: "+v.toFixed(1)+"×");
+bindRange("rngGamma", 0.72, v=>"gamma: "+v.toFixed(2));
+bindRange("rngCap", 0.42, v=>"cap: "+v.toFixed(2));
+bindRange("rngEQLow", 0, v=>"low: "+v.toFixed(1)+" dB");
+bindRange("rngEQMid", 0, v=>"mid: "+v.toFixed(1)+" dB");
+bindRange("rngEQHigh", 0, v=>"high: "+v.toFixed(1)+" dB");
+
+bindSelect("selAutoReboot","1");
+
+document.getElementById("btnResetTouch").addEventListener("click", ()=>{
+  S.touchFromMIDI = 0;
+  save(S);
+  dbg();
+});
+
+/* ---------- WebMIDI ---------- */
+let midiAccess=null, midiInput=null;
+let learn=false;
+
+const midiStatus = document.getElementById("midiStatus");
+const midiLast = document.getElementById("midiLast");
+const btnLearn = document.getElementById("btnLearn");
+
+function setLearn(on){
+  learn=on;
+  btnLearn.textContent = on ? "LEARN (ON)" : "LEARN";
+}
+
+function parseRaw(data){
+  const st = data[0] & 0xF0;
+  const ch = data[0] & 0x0F;
+  const d1 = data[1] ?? 0;
+  const d2 = data[2] ?? 0;
+  return {st,ch,d1,d2};
+}
+
+function attachInput(inp){
+  if(midiInput) midiInput.onmidimessage=null;
+  midiInput=inp;
+  midiStatus.textContent = "midi: "+(inp.name||"input");
+  inp.onmidimessage = (e)=>{
+    const r = parseRaw(e.data);
+    midiLast.textContent = "last: st=0x"+r.st.toString(16)+" ch="+(r.ch+1)+" d1="+r.d1+" d2="+r.d2;
+
+    // learn: CC면 d1 저장, NOTE면 note# 저장
+    if(learn){
+      if(r.st===0xB0){
+        S.selMIDIType="cc"; S.numMIDINum=r.d1; S.selMIDICh=String(r.ch);
+        save(S); setLearn(false);
+      }else if(r.st===0x90 || r.st===0x80){
+        S.selMIDIType="note"; S.numMIDINum=r.d1; S.selMIDICh=String(r.ch);
+        save(S); setLearn(false);
+      }
+    }
+
+    // mapping: stored mapping 없으면 그냥 CC는 raw/127, note는 vel/127
+    const mode = S.selMIDIType ?? "cc";
+    const num = parseInt(S.numMIDINum ?? 1,10);
+    const wantCh = parseInt(S.selMIDICh ?? "-1",10);
+
+    if(wantCh !== -1 && r.ch !== wantCh) return;
+
+    let raw01=null;
+    if(mode==="cc"){
+      if(r.st!==0xB0 || r.d1!==num) return;
+      raw01 = r.d2/127;
+    }else{
+      if((r.st!==0x90 && r.st!==0x80) || r.d1!==num) return;
+      raw01 = ((r.st===0x80)?0:r.d2)/127;
+    }
+
+    // shaping: deadzone/gain/curve/invert
+    let x = clamp(raw01,0,1);
+    const inv = (S.selMIDIInvert ?? "0")==="1";
+    if(inv) x = 1-x;
+
+    const dead = clamp(parseFloat(S.rngMIDIDead ?? 0.02), 0, 0.25);
+    if(x < dead) x = 0; else x = (x-dead)/(1-dead);
+
+    x *= clamp(parseFloat(S.rngMIDIGain ?? 1.60), 0.3, 3.0);
+    x = clamp(x,0,1);
+
+    const curve = clamp(parseFloat(S.rngMIDICurve ?? 0.85), 0.4, 2.8);
+    x = Math.pow(x, curve);
+    x = clamp(x,0,1);
+
+    S.touchFromMIDI = x;
+    save(S);
+    dbg();
+  };
+}
+
+async function initMIDI(){
+  if(!navigator.requestMIDIAccess){
+    midiStatus.textContent="midi: not supported (use Sim Touch)";
+    return;
+  }
+  try{
+    midiAccess = await navigator.requestMIDIAccess({sysex:false});
+    const inputs = [...midiAccess.inputs.values()];
+    if(inputs.length===0){
+      midiStatus.textContent="midi: no inputs";
+      return;
+    }
+    // attach first input or saved
+    const savedName = S.midiInputName ?? "";
+    let pick = inputs.find(i=>i.name===savedName) || inputs[0];
+    S.midiInputName = pick.name || "";
+    save(S);
+    attachInput(pick);
+    midiStatus.textContent="midi: connected ("+(pick.name||"input")+")";
+  }catch(e){
+    midiStatus.textContent="midi: blocked (https/permissions)";
+  }
+}
+
+document.getElementById("btnMIDIInit").addEventListener("click", initMIDI);
+btnLearn.addEventListener("click", ()=> setLearn(!learn));
+
+function syncUI(){
+  // (간단: storage로 값이 바뀌면 bindRange가 이미 반영함)
+  const fx = document.getElementById("selFXPreset");
+  fx.value = (S.selFXPreset ?? "digital");
+  const ar = document.getElementById("selAutoReboot");
+  ar.value = (S.selAutoReboot ?? "1");
+}
+dbg();
+</script>
+</body>
+</html>
+  `);
+  w.document.close();
+}
+
+document.getElementById('btnGear').addEventListener('click', openControlTower);
+
+/* ==========================================================
+   STORAGE SYNC: popup에서 값 바뀌면 메인 반영
+========================================================== */
+window.addEventListener('storage', (e)=>{
+  if(e.key===STORE_KEY){
+    S = loadSettings();
+    // 파티클 수 변경 반영
+    const nNew = parseInt(S.selN ?? N, 10);
+    if(nNew !== N){
+      N = nNew;
+      initPoints();
+    }
+  }
+});
+
+/* ==========================================================
+   STARTUP
+========================================================== */
+startStatus("Start Audio → Mic/File 선택 → Enter");
+window.addEventListener('pagehide', ()=>{
+  try{ stopMic(); }catch(e){}
+  try{ if(fileAudioEl) fileAudioEl.pause(); }catch(e){}
+});
 </script>
 </body>
 </html>
