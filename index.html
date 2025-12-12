@@ -5,626 +5,613 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
 <title>LIMEN WORKSHOP – Monitorable Sound/Touch Reactive Field</title>
 <style>
-  html,body{margin:0;height:100%;background:#000;overflow:hidden;touch-action:none;}
-  canvas{display:block;width:100vw;height:100vh;}
+  html,body{margin:0;height:100%;background:#000;overflow:hidden;touch-action:none;}
+  canvas{display:block;width:100vw;height:100vh;}
 
-  /* Entry */
-  #hint{
-    position:fixed; inset:0;
-    display:flex; align-items:center; justify-content:center;
-    background:rgba(0,0,0,.72);
-    color:#ddd; font-family:system-ui, -apple-system, sans-serif;
-    text-align:center; padding:20px;
-    z-index:50;
-  }
-  #hint .box{
-    width:min(720px, 94vw);
-    border:1px solid rgba(255,255,255,.12);
-    border-radius:14px;
-    padding:18px 16px;
-    background:rgba(0,0,0,.55);
-    text-align:left;
-  }
+  /* Entry */
+  #hint{
+    position:fixed; inset:0;
+    display:flex; align-items:center; justify-content:center;
+    background:rgba(0,0,0,.72);
+    color:#ddd; font-family:system-ui, -apple-system, sans-serif;
+    text-align:center; padding:20px;
+    z-index:50;
+  }
+  #hint .box{
+    width:min(720px, 94vw);
+    border:1px solid rgba(255,255,255,.12);
+    border-radius:14px;
+    padding:18px 16px;
+    background:rgba(0,0,0,.55);
+    text-align:left;
+  }
 
-  /* Top-right buttons */
-  #topRight{
-    position:fixed; right:12px; top:12px;
-    display:flex; gap:8px;
-    z-index:40;
-  }
-  .iconBtn{
-    width:42px; height:42px;
-    display:grid; place-items:center;
-    background:rgba(0,0,0,.38);
-    color:#eee;
-    border:1px solid rgba(255,255,255,.14);
-    border-radius:12px;
-    backdrop-filter: blur(10px);
-    cursor:pointer;
-    user-select:none;
-    font-size:18px;
-  }
-  .iconBtn:hover{border-color:rgba(255,255,255,.30)}
-  .iconBtn:active{transform:translateY(1px)}
+  /* Top-right buttons */
+  #topRight{
+    position:fixed; right:12px; top:12px;
+    display:flex; gap:8px;
+    z-index:40;
+  }
+  .iconBtn{
+    width:42px; height:42px;
+    display:grid; place-items:center;
+    background:rgba(0,0,0,.38);
+    color:#eee;
+    border:1px solid rgba(255,255,255,.14);
+    border-radius:12px;
+    backdrop-filter: blur(10px);
+    cursor:pointer;
+    user-select:none;
+    font-size:18px;
+  }
+  .iconBtn:hover{border-color:rgba(255,255,255,.30)}
+  .iconBtn:active{transform:translateY(1px)}
 
-  /* Hidden in main (we use popup window as control tower) */
-  #ui{display:none !important;}
+  /* Hidden in main (we use popup window as control tower) */
+  #ui{display:none !important;}
 
-  /* tiny HUD for touch */
-  #touchHUD{
-    position:fixed; left:12px; bottom:12px;
-    z-index:39;
-    color:#ddd;
-    font-family:ui-monospace, SFMono-Regular, Menlo, monospace;
-    font-size:11px;
-    background:rgba(0,0,0,.28);
-    border:1px solid rgba(255,255,255,.10);
-    border-radius:12px;
-    padding:8px 10px;
-    backdrop-filter: blur(10px);
-    pointer-events:none;
-  }
-  #touchHUD .bar{height:8px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden;border:1px solid rgba(255,255,255,.10);margin-top:6px;}
-  #touchHUD .bar i{display:block;height:100%;width:0%;background:rgba(255,80,80,.90);}
+  /* tiny HUD for touch */
+  #touchHUD{
+    position:fixed; left:12px; bottom:12px;
+    z-index:39;
+    color:#ddd;
+    font-family:ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size:11px;
+    background:rgba(0,0,0,.28);
+    border:1px solid rgba(255,255,255,.10);
+    border-radius:12px;
+    padding:8px 10px;
+    backdrop-filter: blur(10px);
+    pointer-events:none;
+  }
+  #touchHUD .bar{height:8px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden;border:1px solid rgba(255,255,255,.10);margin-top:6px;}
+  #touchHUD .bar i{display:block;height:100%;width:0%;background:rgba(255,80,80,.90);}
 
-  /* Entry header */
-  .entryTitle{font-weight:900; font-size:16px; margin-bottom:10px;}
-  .entryGrid{
-    display:grid;
-    grid-template-columns: 1fr;
-    gap:10px;
-  }
-  @media (min-width:720px){
-    .entryGrid{grid-template-columns: 1fr 1fr;}
-  }
-  .entryCard{
-    border:1px solid rgba(255,255,255,.10);
-    border-radius:12px;
-    padding:10px;
-    background:rgba(0,0,0,.20);
-  }
+  /* Entry header */
+  .entryTitle{font-weight:900; font-size:16px; margin-bottom:10px;}
+  .entryGrid{
+    display:grid;
+    grid-template-columns: 1fr;
+    gap:10px;
+  }
+  @media (min-width:720px){
+    .entryGrid{grid-template-columns: 1fr 1fr;}
+  }
+  .entryCard{
+    border:1px solid rgba(255,255,255,.10);
+    border-radius:12px;
+    padding:10px;
+    background:rgba(0,0,0,.20);
+  }
 
-  button, select, input[type="range"], input[type="number"]{
-    background:#0f0f0f; color:#eee;
-    border:1px solid rgba(255,255,255,.16);
-    border-radius:10px;
-    padding:8px 10px;
-    font-weight:650;
-    outline:none;
-  }
-  input[type="range"]{padding:6px 10px;}
-  button:hover, select:hover{border-color:rgba(255,255,255,.32)}
-  button:disabled, select:disabled{opacity:.5; cursor:not-allowed}
+  button, select, input[type="range"], input[type="number"]{
+    background:#0f0f0f; color:#eee;
+    border:1px solid rgba(255,255,255,.16);
+    border-radius:10px;
+    padding:8px 10px;
+    font-weight:650;
+    outline:none;
+  }
+  input[type="range"]{padding:6px 10px;}
+  button:hover, select:hover{border-color:rgba(255,255,255,.32)}
+  button:disabled, select:disabled{opacity:.5; cursor:not-allowed}
 
-  .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin:8px 0;}
-  .label{font-size:12px; color:#aaa; width:132px;}
-  .grow{flex:1; min-width:200px;}
-  .small{font-size:11px; color:#9aa; line-height:1.45;}
-  .fileLine{display:flex; gap:8px; align-items:center; flex-wrap:wrap;}
-  .fileLine input[type="file"]{
-    padding:6px 10px;
-    border-radius:10px;
-    border:1px solid rgba(255,255,255,.16);
-    background:rgba(0,0,0,.22);
-    color:#ddd;
-  }
+  .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin:8px 0;}
+  .label{font-size:12px; color:#aaa; width:132px;}
+  .grow{flex:1; min-width:200px;}
+  .small{font-size:11px; color:#9aa; line-height:1.45;}
+  .fileLine{display:flex; gap:8px; align-items:center; flex-wrap:wrap;}
+  .fileLine input[type="file"]{
+    padding:6px 10px;
+    border-radius:10px;
+    border:1px solid rgba(255,255,255,.16);
+    background:rgba(0,0,0,.22);
+    color:#ddd;
+  }
 </style>
 </head>
 <body>
 
-<!-- ENTRY (렉 시 여기로 되돌아옴) -->
 <div id="hint">
-  <div class="box">
-    <div class="entryTitle">LIMEN WORKSHOP – Entry</div>
-    <div class="small" style="margin-bottom:12px;">
-      1) <b>Start Audio</b>로 오디오 잠금 해제<br/>
-      2) 여기서 <b>Mic / File</b> 선택 후 <b>Mic ON</b> 또는 <b>File Play</b>로 입장<br/>
-      3) 컨트롤 타워(팝업): ⚙️ 버튼 → 별도 창에서 전체 설정/녹화/프리셋 컨트롤
-    </div>
+  <div class="box">
+    <div class="entryTitle">LIMEN WORKSHOP – Entry</div>
+    <div class="small" style="margin-bottom:12px;">
+      1) <b>Start Audio</b>로 오디오 잠금 해제<br/>
+      2) 여기서 <b>Mic / File</b> 선택 후 <b>Mic ON</b> 또는 <b>File Play</b>로 입장<br/>
+      3) 컨트롤 타워(팝업): ⚙️ 버튼 → 별도 창에서 전체 설정/녹화/프리셋 컨트롤
+    </div>
 
-    <div class="row" style="justify-content:space-between;">
-      <div class="row" style="margin:0;">
-        <button id="btnStartAudio">Start Audio</button>
-        <button id="btnFS">Fullscreen</button>
-        <button id="btnOpenTower">Open Control Tower</button>
-      </div>
-      <div class="small" id="startStatus" style="opacity:.9; margin-left:10px;"></div>
-    </div>
+    <div class="row" style="justify-content:space-between;">
+      <div class="row" style="margin:0;">
+        <button id="btnStartAudio">Start Audio</button>
+        <button id="btnFS">Fullscreen</button>
+        <button id="btnOpenTower">Open Control Tower</button>
+      </div>
+      <div class="small" id="startStatus" style="opacity:.9; margin-left:10px;"></div>
+    </div>
 
-    <div class="entryGrid">
-      <!-- MIC/FILE ENTRY -->
-      <div class="entryCard">
-        <div class="row" style="margin-top:0;">
-          <div class="label">Input</div>
-          <select id="entrySelSrc" class="grow">
-            <option value="mic" selected>Mic (Live input)</option>
-            <option value="file">File (MP3/WAV)</option>
-          </select>
-        </div>
+    <div class="entryGrid">
+            <div class="entryCard">
+        <div class="row" style="margin-top:0;">
+          <div class="label">Input</div>
+          <select id="entrySelSrc" class="grow">
+            <option value="mic" selected>Mic (Live input)</option>
+            <option value="file">File (MP3/WAV)</option>
+          </select>
+        </div>
 
-        <div id="entryMicBox">
-          <div class="row">
-            <div class="label">Mic device</div>
-            <select id="entrySelMic" class="grow" disabled>
-              <option>Start Audio 후 목록 로드</option>
-            </select>
-          </div>
-          <div class="row">
-            <button id="entryMicOn" class="grow" disabled>Mic ON (Enter)</button>
-            <button id="entryMicOff" class="grow" disabled>Mic OFF</button>
-          </div>
-          <div class="small">Mic ON을 누르면 Entry 화면이 닫히고(입장) 비주얼이 시작됩니다.</div>
-        </div>
+        <div id="entryMicBox">
+          <div class="row">
+            <div class="label">Mic device</div>
+            <select id="entrySelMic" class="grow" disabled>
+              <option>Start Audio 후 목록 로드</option>
+            </select>
+          </div>
+          <div class="row">
+            <button id="entryMicOn" class="grow" disabled>Mic ON (Enter)</button>
+            <button id="entryMicOff" class="grow" disabled>Mic OFF</button>
+          </div>
+          <div class="small">Mic ON을 누르면 Entry 화면이 닫히고(입장) 비주얼이 시작됩니다.</div>
+        </div>
 
-        <div id="entryFileBox" style="display:none;">
-          <div class="row">
-            <div class="label">Audio file</div>
-            <div class="grow">
-              <div class="fileLine">
-                <input id="entryFileAudio" type="file" accept="audio/*">
-              </div>
-              <div class="small" id="entryFileTxt">파일 선택 후 Play로 입장</div>
-            </div>
-          </div>
-          <div class="row">
-            <button id="entryFilePlay" class="grow" disabled>Play (Enter)</button>
-            <button id="entryFilePause" class="grow" disabled>Pause</button>
-            <button id="entryFileStop" class="grow" disabled>Stop</button>
-          </div>
-        </div>
-      </div>
+        <div id="entryFileBox" style="display:none;">
+          <div class="row">
+            <div class="label">Audio file</div>
+            <div class="grow">
+              <div class="fileLine">
+                <input id="entryFileAudio" type="file" accept="audio/*">
+              </div>
+              <div class="small" id="entryFileTxt">파일 선택 후 Play로 입장</div>
+            </div>
+          </div>
+          <div class="row">
+            <button id="entryFilePlay" class="grow" disabled>Play (Enter)</button>
+            <button id="entryFilePause" class="grow" disabled>Pause</button>
+            <button id="entryFileStop" class="grow" disabled>Stop</button>
+          </div>
+        </div>
+      </div>
 
-      <!-- QUICK INFO -->
-      <div class="entryCard">
-        <div class="small" style="margin-bottom:8px;">
-          ✅ 렉(프리즈/과부하) 감지 시 <b>자동으로 이 Entry 화면으로 되돌아옵니다</b>.<br/>
-          (페이지 새로고침이 아니라 “입장 단계로 복귀”)
-        </div>
-        <div class="small" style="margin-bottom:8px;">
-          ✅ 컨트롤 타워는 <b>별도 팝업 창</b>으로 열려서, 확장 스크린(빔)에는 풀스크린만 띄우고<br/>
-          노트북 화면에서 설정/녹화/프리셋을 컨트롤할 수 있습니다.
-        </div>
-        <div class="small">
-          ✅ 파일(mp3) 볼륨 슬라이더 + <b>화면+사운드 녹화(레코딩)</b> 기능 추가됨 (Chrome 권장)
-        </div>
-      </div>
-    </div>
-  </div>
+            <div class="entryCard">
+        <div class="small" style="margin-bottom:8px;">
+          ✅ 렉(프리즈/과부하) 감지 시 <b>자동으로 이 Entry 화면으로 되돌아옵니다</b>.<br/>
+          (페이지 새로고침이 아니라 “입장 단계로 복귀”)
+        </div>
+        <div class="small" style="margin-bottom:8px;">
+          ✅ 컨트롤 타워는 <b>별도 팝업 창</b>으로 열려서, 확장 스크린(빔)에는 풀스크린만 띄우고<br/>
+          노트북 화면에서 설정/녹화/프리셋을 컨트롤할 수 있습니다.
+        </div>
+        <div class="small">
+          ✅ 파일(mp3) 볼륨 슬라이더 + <b>화면+사운드 녹화(레코딩)</b> 기능 추가됨 (Chrome 권장)
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <canvas id="c"></canvas>
 
 <div id="touchHUD">
-  touch: <span id="hudTouch">0.000</span> | amp: <span id="hudAmp">0.000</span><br/>
-  <span id="hudMidi">midi: -</span>
-  <div class="bar"><i id="hudTouchBar"></i></div>
+  touch: <span id="hudTouch">0.000</span> | amp: <span id="hudAmp">0.000</span><br/>
+  <span id="hudMidi">midi: -</span>
+  <div class="bar"><i id="hudTouchBar"></i></div>
 </div>
 
-<!-- Top right quick -->
 <div id="topRight">
-  <div class="iconBtn" id="btnGear" title="Control Tower">⚙️</div>
-  <div class="iconBtn" id="btnMuteQuick" title="Mute">🔈</div>
-  <div class="iconBtn" id="btnFSQuick" title="Fullscreen">⛶</div>
+  <div class="iconBtn" id="btnGear" title="Control Tower">⚙️</div>
+  <div class="iconBtn" id="btnMuteQuick" title="Mute">🔈</div>
+  <div class="iconBtn" id="btnFSQuick" title="Fullscreen">⛶</div>
 </div>
 
-<!-- Hidden Settings UI (for logic / popup mirrors controls) -->
 <div id="ui">
-  <div id="bar">
-    <div class="title">Settings</div>
-    <button id="btnHideUI" title="Close">닫기</button>
-    <div class="pill" id="topPill">audio:off | src:off | q:1.00</div>
-  </div>
+  <div id="bar">
+    <div class="title">Settings</div>
+    <button id="btnHideUI" title="Close">닫기</button>
+    <div class="pill" id="topPill">audio:off | src:off | q:1.00</div>
+  </div>
 
-  <div id="tabs">
-    <div class="tab active" data-tab="visual">VISUAL</div>
-    <div class="tab" data-tab="audio">AUDIO</div>
-    <div class="tab" data-tab="midi">MIDI</div>
-    <div class="tab" data-tab="system">SYSTEM</div>
-  </div>
+  <div id="tabs">
+    <div class="tab active" data-tab="visual">VISUAL</div>
+    <div class="tab" data-tab="audio">AUDIO</div>
+    <div class="tab" data-tab="midi">MIDI</div>
+    <div class="tab" data-tab="system">SYSTEM</div>
+  </div>
 
-  <div id="panels">
-    <!-- VISUAL -->
-    <div class="panel active" id="panel-visual">
-      <div class="row">
-        <div class="label">Mode</div>
-        <select id="selMode" class="grow">
-          <option value="calm">Calm (quiet 3D dots)</option>
-          <option value="pulse" selected>Pulse (amp-driven)</option>
-          <option value="burst">Burst (delta-driven)</option>
-        </select>
-      </div>
+  <div id="panels">
+        <div class="panel active" id="panel-visual">
+      <div class="row">
+        <div class="label">Mode</div>
+        <select id="selMode" class="grow">
+          <option value="calm">Calm (quiet 3D dots)</option>
+          <option value="pulse" selected>Pulse (amp-driven)</option>
+          <option value="burst">Burst (delta-driven)</option>
+        </select>
+      </div>
 
-      <div class="row">
-        <div class="label">Particles</div>
-        <select id="selN" class="grow">
-          <option value="160">160</option>
-          <option value="220" selected>220</option>
-          <option value="320">320</option>
-        </select>
-      </div>
+      <div class="row">
+        <div class="label">Particles</div>
+        <select id="selN" class="grow">
+          <option value="160">160</option>
+          <option value="220" selected>220</option>
+          <option value="320">320</option>
+        </select>
+      </div>
 
-      <div class="row">
-        <div class="label">Keep in screen</div>
-        <select id="selBounds" class="grow">
-          <option value="soft" selected>Soft boundary</option>
-          <option value="bounce">Bounce</option>
-          <option value="wrap">Wrap</option>
-        </select>
-      </div>
+      <div class="row">
+        <div class="label">Keep in screen</div>
+        <select id="selBounds" class="grow">
+          <option value="soft" selected>Soft boundary</option>
+          <option value="bounce">Bounce</option>
+          <option value="wrap">Wrap</option>
+        </select>
+      </div>
 
-      <div class="row">
-        <div class="label">Quiet lines</div>
-        <select id="selQuietLines" class="grow">
-          <option value="0">Off</option>
-          <option value="1" selected>Very subtle</option>
-          <option value="2">On</option>
-        </select>
-      </div>
+      <div class="row">
+        <div class="label">Quiet lines</div>
+        <select id="selQuietLines" class="grow">
+          <option value="0">Off</option>
+          <option value="1" selected>Very subtle</option>
+          <option value="2">On</option>
+        </select>
+      </div>
 
-      <div class="row">
-        <div class="label">Point color</div>
-        <select id="selPointColor" class="grow">
-          <option value="red" selected>Red</option>
-          <option value="white">White</option>
-        </select>
-      </div>
+      <div class="row">
+        <div class="label">Point color</div>
+        <select id="selPointColor" class="grow">
+          <option value="red" selected>Red</option>
+          <option value="white">White</option>
+        </select>
+      </div>
 
-      <div class="row">
-        <div class="label">Idle Drama</div>
-        <div class="grow">
-          <input id="rngIdleDrama" type="range" min="0" max="1" step="0.01" value="0.55" style="width:100%;">
-          <div class="small" id="txtIdleDrama">idle drama: 0.55</div>
-        </div>
-      </div>
+      <div class="row">
+        <div class="label">Idle Drama</div>
+        <div class="grow">
+          <input id="rngIdleDrama" type="range" min="0" max="1" step="0.01" value="0.55" style="width:100%;">
+          <div class="small" id="txtIdleDrama">idle drama: 0.55</div>
+        </div>
+      </div>
 
-      <div class="row">
-        <div class="label">Visual Sens</div>
-        <div class="grow">
-          <input id="rngVisSens" type="range" min="0.6" max="2.6" step="0.01" value="1.55" style="width:100%;">
-          <div class="small" id="txtVisSens">visual sens: 1.55×</div>
-        </div>
-      </div>
+      <div class="row">
+        <div class="label">Visual Sens</div>
+        <div class="grow">
+          <input id="rngVisSens" type="range" min="0.6" max="2.6" step="0.01" value="1.55" style="width:100%;">
+          <div class="small" id="txtVisSens">visual sens: 1.55×</div>
+        </div>
+      </div>
 
-      <div class="row">
-        <div class="label">Line density</div>
-        <div class="grow">
-          <input id="rngLine" type="range" min="0.2" max="1.2" step="0.01" value="0.75" style="width:100%;">
-          <div class="small" id="txtLine">line density: 0.75×</div>
-        </div>
-      </div>
+      <div class="row">
+        <div class="label">Line density</div>
+        <div class="grow">
+          <input id="rngLine" type="range" min="0.2" max="1.2" step="0.01" value="0.75" style="width:100%;">
+          <div class="small" id="txtLine">line density: 0.75×</div>
+        </div>
+      </div>
 
-      <div class="row">
-        <div class="label">Perf limit</div>
-        <div class="grow">
-          <input id="rngPerf" type="range" min="0.25" max="1" step="0.01" value="0.72" style="width:100%;">
-          <div class="small" id="txtPerf">perf limit: 0.72</div>
-        </div>
-      </div>
+      <div class="row">
+        <div class="label">Perf limit</div>
+        <div class="grow">
+          <input id="rngPerf" type="range" min="0.25" max="1" step="0.01" value="0.72" style="width:100%;">
+          <div class="small" id="txtPerf">perf limit: 0.72</div>
+        </div>
+      </div>
 
-      <div class="row">
-        <div class="label">BG fade</div>
-        <div class="grow">
-          <input id="rngFade" type="range" min="0.02" max="0.20" step="0.005" value="0.03" style="width:100%;">
-          <div class="small" id="txtFade">fade: 0.030</div>
-        </div>
-      </div>
+      <div class="row">
+        <div class="label">BG fade</div>
+        <div class="grow">
+          <input id="rngFade" type="range" min="0.02" max="0.20" step="0.005" value="0.03" style="width:100%;">
+          <div class="small" id="txtFade">fade: 0.030</div>
+        </div>
+      </div>
 
-      <div class="row">
-        <div class="label">Point size</div>
-        <div class="grow">
-          <input id="rngPointSize" type="range" min="0.4" max="1.2" step="0.01" value="0.60" style="width:100%;">
-          <div class="small" id="txtPointSize">point size: 0.60×</div>
-        </div>
-      </div>
+      <div class="row">
+        <div class="label">Point size</div>
+        <div class="grow">
+          <input id="rngPointSize" type="range" min="0.4" max="1.2" step="0.01" value="0.60" style="width:100%;">
+          <div class="small" id="txtPointSize">point size: 0.60×</div>
+        </div>
+      </div>
 
-      <div class="row">
-        <div class="label">Glow</div>
-        <div class="grow">
-          <input id="rngGlow" type="range" min="0.10" max="1.0" step="0.01" value="0.45" style="width:100%;">
-          <div class="small" id="txtGlow">glow: 0.45×</div>
-        </div>
-      </div>
+      <div class="row">
+        <div class="label">Glow</div>
+        <div class="grow">
+          <input id="rngGlow" type="range" min="0.10" max="1.0" step="0.01" value="0.45" style="width:100%;">
+          <div class="small" id="txtGlow">glow: 0.45×</div>
+        </div>
+      </div>
 
-      <!-- NEW: global speed -->
-      <div class="row">
-        <div class="label">Motion speed</div>
-        <div class="grow">
-          <input id="rngSpeed" type="range" min="0.35" max="1.25" step="0.01" value="0.72" style="width:100%;">
-          <div class="small" id="txtSpeed">speed: 0.72× (slower)</div>
-        </div>
-      </div>
+            <div class="row">
+        <div class="label">Motion speed</div>
+        <div class="grow">
+          <input id="rngSpeed" type="range" min="0.35" max="1.25" step="0.01" value="0.72" style="width:100%;">
+          <div class="small" id="txtSpeed">speed: 0.72× (slower)</div>
+        </div>
+      </div>
 
-      <div class="small">
-        ✅ 느리게: <b>Motion speed↓</b> / <b>Idle Drama↓</b><br/>
-        ✅ 렉/멈춤: <b>Perf limit↓</b> → <b>Line density↓</b> → <b>Particles↓</b>
-      </div>
-    </div>
+      <div class="small">
+        ✅ 느리게: <b>Motion speed↓</b> / <b>Idle Drama↓</b><br/>
+        ✅ 렉/멈춤: <b>Perf limit↓</b> → <b>Line density↓</b> → <b>Particles↓</b>
+      </div>
+    </div>
 
-    <!-- AUDIO -->
-    <div class="panel" id="panel-audio">
-      <div class="row">
-        <div class="label">Input level</div>
-        <div class="grow"><div class="meter"><i id="meterIn"></i></div></div>
-      </div>
+        <div class="panel" id="panel-audio">
+      <div class="row">
+        <div class="label">Input level</div>
+        <div class="grow"><div class="meter"><i id="meterIn"></i></div></div>
+      </div>
 
-      <div class="row">
-        <div class="label">Media Gain</div>
-        <div class="grow">
-          <input id="rngMediaGain" type="range" min="0.2" max="3.0" step="0.01" value="1.00" style="width:100%;">
-          <div class="small" id="txtMediaGain">media gain: 1.00×</div>
-        </div>
-      </div>
+      <div class="row">
+        <div class="label">Media Gain</div>
+        <div class="grow">
+          <input id="rngMediaGain" type="range" min="0.2" max="3.0" step="0.01" value="1.00" style="width:100%;">
+          <div class="small" id="txtMediaGain">media gain: 1.00×</div>
+        </div>
+      </div>
 
-      <div class="row">
-        <div class="label">File volume</div>
-        <div class="grow">
-          <input id="rngFileVol" type="range" min="0" max="1" step="0.01" value="0.85" style="width:100%;">
-          <div class="small" id="txtFileVol">file volume: 0.85</div>
-        </div>
-      </div>
+      <div class="row">
+        <div class="label">File volume</div>
+        <div class="grow">
+          <input id="rngFileVol" type="range" min="0" max="1" step="0.01" value="0.85" style="width:100%;">
+          <div class="small" id="txtFileVol">file volume: 0.85</div>
+        </div>
+      </div>
 
-      <div class="row">
-        <div class="label">Analysis Sens</div>
-        <div class="grow">
-          <input id="rngSens" type="range" min="1" max="12" step="0.1" value="7.0" style="width:100%;">
-          <div class="small" id="txtSens">analysis sens: 7.0×</div>
-        </div>
-      </div>
+      <div class="row">
+        <div class="label">Analysis Sens</div>
+        <div class="grow">
+          <input id="rngSens" type="range" min="1" max="12" step="0.1" value="7.0" style="width:100%;">
+          <div class="small" id="txtSens">analysis sens: 7.0×</div>
+        </div>
+      </div>
 
-      <div class="row">
-        <div class="label">Gamma boost</div>
-        <div class="grow">
-          <input id="rngGamma" type="range" min="0.45" max="1.20" step="0.01" value="0.72" style="width:100%;">
-          <div class="small" id="txtGamma">gamma: 0.72</div>
-        </div>
-      </div>
+      <div class="row">
+        <div class="label">Gamma boost</div>
+        <div class="grow">
+          <input id="rngGamma" type="range" min="0.45" max="1.20" step="0.01" value="0.72" style="width:100%;">
+          <div class="small" id="txtGamma">gamma: 0.72</div>
+        </div>
+      </div>
 
-      <div class="row">
-        <div class="label">Amp cap</div>
-        <div class="grow">
-          <input id="rngCap" type="range" min="0.10" max="0.70" step="0.01" value="0.42" style="width:100%;">
-          <div class="small" id="txtCap">amp cap: 0.42</div>
-        </div>
-      </div>
+      <div class="row">
+        <div class="label">Amp cap</div>
+        <div class="grow">
+          <input id="rngCap" type="range" min="0.10" max="0.70" step="0.01" value="0.42" style="width:100%;">
+          <div class="small" id="txtCap">amp cap: 0.42</div>
+        </div>
+      </div>
 
-      <!-- NEW: Touch FX Presets -->
-      <div class="row">
-        <div class="label">Touch FX preset</div>
-        <select id="selFXPreset" class="grow">
-          <option value="digital" selected>1) Digital Touch (default)</option>
-          <option value="piano">2) Piano-ish (bright, less gloomy)</option>
-          <option value="bells">3) Bells / Shimmer</option>
-          <option value="warm">4) Warm Tape</option>
-          <option value="glitch">5) Glitch / Ring</option>
-        </select>
-      </div>
+            <div class="row">
+        <div class="label">Touch FX preset</div>
+        <select id="selFXPreset" class="grow">
+          <option value="digital" selected>1) Digital Touch (default)</option>
+          <option value="piano">2) Piano-ish (bright, less gloomy)</option>
+          <option value="bells">3) Bells / Shimmer</option>
+          <option value="warm">4) Warm Tape</option>
+          <option value="glitch">5) Glitch / Ring</option>
+        </select>
+      </div>
 
-      <!-- EQ -->
-      <div class="row">
-        <div class="label">EQ Low</div>
-        <div class="grow">
-          <input id="rngEQLow" type="range" min="-20" max="20" step="0.5" value="0" style="width:100%;">
-          <div class="small" id="txtEQLow">low: 0 dB (200Hz)</div>
-        </div>
-      </div>
-      <div class="row">
-        <div class="label">EQ Mid</div>
-        <div class="grow">
-          <input id="rngEQMid" type="range" min="-20" max="20" step="0.5" value="0" style="width:100%;">
-          <div class="small" id="txtEQMid">mid: 0 dB (1kHz)</div>
-        </div>
-      </div>
-      <div class="row">
-        <div class="label">EQ High</div>
-        <div class="grow">
-          <input id="rngEQHigh" type="range" min="-20" max="20" step="0.5" value="0" style="width:100%;">
-          <div class="small" id="txtEQHigh">high: 0 dB (4kHz)</div>
-        </div>
-      </div>
+            <div class="row">
+        <div class="label">EQ Low</div>
+        <div class="grow">
+          <input id="rngEQLow" type="range" min="-20" max="20" step="0.5" value="0" style="width:100%;">
+          <div class="small" id="txtEQLow">low: 0 dB (200Hz)</div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="label">EQ Mid</div>
+        <div class="grow">
+          <input id="rngEQMid" type="range" min="-20" max="20" step="0.5" value="0" style="width:100%;">
+          <div class="small" id="txtEQMid">mid: 0 dB (1kHz)</div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="label">EQ High</div>
+        <div class="grow">
+          <input id="rngEQHigh" type="range" min="-20" max="20" step="0.5" value="0" style="width:100%;">
+          <div class="small" id="txtEQHigh">high: 0 dB (4kHz)</div>
+        </div>
+      </div>
 
-      <div class="row">
-        <div class="label">Amp / Δ</div>
-        <div class="mono grow" id="txtAmp">amp: 0.0000 | dAmp: 0.0000</div>
-      </div>
-      <div class="row">
-        <div class="label">FX (Touch)</div>
-        <div class="mono grow" id="txtFx">drive: - | filter: - | ring: - | widen: -</div>
-      </div>
+      <div class="row">
+        <div class="label">Amp / Δ</div>
+        <div class="mono grow" id="txtAmp">amp: 0.0000 | dAmp: 0.0000</div>
+      </div>
+      <div class="row">
+        <div class="label">FX (Touch)</div>
+        <div class="mono grow" id="txtFx">drive: - | filter: - | ring: - | widen: -</div>
+      </div>
 
-      <div class="small">
-        ✅ “File volume”은 <b>mp3 자체 볼륨</b>이고, “Media Gain”은 <b>분석/반응 강도</b>에 더 가깝게 쓰세요.<br/>
-        ✅ 프리셋은 TouchMe(touch)로 눌렀을 때의 사운드 캐릭터를 5개 템플릿으로 바꿉니다.
-      </div>
-    </div>
+      <div class="small">
+        ✅ “File volume”은 <b>mp3 자체 볼륨</b>이고, “Media Gain”은 <b>분석/반응 강도</b>에 더 가깝게 쓰세요.<br/>
+        ✅ 프리셋은 TouchMe(touch)로 눌렀을 때의 사운드 캐릭터를 5개 템플릿으로 바꿉니다.
+      </div>
+    </div>
 
-    <!-- MIDI -->
-    <div class="panel" id="panel-midi">
-      <div class="row" style="justify-content:space-between;">
-        <div class="small" id="txtMIDISupport" style="opacity:.95"></div>
-        <div style="display:flex; gap:6px; flex-wrap:wrap;">
-          <button id="btnMIDIInit" class="pillBtn">Connect MIDI</button>
-          <button id="btnMIDILearn" class="pillBtn">LEARN</button>
-        </div>
-      </div>
+        <div class="panel" id="panel-midi">
+      <div class="row" style="justify-content:space-between;">
+        <div class="small" id="txtMIDISupport" style="opacity:.95"></div>
+        <div style="display:flex; gap:6px; flex-wrap:wrap;">
+          <button id="btnMIDIInit" class="pillBtn">Connect MIDI</button>
+          <button id="btnMIDILearn" class="pillBtn">LEARN</button>
+        </div>
+      </div>
 
-      <div class="two">
-        <div class="box">
-          <div class="row">
-            <div class="label">MIDI Input</div>
-            <select id="selMIDIIn" class="grow">
-              <option value="">Loading…</option>
-            </select>
-          </div>
+      <div class="two">
+        <div class="box">
+          <div class="row">
+            <div class="label">MIDI Input</div>
+            <select id="selMIDIIn" class="grow">
+              <option value="">Loading…</option>
+            </select>
+          </div>
 
-          <div class="row">
-            <div class="label">Map Source</div>
-            <select id="selMIDIType" class="grow">
-              <option value="cc" selected>Control Change (CC)</option>
-              <option value="note">Note Velocity</option>
-            </select>
-          </div>
+          <div class="row">
+            <div class="label">Map Source</div>
+            <select id="selMIDIType" class="grow">
+              <option value="cc" selected>Control Change (CC)</option>
+              <option value="note">Note Velocity</option>
+            </select>
+          </div>
 
-          <div class="row">
-            <div class="label">CC / Note#</div>
-            <input id="numMIDINum" class="grow" type="number" min="0" max="127" step="1" value="1" />
-          </div>
+          <div class="row">
+            <div class="label">CC / Note#</div>
+            <input id="numMIDINum" class="grow" type="number" min="0" max="127" step="1" value="1" />
+          </div>
 
-          <div class="row">
-            <div class="label">Channel</div>
-            <select id="selMIDICh" class="grow">
-              <option value="-1" selected>Any</option>
-              <option value="0">1</option><option value="1">2</option><option value="2">3</option><option value="3">4</option>
-              <option value="4">5</option><option value="5">6</option><option value="6">7</option><option value="7">8</option>
-              <option value="8">9</option><option value="9">10</option><option value="10">11</option><option value="11">12</option>
-              <option value="12">13</option><option value="13">14</option><option value="14">15</option><option value="15">16</option>
-            </select>
-          </div>
+          <div class="row">
+            <div class="label">Channel</div>
+            <select id="selMIDICh" class="grow">
+              <option value="-1" selected>Any</option>
+              <option value="0">1</option><option value="1">2</option><option value="2">3</option><option value="3">4</option>
+              <option value="4">5</option><option value="5">6</option><option value="6">7</option><option value="7">8</option>
+              <option value="8">9</option><option value="9">10</option><option value="10">11</option><option value="11">12</option>
+              <option value="12">13</option><option value="13">14</option><option value="14">15</option><option value="15">16</option>
+            </select>
+          </div>
 
-          <div class="row">
-            <div class="label">Invert</div>
-            <select id="selMIDIInvert" class="grow">
-              <option value="0" selected>Normal</option>
-              <option value="1">Invert (1-x)</option>
-            </select>
-          </div>
+          <div class="row">
+            <div class="label">Invert</div>
+            <select id="selMIDIInvert" class="grow">
+              <option value="0" selected>Normal</option>
+              <option value="1">Invert (1-x)</option>
+            </select>
+          </div>
 
-          <div class="row">
-            <div class="label">Deadzone</div>
-            <div class="grow">
-              <input id="rngMIDIDead" type="range" min="0" max="0.25" step="0.005" value="0.02" style="width:100%;">
-              <div class="small" id="txtMIDIDead">deadzone: 0.020</div>
-            </div>
-          </div>
+          <div class="row">
+            <div class="label">Deadzone</div>
+            <div class="grow">
+              <input id="rngMIDIDead" type="range" min="0" max="0.25" step="0.005" value="0.02" style="width:100%;">
+              <div class="small" id="txtMIDIDead">deadzone: 0.020</div>
+            </div>
+          </div>
 
-          <div class="row">
-            <div class="label">Gain</div>
-            <div class="grow">
-              <input id="rngMIDIGain" type="range" min="0.3" max="3.0" step="0.01" value="1.60" style="width:100%;">
-              <div class="small" id="txtMIDIGain">gain: 1.60×</div>
-            </div>
-          </div>
+          <div class="row">
+            <div class="label">Gain</div>
+            <div class="grow">
+              <input id="rngMIDIGain" type="range" min="0.3" max="3.0" step="0.01" value="1.60" style="width:100%;">
+              <div class="small" id="txtMIDIGain">gain: 1.60×</div>
+            </div>
+          </div>
 
-          <div class="row">
-            <div class="label">Curve</div>
-            <div class="grow">
-              <input id="rngMIDICurve" type="range" min="0.4" max="2.8" step="0.01" value="0.85" style="width:100%;">
-              <div class="small" id="txtMIDICurve">curve: 0.85 ( <1 = 더 예민 )</div>
-            </div>
-          </div>
+          <div class="row">
+            <div class="label">Curve</div>
+            <div class="grow">
+              <input id="rngMIDICurve" type="range" min="0.4" max="2.8" step="0.01" value="0.85" style="width:100%;">
+              <div class="small" id="txtMIDICurve">curve: 0.85 ( <1 = 더 예민 )</div>
+            </div>
+          </div>
 
-          <div class="row">
-            <div class="label">Smoothing</div>
-            <div class="grow">
-              <input id="rngMIDISmooth" type="range" min="0.02" max="0.50" step="0.01" value="0.22" style="width:100%;">
-              <div class="small" id="txtMIDISmooth">smooth: 0.22</div>
-            </div>
-          </div>
+          <div class="row">
+            <div class="label">Smoothing</div>
+            <div class="grow">
+              <input id="rngMIDISmooth" type="range" min="0.02" max="0.50" step="0.01" value="0.22" style="width:100%;">
+              <div class="small" id="txtMIDISmooth">smooth: 0.22</div>
+            </div>
+          </div>
 
-          <div class="row">
-            <div class="label">Sim Touch</div>
-            <div class="grow">
-              <input id="rngSimTouch" type="range" min="0" max="1" step="0.001" value="0" style="width:100%;">
-              <div class="small">미디가 막힌 환경에서 이 슬라이더로 FX/비주얼 테스트</div>
-            </div>
-          </div>
-        </div>
+          <div class="row">
+            <div class="label">Sim Touch</div>
+            <div class="grow">
+              <input id="rngSimTouch" type="range" min="0" max="1" step="0.001" value="0" style="width:100%;">
+              <div class="small">미디가 막힌 환경에서 이 슬라이더로 FX/비주얼 테스트</div>
+            </div>
+          </div>
+        </div>
 
-        <div class="box">
-          <div class="row">
-            <div class="label">Touch value</div>
-            <div class="grow"><div class="meter"><i id="meterTouch"></i></div></div>
-          </div>
+        <div class="box">
+          <div class="row">
+            <div class="label">Touch value</div>
+            <div class="grow"><div class="meter"><i id="meterTouch"></i></div></div>
+          </div>
 
-          <div class="row">
-            <div class="label">Mapped</div>
-            <div class="mono grow" id="txtMIDIRaw">raw: -</div>
-          </div>
+          <div class="row">
+            <div class="label">Mapped</div>
+            <div class="mono grow" id="txtMIDIRaw">raw: -</div>
+          </div>
 
-          <div class="row">
-            <div class="label">Last MIDI (raw)</div>
-            <div class="mono grow" id="txtMIDILast">Waiting…</div>
-          </div>
+          <div class="row">
+            <div class="label">Last MIDI (raw)</div>
+            <div class="mono grow" id="txtMIDILast">Waiting…</div>
+          </div>
 
-          <div class="row">
-            <div class="label">MIDI log</div>
-            <div class="mono grow" id="txtMIDI">Waiting…</div>
-          </div>
+          <div class="row">
+            <div class="label">MIDI log</div>
+            <div class="mono grow" id="txtMIDI">Waiting…</div>
+          </div>
 
-          <div class="small">
-            ✅ <b>LEARN</b> 누르고 TouchMe 한번 터치 → 자동으로 CC/NOTE#, 채널 설정<br/>
-            ✅ “Last MIDI(raw)” 갱신 = 미디 들어오는 중
-          </div>
-        </div>
-      </div>
-    </div>
+          <div class="small">
+            ✅ <b>LEARN</b> 누르고 TouchMe 한번 터치 → 자동으로 CC/NOTE#, 채널 설정<br/>
+            ✅ “Last MIDI(raw)” 갱신 = 미디 들어오는 중
+          </div>
+        </div>
+      </div>
+    </div>
 
-    <!-- SYSTEM -->
-    <div class="panel" id="panel-system">
-      <div class="row">
-        <div class="label">Audio context</div>
-        <button id="btnResume" class="grow">Resume / Unlock Audio</button>
-      </div>
+        <div class="panel" id="panel-system">
+      <div class="row">
+        <div class="label">Audio context</div>
+        <button id="btnResume" class="grow">Resume / Unlock Audio</button>
+      </div>
 
-      <div class="row">
-        <div class="label">Input source</div>
-        <select id="selSrc" class="grow">
-          <option value="mic" selected>Mic (Live input)</option>
-          <option value="file">File (MP3/WAV)</option>
-        </select>
-      </div>
+      <div class="row">
+        <div class="label">Input source</div>
+        <select id="selSrc" class="grow">
+          <option value="mic" selected>Mic (Live input)</option>
+          <option value="file">File (MP3/WAV)</option>
+        </select>
+      </div>
 
-      <div class="row" id="rowMic">
-        <div class="label">Mic input</div>
-        <select id="selMic" class="grow" disabled>
-          <option>장치 목록 불러오는 중…</option>
-        </select>
-      </div>
+      <div class="row" id="rowMic">
+        <div class="label">Mic input</div>
+        <select id="selMic" class="grow" disabled>
+          <option>장치 목록 불러오는 중…</option>
+        </select>
+      </div>
 
-      <div class="row" id="rowFile" style="display:none;">
-        <div class="label">Audio file</div>
-        <div class="grow">
-          <div class="fileLine">
-            <input id="fileAudio" type="file" accept="audio/*">
-            <button id="btnFilePlay" disabled>Play</button>
-            <button id="btnFilePause" disabled>Pause</button>
-            <button id="btnFileStop" disabled>Stop</button>
-          </div>
-          <div class="small" id="txtFile">파일을 선택하면 입력 체인(preGain→EQ→FX→analyser)으로 들어갑니다.</div>
-        </div>
-      </div>
+      <div class="row" id="rowFile" style="display:none;">
+        <div class="label">Audio file</div>
+        <div class="grow">
+          <div class="fileLine">
+            <input id="fileAudio" type="file" accept="audio/*">
+            <button id="btnFilePlay" disabled>Play</button>
+            <button id="btnFilePause" disabled>Pause</button>
+            <button id="btnFileStop" disabled>Stop</button>
+          </div>
+          <div class="small" id="txtFile">파일을 선택하면 입력 체인(preGain→EQ→FX→analyser)으로 들어갑니다.</div>
+        </div>
+      </div>
 
-      <div class="row">
-        <div class="label">Auto Reboot</div>
-        <select id="selAutoReboot" class="grow">
-          <option value="1" selected>ON (lag/freeze → ENTRY)</option>
-          <option value="0">OFF</option>
-        </select>
-      </div>
+      <div class="row">
+        <div class="label">Auto Reboot</div>
+        <select id="selAutoReboot" class="grow">
+          <option value="1" selected>ON (lag/freeze → ENTRY)</option>
+          <option value="0">OFF</option>
+        </select>
+      </div>
 
-      <!-- NEW: Recorder -->
-      <div class="row">
-        <div class="label">Recording</div>
-        <button id="btnRecStart" class="grow">Start Rec</button>
-        <button id="btnRecStop" class="grow" disabled>Stop Rec</button>
-      </div>
-      <div class="row">
-        <div class="label">Last clip</div>
-        <a id="aRecDownload" class="small" href="#" download="limen_recording.webm" style="display:none;">Download recording</a>
-        <div class="small" id="txtRecInfo" style="opacity:.95;"></div>
-      </div>
+            <div class="row">
+        <div class="label">Recording</div>
+        <button id="btnRecStart" class="grow">Start Rec</button>
+        <button id="btnRecStop" class="grow" disabled>Stop Rec</button>
+      </div>
+      <div class="row">
+        <div class="label">Last clip</div>
+        <a id="aRecDownload" class="small" href="#" download="limen_recording.webm" style="display:none;">Download recording</a>
+        <div class="small" id="txtRecInfo" style="opacity:.95;"></div>
+      </div>
 
-      <div class="small" id="txtSupport"></div>
-      <div class="small">
-        ✅ 설정은 팝업(컨트롤 타워)에서만 보이며, 프로젝터 화면에는 방해 없음.<br/>
-        ✅ 녹화는 <b>canvas + master audio</b>를 webm으로 저장합니다. (Chrome 권장 / Safari는 제약 가능)
-      </div>
-    </div>
-  </div>
+      <div class="small" id="txtSupport"></div>
+      <div class="small">
+        ✅ 설정은 팝업(컨트롤 타워)에서만 보이며, 프로젝터 화면에는 방해 없음.<br/>
+        ✅ 녹화는 <b>canvas + master audio</b>를 webm으로 저장합니다. (Chrome 권장 / Safari는 제약 가능)
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
 /* ==========================================================
-   SETTINGS PERSISTENCE (localStorage)
+   SETTINGS PERSISTENCE (localStorage)
 ========================================================== */
 const STORE_KEY = "limen_workshop_settings_v4_popup_record_fx";
 function loadSettings(){ try{ return JSON.parse(localStorage.getItem(STORE_KEY)||"{}"); }catch(e){ return {}; } }
@@ -632,47 +619,47 @@ function saveSettings(obj){ localStorage.setItem(STORE_KEY, JSON.stringify(obj))
 const S = loadSettings();
 
 function applySelectValue(id, fallback){
-  const el = document.getElementById(id);
-  const v = (S[id] ?? fallback);
-  if(el) el.value = v;
+  const el = document.getElementById(id);
+  const v = (S[id] ?? fallback);
+  if(el) el.value = v;
 }
 function hookSelectSave(id){
-  const el = document.getElementById(id);
-  if(!el) return;
-  el.addEventListener('change', ()=>{ S[id] = el.value; saveSettings(S); notifyTowerValue(id, el.value); });
+  const el = document.getElementById(id);
+  if(!el) return;
+  el.addEventListener('change', ()=>{ S[id] = el.value; saveSettings(S); notifyTowerValue(id, el.value); });
 }
 function hookRangeSave(id, fallback){
-  const el = document.getElementById(id);
-  if(!el) return;
-  el.value = (S[id] ?? fallback);
-  el.addEventListener('input', ()=>{ S[id] = parseFloat(el.value); saveSettings(S); notifyTowerValue(id, el.value); });
+  const el = document.getElementById(id);
+  if(!el) return;
+  el.value = (S[id] ?? fallback);
+  el.addEventListener('input', ()=>{ S[id] = parseFloat(el.value); saveSettings(S); notifyTowerValue(id, el.value); });
 }
 function hookNumberSave(id, fallback){
-  const el = document.getElementById(id);
-  if(!el) return;
-  el.value = (S[id] ?? fallback);
-  el.addEventListener('input', ()=>{ S[id] = parseInt(el.value,10); saveSettings(S); notifyTowerValue(id, el.value); });
+  const el = document.getElementById(id);
+  if(!el) return;
+  el.value = (S[id] ?? fallback);
+  el.addEventListener('input', ()=>{ S[id] = parseInt(el.value,10); saveSettings(S); notifyTowerValue(id, el.value); });
 }
 
 /* ==========================================================
-   CANVAS / DPR
+   CANVAS / DPR
 ========================================================== */
 const canvas = document.getElementById('c');
 const ctx = canvas.getContext('2d', { alpha:false });
 let W=0,H=0,DPR=1;
 
 function resize(){
-  DPR = Math.max(1, Math.min(2, devicePixelRatio||1));
-  W = innerWidth|0; H = innerHeight|0;
-  canvas.width  = (W*DPR)|0;
-  canvas.height = (H*DPR)|0;
-  ctx.setTransform(DPR,0,0,DPR,0,0);
+  DPR = Math.max(1, Math.min(2, devicePixelRatio||1));
+  W = innerWidth|0; H = innerHeight|0;
+  canvas.width  = (W*DPR)|0;
+  canvas.height = (H*DPR)|0;
+  ctx.setTransform(DPR,0,0,DPR,0,0);
 }
 addEventListener('resize', resize);
 resize();
 
 /* ==========================================================
-   AUDIO CORE + ANALYSER
+   AUDIO CORE + ANALYSER
 ========================================================== */
 let audioCtx;
 let analyser, timeData;
@@ -700,115 +687,115 @@ let fileNode = null;
 let currentSource = S.currentSource ?? "mic"; // "mic" | "file"
 
 function makeWaveshaper(amount=20){
-  const n=2048;
-  const curve=new Float32Array(n);
-  const k=amount;
-  for(let i=0;i<n;i++){
-    const x = (i*2/n)-1;
-    curve[i] = (1+k)*x/(1+k*Math.abs(x));
-  }
-  return curve;
+  const n=2048;
+  const curve=new Float32Array(n);
+  const k=amount;
+  for(let i=0;i<n;i++){
+    const x = (i*2/n)-1;
+    curve[i] = (1+k)*x/(1+k*Math.abs(x));
+  }
+  return curve;
 }
 
 function ensureAudio(){
-  if(audioCtx) return;
-  audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+  if(audioCtx) return;
+  audioCtx = new (window.AudioContext||window.webkitAudioContext)();
 
-  analyser = audioCtx.createAnalyser();
-  analyser.fftSize = 1024;
-  timeData = new Uint8Array(analyser.fftSize);
+  analyser = audioCtx.createAnalyser();
+  analyser.fftSize = 1024;
+  timeData = new Uint8Array(analyser.fftSize);
 
-  masterGain = audioCtx.createGain();
-  masterGain.gain.value = 0.9;
+  masterGain = audioCtx.createGain();
+  masterGain.gain.value = 0.9;
 
-  preGain = audioCtx.createGain(); preGain.gain.value = 1.0;
+  preGain = audioCtx.createGain(); preGain.gain.value = 1.0;
 
-  // EQ (공용)
-  eqLow = audioCtx.createBiquadFilter();
-  eqLow.type = "lowshelf";
-  eqLow.frequency.value = 200;
-  eqLow.gain.value = 0;
+  // EQ (공용)
+  eqLow = audioCtx.createBiquadFilter();
+  eqLow.type = "lowshelf";
+  eqLow.frequency.value = 200;
+  eqLow.gain.value = 0;
 
-  eqMid = audioCtx.createBiquadFilter();
-  eqMid.type = "peaking";
-  eqMid.frequency.value = 1000;
-  eqMid.Q.value = 1.0;
-  eqMid.gain.value = 0;
+  eqMid = audioCtx.createBiquadFilter();
+  eqMid.type = "peaking";
+  eqMid.frequency.value = 1000;
+  eqMid.Q.value = 1.0;
+  eqMid.gain.value = 0;
 
-  eqHigh = audioCtx.createBiquadFilter();
-  eqHigh.type = "highshelf";
-  eqHigh.frequency.value = 4000;
-  eqHigh.gain.value = 0;
+  eqHigh = audioCtx.createBiquadFilter();
+  eqHigh.type = "highshelf";
+  eqHigh.frequency.value = 4000;
+  eqHigh.gain.value = 0;
 
-  driveWS = audioCtx.createWaveShaper();
-  driveWS.curve = makeWaveshaper(10);
-  driveWS.oversample = '4x';
-  driveGain = audioCtx.createGain(); driveGain.gain.value = 1.0;
+  driveWS = audioCtx.createWaveShaper();
+  driveWS.curve = makeWaveshaper(10);
+  driveWS.oversample = '4x';
+  driveGain = audioCtx.createGain(); driveGain.gain.value = 1.0;
 
-  filter = audioCtx.createBiquadFilter();
-  filter.type = 'bandpass';
-  filter.frequency.value = 900;
-  filter.Q.value = 2.0;
+  filter = audioCtx.createBiquadFilter();
+  filter.type = 'bandpass';
+  filter.frequency.value = 900;
+  filter.Q.value = 2.0;
 
-  ringOsc = audioCtx.createOscillator();
-  ringOsc.type = 'sine';
-  ringOsc.frequency.value = 35;
+  ringOsc = audioCtx.createOscillator();
+  ringOsc.type = 'sine';
+  ringOsc.frequency.value = 35;
 
-  ringGain = audioCtx.createGain();
-  ringGain.gain.value = 0.0;
+  ringGain = audioCtx.createGain();
+  ringGain.gain.value = 0.0;
 
-  ringMult = audioCtx.createGain();
-  ringMult.gain.value = 1.0;
-  ringOsc.connect(ringGain);
-  ringGain.connect(ringMult.gain);
+  ringMult = audioCtx.createGain();
+  ringMult.gain.value = 1.0;
+  ringOsc.connect(ringGain);
+  ringGain.connect(ringMult.gain);
 
-  splitter = audioCtx.createChannelSplitter(2);
+  splitter = audioCtx.createChannelSplitter(2);
 
-  dL = audioCtx.createDelay(0.05);
-  dR = audioCtx.createDelay(0.05);
-  dL.delayTime.value = 0.004;
-  dR.delayTime.value = 0.011;
+  dL = audioCtx.createDelay(0.05);
+  dR = audioCtx.createDelay(0.05);
+  dL.delayTime.value = 0.004;
+  dR.delayTime.value = 0.011;
 
-  merger = audioCtx.createChannelMerger(2);
+  merger = audioCtx.createChannelMerger(2);
 
-  comp = audioCtx.createDynamicsCompressor();
-  comp.threshold.value = -22;
-  comp.knee.value = 28;
-  comp.ratio.value = 7;
-  comp.attack.value = 0.003;
-  comp.release.value = 0.14;
+  comp = audioCtx.createDynamicsCompressor();
+  comp.threshold.value = -22;
+  comp.knee.value = 28;
+  comp.ratio.value = 7;
+  comp.attack.value = 0.003;
+  comp.release.value = 0.14;
 
-  // NEW: file volume gain (only used when source is file)
-  fileGain = audioCtx.createGain();
-  fileGain.gain.value = getFileVol();
+  // NEW: file volume gain (only used when source is file)
+  fileGain = audioCtx.createGain();
+  fileGain.gain.value = getFileVol();
 
-  // chain: (mic OR file->fileGain) → preGain → EQ → drive → filter → ring → widen → comp → analyser → master
-  preGain.connect(eqLow);
-  eqLow.connect(eqMid);
-  eqMid.connect(eqHigh);
+  // chain: (mic OR file->fileGain) → preGain → EQ → drive → filter → ring → widen → comp → analyser → master
+  preGain.connect(eqLow);
+  eqLow.connect(eqMid);
+  eqMid.connect(eqHigh);
 
-  eqHigh.connect(driveWS);
-  driveWS.connect(driveGain);
-  driveGain.connect(filter);
-  filter.connect(ringMult);
+  eqHigh.connect(driveWS);
+  driveWS.connect(driveGain);
+  driveGain.connect(filter);
+  filter.connect(ringMult);
 
-  ringMult.connect(splitter);
-  splitter.connect(dL, 0);
-  splitter.connect(dR, 1);
-  dL.connect(merger, 0, 0);
-  dR.connect(merger, 0, 1);
+  ringMult.connect(splitter);
+  splitter.connect(dL, 0);
+  splitter.connect(dR, 1);
+  dL.connect(merger, 0, 0);
+  dR.connect(merger, 0, 1);
 
-  merger.connect(comp);
-  comp.connect(analyser);
-  analyser.connect(masterGain);
-  masterGain.connect(audioCtx.destination);
+  merger.connect(comp);
+  comp.connect(analyser);
+  analyser.connect(masterGain);
+  masterGain.connect(audioCtx.destination);
 
-  ringOsc.start();
-  updateTopPill(1);
+  ringOsc.start();
+  updateTopPill(1);
 }
 
 /* ==========================================================
-   AUDIO UI + PARAMS
+   AUDIO UI + PARAMS
 ========================================================== */
 hookRangeSave('rngMediaGain', 1.00);
 hookRangeSave('rngFileVol', 0.85);
@@ -824,7 +811,7 @@ applySelectValue('selFXPreset','digital');
 hookSelectSave('selFXPreset');
 
 const rngMediaGain = document.getElementById('rngMediaGain');
-const rngFileVol   = document.getElementById('rngFileVol');
+const rngFileVol   = document.getElementById('rngFileVol');
 const rngSens = document.getElementById('rngSens');
 const rngGamma = document.getElementById('rngGamma');
 const rngCap = document.getElementById('rngCap');
@@ -834,7 +821,7 @@ const rngEQMid = document.getElementById('rngEQMid');
 const rngEQHigh = document.getElementById('rngEQHigh');
 
 const txtMediaGain = document.getElementById('txtMediaGain');
-const txtFileVol   = document.getElementById('txtFileVol');
+const txtFileVol   = document.getElementById('txtFileVol');
 const txtSens = document.getElementById('txtSens');
 const txtGamma = document.getElementById('txtGamma');
 const txtCap = document.getElementById('txtCap');
@@ -854,62 +841,62 @@ function getEQMid(){ return Math.max(-20, Math.min(20, parseFloat(rngEQMid.value
 function getEQHigh(){ return Math.max(-20, Math.min(20, parseFloat(rngEQHigh.value)||0)); }
 
 function refreshAudioLabels(){
-  txtMediaGain.textContent = `media gain: ${getMediaGain().toFixed(2)}×`;
-  txtFileVol.textContent   = `file volume: ${getFileVol().toFixed(2)}`;
-  txtSens.textContent      = `analysis sens: ${getSens().toFixed(1)}×`;
-  txtGamma.textContent     = `gamma: ${getGamma().toFixed(2)}`;
-  txtCap.textContent       = `amp cap: ${getCap().toFixed(2)}`;
+  txtMediaGain.textContent = `media gain: ${getMediaGain().toFixed(2)}×`;
+  txtFileVol.textContent   = `file volume: ${getFileVol().toFixed(2)}`;
+  txtSens.textContent      = `analysis sens: ${getSens().toFixed(1)}×`;
+  txtGamma.textContent     = `gamma: ${getGamma().toFixed(2)}`;
+  txtCap.textContent       = `amp cap: ${getCap().toFixed(2)}`;
 
-  txtEQLow.textContent  = `low: ${getEQLow().toFixed(1)} dB (200Hz)`;
-  txtEQMid.textContent  = `mid: ${getEQMid().toFixed(1)} dB (1kHz)`;
-  txtEQHigh.textContent = `high: ${getEQHigh().toFixed(1)} dB (4kHz)`;
+  txtEQLow.textContent  = `low: ${getEQLow().toFixed(1)} dB (200Hz)`;
+  txtEQMid.textContent  = `mid: ${getEQMid().toFixed(1)} dB (1kHz)`;
+  txtEQHigh.textContent = `high: ${getEQHigh().toFixed(1)} dB (4kHz)`;
 }
 ['input','change'].forEach(ev=>{
-  [rngMediaGain,rngFileVol,rngSens,rngGamma,rngCap,rngEQLow,rngEQMid,rngEQHigh].forEach(el=>{
-    el.addEventListener(ev, refreshAudioLabels);
-  });
+  [rngMediaGain,rngFileVol,rngSens,rngGamma,rngCap,rngEQLow,rngEQMid,rngEQHigh].forEach(el=>{
+    el.addEventListener(ev, refreshAudioLabels);
+  });
 });
 refreshAudioLabels();
 
 function applyEQ(){
-  if(!audioCtx || !eqLow) return;
-  eqLow.gain.setTargetAtTime(getEQLow(), audioCtx.currentTime, 0.02);
-  eqMid.gain.setTargetAtTime(getEQMid(), audioCtx.currentTime, 0.02);
-  eqHigh.gain.setTargetAtTime(getEQHigh(), audioCtx.currentTime, 0.02);
+  if(!audioCtx || !eqLow) return;
+  eqLow.gain.setTargetAtTime(getEQLow(), audioCtx.currentTime, 0.02);
+  eqMid.gain.setTargetAtTime(getEQMid(), audioCtx.currentTime, 0.02);
+  eqHigh.gain.setTargetAtTime(getEQHigh(), audioCtx.currentTime, 0.02);
 }
 
 function applyFileVol(){
-  if(!audioCtx) return;
-  if(fileGain) fileGain.gain.setTargetAtTime(getFileVol(), audioCtx.currentTime, 0.02);
-  if(fileAudioEl) fileAudioEl.volume = getFileVol(); // (보조) element level
+  if(!audioCtx) return;
+  if(fileGain) fileGain.gain.setTargetAtTime(getFileVol(), audioCtx.currentTime, 0.02);
+  if(fileAudioEl) fileAudioEl.volume = getFileVol(); // (보조) element level
 }
 rngFileVol.addEventListener('input', applyFileVol);
 rngFileVol.addEventListener('change', applyFileVol);
 
 function updateAmp(){
-  if(!analyser) return;
+  if(!analyser) return;
 
-  analyser.getByteTimeDomainData(timeData);
-  let sum=0;
-  for(let i=0;i<timeData.length;i++){
-    const v=(timeData[i]-128)/128;
-    sum+=v*v;
-  }
-  const rms=Math.sqrt(sum/timeData.length);
+  analyser.getByteTimeDomainData(timeData);
+  let sum=0;
+  for(let i=0;i<timeData.length;i++){
+    const v=(timeData[i]-128)/128;
+    sum+=v*v;
+  }
+  const rms=Math.sqrt(sum/timeData.length);
 
-  const rmsG = rms * getMediaGain();
-  ampSmooth += (rmsG-ampSmooth)*0.12;
+  const rmsG = rms * getMediaGain();
+  ampSmooth += (rmsG-ampSmooth)*0.12;
 
-  const boosted = Math.pow(Math.max(0, ampSmooth * getSens()), getGamma());
-  const scaled = Math.min(getCap(), boosted);
+  const boosted = Math.pow(Math.max(0, ampSmooth * getSens()), getGamma());
+  const scaled = Math.min(getCap(), boosted);
 
-  amp = scaled;
-  ampDelta = Math.abs(amp - prevAmp);
-  prevAmp = amp;
+  amp = scaled;
+  ampDelta = Math.abs(amp - prevAmp);
+  prevAmp = amp;
 }
 
 /* ==========================================================
-   OUTPUT ROUTING (for recording + optional routing)
+   OUTPUT ROUTING (for recording + optional routing)
 ========================================================== */
 const selMic = document.getElementById('selMic');
 const txtSupport = document.getElementById('txtSupport');
@@ -922,201 +909,201 @@ monitorAudio.playsInline = true;
 let monitorDest = null;
 
 function setupOutputRouting(){
-  if(!audioCtx) return;
-  if(monitorDest) return;
-  monitorDest = audioCtx.createMediaStreamDestination();
-  masterGain.connect(monitorDest);
-  monitorAudio.srcObject = monitorDest.stream;
+  if(!audioCtx) return;
+  if(monitorDest) return;
+  monitorDest = audioCtx.createMediaStreamDestination();
+  masterGain.connect(monitorDest);
+  monitorAudio.srcObject = monitorDest.stream;
 }
 
 async function listDevices(){
-  let devices = [];
-  try{ devices = await navigator.mediaDevices.enumerateDevices(); }catch(e){}
-  const mics = devices.filter(d=>d.kind==="audioinput");
+  let devices = [];
+  try{ devices = await navigator.mediaDevices.enumerateDevices(); }catch(e){}
+  const mics = devices.filter(d=>d.kind==="audioinput");
 
-  // SYSTEM mic select
-  selMic.innerHTML = "";
-  if(mics.length===0){
-    selMic.disabled = true;
-    selMic.innerHTML = `<option>마이크 장치를 찾을 수 없음</option>`;
-  }else{
-    selMic.disabled = false;
-    for(const d of mics){
-      const opt = document.createElement('option');
-      opt.value = d.deviceId;
-      opt.textContent = d.label || `Mic (${d.deviceId.slice(0,6)}…)`;
-      if(d.deviceId === currentMicDeviceId) opt.selected = true;
-      selMic.appendChild(opt);
-    }
-  }
+  // SYSTEM mic select
+  selMic.innerHTML = "";
+  if(mics.length===0){
+    selMic.disabled = true;
+    selMic.innerHTML = `<option>마이크 장치를 찾을 수 없음</option>`;
+  }else{
+    selMic.disabled = false;
+    for(const d of mics){
+      const opt = document.createElement('option');
+      opt.value = d.deviceId;
+      opt.textContent = d.label || `Mic (${d.deviceId.slice(0,6)}…)`;
+      if(d.deviceId === currentMicDeviceId) opt.selected = true;
+      selMic.appendChild(opt);
+    }
+  }
 
-  // ENTRY mic select (mirror)
-  const entrySelMic = document.getElementById('entrySelMic');
-  entrySelMic.innerHTML = "";
-  if(mics.length===0){
-    entrySelMic.disabled = true;
-    entrySelMic.innerHTML = `<option>마이크 장치를 찾을 수 없음</option>`;
-  }else{
-    entrySelMic.disabled = false;
-    for(const d of mics){
-      const opt = document.createElement('option');
-      opt.value = d.deviceId;
-      opt.textContent = d.label || `Mic (${d.deviceId.slice(0,6)}…)`;
-      if(d.deviceId === currentMicDeviceId) opt.selected = true;
-      entrySelMic.appendChild(opt);
-    }
-  }
+  // ENTRY mic select (mirror)
+  const entrySelMic = document.getElementById('entrySelMic');
+  entrySelMic.innerHTML = "";
+  if(mics.length===0){
+    entrySelMic.disabled = true;
+    entrySelMic.innerHTML = `<option>마이크 장치를 찾을 수 없음</option>`;
+  }else{
+    entrySelMic.disabled = false;
+    for(const d of mics){
+      const opt = document.createElement('option');
+      opt.value = d.deviceId;
+      opt.textContent = d.label || `Mic (${d.deviceId.slice(0,6)}…)`;
+      if(d.deviceId === currentMicDeviceId) opt.selected = true;
+      entrySelMic.appendChild(opt);
+    }
+  }
 
-  txtSupport.textContent =
-    `지원 상태: mic=${mics.length}\n`+
-    `렉/프리즈 감지 시 자동으로 Entry로 복귀 (SYSTEM > Auto Reboot)\n`+
-    `녹화(MediaRecorder)는 Chrome/Edge 권장 (Safari 제한 가능)`;
+  txtSupport.textContent =
+    `지원 상태: mic=${mics.length}\n`+
+    `렉/프리즈 감지 시 자동으로 Entry로 복귀 (SYSTEM > Auto Reboot)\n`+
+    `녹화(MediaRecorder)는 Chrome/Edge 권장 (Safari 제한 가능)`;
 }
 
 selMic.addEventListener('change', async ()=>{
-  currentMicDeviceId = selMic.value;
-  S.currentMicDeviceId = currentMicDeviceId;
-  saveSettings(S);
-  // mirror to entry
-  const entrySelMic = document.getElementById('entrySelMic');
-  if(entrySelMic) entrySelMic.value = currentMicDeviceId;
+  currentMicDeviceId = selMic.value;
+  S.currentMicDeviceId = currentMicDeviceId;
+  saveSettings(S);
+  // mirror to entry
+  const entrySelMic = document.getElementById('entrySelMic');
+  if(entrySelMic) entrySelMic.value = currentMicDeviceId;
 
-  if(currentSource==="mic" && micStream) await startMic(currentMicDeviceId, false);
+  if(currentSource==="mic" && micStream) await startMic(currentMicDeviceId, false);
 });
 document.getElementById('entrySelMic').addEventListener('change', async (e)=>{
-  currentMicDeviceId = e.target.value;
-  S.currentMicDeviceId = currentMicDeviceId;
-  saveSettings(S);
-  selMic.value = currentMicDeviceId;
-  if(currentSource==="mic" && micStream) await startMic(currentMicDeviceId, false);
+  currentMicDeviceId = e.target.value;
+  S.currentMicDeviceId = currentMicDeviceId;
+  saveSettings(S);
+  selMic.value = currentMicDeviceId;
+  if(currentSource==="mic" && micStream) await startMic(currentMicDeviceId, false);
 });
 
 /* ==========================================================
-   INPUT SOURCE: MIC / FILE
+   INPUT SOURCE: MIC / FILE
 ========================================================== */
 function disconnectInputs(){
-  if(inputNode){ try{ inputNode.disconnect(); }catch(e){} inputNode = null; }
-  if(micStream){ micStream.getTracks().forEach(t=>t.stop()); micStream = null; }
-  if(fileNode){ try{ fileNode.disconnect(); }catch(e){} fileNode = null; }
+  if(inputNode){ try{ inputNode.disconnect(); }catch(e){} inputNode = null; }
+  if(micStream){ micStream.getTracks().forEach(t=>t.stop()); micStream = null; }
+  if(fileNode){ try{ fileNode.disconnect(); }catch(e){} fileNode = null; }
 }
 
 async function startMic(deviceId="default", hideEntry=true){
-  ensureAudio();
-  await audioCtx.resume();
-  setupOutputRouting();
+  ensureAudio();
+  await audioCtx.resume();
+  setupOutputRouting();
 
-  if(micStream){ micStream.getTracks().forEach(t=>t.stop()); micStream = null; }
-  if(inputNode){ try{ inputNode.disconnect(); }catch(e){} inputNode = null; }
-  if(fileNode){ try{ fileNode.disconnect(); }catch(e){} fileNode = null; }
+  if(micStream){ micStream.getTracks().forEach(t=>t.stop()); micStream = null; }
+  if(inputNode){ try{ inputNode.disconnect(); }catch(e){} inputNode = null; }
+  if(fileNode){ try{ fileNode.disconnect(); }catch(e){} fileNode = null; }
 
-  try{
-    micStream = await navigator.mediaDevices.getUserMedia({
-      audio: {
-        deviceId: deviceId ? { exact: deviceId } : undefined,
-        echoCancellation:false,
-        noiseSuppression:false,
-        autoGainControl:false
-      }
-    });
+  try{
+    micStream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        deviceId: deviceId ? { exact: deviceId } : undefined,
+        echoCancellation:false,
+        noiseSuppression:false,
+        autoGainControl:false
+      }
+    });
 
-    const src = audioCtx.createMediaStreamSource(micStream);
-    inputNode = src;
-    src.connect(preGain);
+    const src = audioCtx.createMediaStreamSource(micStream);
+    inputNode = src;
+    src.connect(preGain);
 
-    await listDevices();
-    setMicButtons(true);
-    updateTopPill(1);
-    startStatus("Mic ON. (Entry에서 바로 입장 가능)");
+    await listDevices();
+    setMicButtons(true);
+    updateTopPill(1);
+    startStatus("Mic ON. (Entry에서 바로 입장 가능)");
 
-    if(hideEntry) hideEntryAndEnter();
-  }catch(e){
-    console.error(e);
-    startStatus("Mic ON 실패. 권한/장치 선택 확인.");
-    alert("마이크 권한 또는 장치 선택에 실패했어요. 크롬 권한 확인!");
-  }
+    if(hideEntry) hideEntryAndEnter();
+  }catch(e){
+    console.error(e);
+    startStatus("Mic ON 실패. 권한/장치 선택 확인.");
+    alert("마이크 권한 또는 장치 선택에 실패했어요. 크롬 권한 확인!");
+  }
 }
 
 function stopMic(){
-  if(micStream){
-    micStream.getTracks().forEach(t=>t.stop());
-    micStream = null;
-  }
-  if(inputNode){
-    try{ inputNode.disconnect(); }catch(e){}
-    inputNode = null;
-  }
-  setMicButtons(false);
-  updateTopPill(1);
+  if(micStream){
+    micStream.getTracks().forEach(t=>t.stop());
+    micStream = null;
+  }
+  if(inputNode){
+    try{ inputNode.disconnect(); }catch(e){}
+    inputNode = null;
+  }
+  setMicButtons(false);
+  updateTopPill(1);
 }
 
 function ensureFileAudioEl(){
-  if(fileAudioEl) return;
-  fileAudioEl = new Audio();
-  fileAudioEl.crossOrigin = "anonymous";
-  fileAudioEl.loop = true;
-  fileAudioEl.preload = "auto";
-  fileAudioEl.playsInline = true;
-  fileAudioEl.volume = getFileVol();
+  if(fileAudioEl) return;
+  fileAudioEl = new Audio();
+  fileAudioEl.crossOrigin = "anonymous";
+  fileAudioEl.loop = true;
+  fileAudioEl.preload = "auto";
+  fileAudioEl.playsInline = true;
+  fileAudioEl.volume = getFileVol();
 }
 
 function connectFileToChain(){
-  ensureAudio();
-  ensureFileAudioEl();
-  if(!fileAudioEl.src) return;
+  ensureAudio();
+  ensureFileAudioEl();
+  if(!fileAudioEl.src) return;
 
-  if(micStream){ micStream.getTracks().forEach(t=>t.stop()); micStream = null; }
-  if(inputNode){ try{ inputNode.disconnect(); }catch(e){} inputNode = null; }
-  if(fileNode){ try{ fileNode.disconnect(); }catch(e){} fileNode = null; }
+  if(micStream){ micStream.getTracks().forEach(t=>t.stop()); micStream = null; }
+  if(inputNode){ try{ inputNode.disconnect(); }catch(e){} inputNode = null; }
+  if(fileNode){ try{ fileNode.disconnect(); }catch(e){} fileNode = null; }
 
-  try{
-    fileNode = audioCtx.createMediaElementSource(fileAudioEl);
-    // NEW: fileNode -> fileGain -> preGain
-    fileGain.gain.setTargetAtTime(getFileVol(), audioCtx.currentTime, 0.01);
-    fileNode.connect(fileGain);
-    fileGain.connect(preGain);
-  }catch(e){
-    try{
-      const oldSrc = fileAudioEl.src;
-      fileAudioEl.pause();
-      fileAudioEl.srcObject = null;
-      fileAudioEl = null;
-      ensureFileAudioEl();
-      fileAudioEl.src = oldSrc;
-      fileNode = audioCtx.createMediaElementSource(fileAudioEl);
-      fileNode.connect(fileGain);
-      fileGain.connect(preGain);
-    }catch(err){
-      console.error(err);
-      alert("파일 소스를 오디오 체인에 연결하는데 실패했어요.");
-    }
-  }
-  setMicButtons(false);
-  applyFileVol();
-  updateTopPill(1);
+  try{
+    fileNode = audioCtx.createMediaElementSource(fileAudioEl);
+    // NEW: fileNode -> fileGain -> preGain
+    fileGain.gain.setTargetAtTime(getFileVol(), audioCtx.currentTime, 0.01);
+    fileNode.connect(fileGain);
+    fileGain.connect(preGain);
+  }catch(e){
+    try{
+      const oldSrc = fileAudioEl.src;
+      fileAudioEl.pause();
+      fileAudioEl.srcObject = null;
+      fileAudioEl = null;
+      ensureFileAudioEl();
+      fileAudioEl.src = oldSrc;
+      fileNode = audioCtx.createMediaElementSource(fileAudioEl);
+      fileNode.connect(fileGain);
+      fileGain.connect(preGain);
+    }catch(err){
+      console.error(err);
+      alert("파일 소스를 오디오 체인에 연결하는데 실패했어요.");
+    }
+  }
+  setMicButtons(false);
+  applyFileVol();
+  updateTopPill(1);
 }
 
 /* ENTRY <-> SYSTEM 버튼 상태를 동시에 관리 */
 function setMicButtons(micOn){
-  document.getElementById('entryMicOn').disabled  = !audioCtx || micOn || (currentSource!=="mic");
-  document.getElementById('entryMicOff').disabled = !micOn;
+  document.getElementById('entryMicOn').disabled  = !audioCtx || micOn || (currentSource!=="mic");
+  document.getElementById('entryMicOff').disabled = !micOn;
 }
 
 function startStatus(msg){
-  const el = document.getElementById('startStatus');
-  if(el) el.textContent = msg;
+  const el = document.getElementById('startStatus');
+  if(el) el.textContent = msg;
 }
 
 /* ==========================================================
-   AFTER AUDIO UNLOCKED
+   AFTER AUDIO UNLOCKED
 ========================================================== */
 async function afterAudioUnlocked(){
-  await listDevices();
-  setMicButtons(!!micStream);
-  updateTopPill(1);
+  await listDevices();
+  setMicButtons(!!micStream);
+  updateTopPill(1);
 }
 
 /* ==========================================================
-   MIDI (TouchMe)
+   MIDI (TouchMe)
 ========================================================== */
 let midiAccess = null;
 let midiInput = null;
@@ -1132,9 +1119,9 @@ let midiLog = [];
 let midiLearn = false;
 
 function pushMidiLog(line){
-  midiLog.push(line);
-  if(midiLog.length>18) midiLog.shift();
-  document.getElementById('txtMIDI').textContent = `${midiName}\n` + midiLog.join('\n');
+  midiLog.push(line);
+  if(midiLog.length>18) midiLog.shift();
+  document.getElementById('txtMIDI').textContent = `${midiName}\n` + midiLog.join('\n');
 }
 
 const selMIDIIn = document.getElementById('selMIDIIn');
@@ -1167,13 +1154,13 @@ const txtMIDISupport = document.getElementById('txtMIDISupport');
 const rngSimTouch = document.getElementById('rngSimTouch');
 
 function refreshMIDILabels(){
-  txtMIDIDead.textContent = `deadzone: ${parseFloat(rngMIDIDead.value).toFixed(3)}`;
-  txtMIDIGain.textContent = `gain: ${parseFloat(rngMIDIGain.value).toFixed(2)}×`;
-  txtMIDICurve.textContent = `curve: ${parseFloat(rngMIDICurve.value).toFixed(2)} ( <1 = 더 예민 )`;
-  txtMIDISmooth.textContent = `smooth: ${parseFloat(rngMIDISmooth.value).toFixed(2)}`;
+  txtMIDIDead.textContent = `deadzone: ${parseFloat(rngMIDIDead.value).toFixed(3)}`;
+  txtMIDIGain.textContent = `gain: ${parseFloat(rngMIDIGain.value).toFixed(2)}×`;
+  txtMIDICurve.textContent = `curve: ${parseFloat(rngMIDICurve.value).toFixed(2)} ( <1 = 더 예민 )`;
+  txtMIDISmooth.textContent = `smooth: ${parseFloat(rngMIDISmooth.value).toFixed(2)}`;
 }
 ['input','change'].forEach(ev=>{
-  [rngMIDIDead,rngMIDIGain,rngMIDICurve,rngMIDISmooth].forEach(el=>el.addEventListener(ev, refreshMIDILabels));
+  [rngMIDIDead,rngMIDIGain,rngMIDICurve,rngMIDISmooth].forEach(el=>el.addEventListener(ev, refreshMIDILabels));
 });
 refreshMIDILabels();
 
@@ -1183,185 +1170,185 @@ function getMIDICurve(){ return Math.max(0.4, Math.min(2.8, parseFloat(rngMIDICu
 function getMIDISmooth(){ return Math.max(0.02, Math.min(0.50, parseFloat(rngMIDISmooth.value)||0.18)); }
 
 function shapeMIDI(x){
-  const inv = (selMIDIInvert.value==="1");
-  if(inv) x = 1-x;
+  const inv = (selMIDIInvert.value==="1");
+  if(inv) x = 1-x;
 
-  const dead = getMIDIDead();
-  if(x < dead) x = 0;
-  else x = (x-dead) / (1-dead);
+  const dead = getMIDIDead();
+  if(x < dead) x = 0;
+  else x = (x-dead) / (1-dead);
 
-  x *= getMIDIGain();
-  x = Math.max(0, Math.min(1, x));
+  x *= getMIDIGain();
+  x = Math.max(0, Math.min(1, x));
 
-  const curve = getMIDICurve();
-  x = Math.pow(x, curve);
-  return Math.max(0, Math.min(1, x));
+  const curve = getMIDICurve();
+  x = Math.pow(x, curve);
+  return Math.max(0, Math.min(1, x));
 }
 
 function updateTouch(){
-  const k = getMIDISmooth();
-  touchSmooth += (touch - touchSmooth) * k;
+  const k = getMIDISmooth();
+  touchSmooth += (touch - touchSmooth) * k;
 
-  const now = performance.now();
-  const idleMs = now - lastMidiAt;
-  if(idleMs > 250 && !midiLearn){
-    touch *= 0.985;
-  }
+  const now = performance.now();
+  const idleMs = now - lastMidiAt;
+  if(idleMs > 250 && !midiLearn){
+    touch *= 0.985;
+  }
 }
 
 function midiParseRaw(data){
-  const st = data[0] & 0xF0;
-  const ch = data[0] & 0x0F;
-  const d1 = data[1] ?? 0;
-  const d2 = data[2] ?? 0;
+  const st = data[0] & 0xF0;
+  const ch = data[0] & 0x0F;
+  const d1 = data[1] ?? 0;
+  const d2 = data[2] ?? 0;
 
-  let type = "other";
-  if(st===0xB0) type="cc";
-  else if(st===0x90) type="noteon";
-  else if(st===0x80) type="noteoff";
-  return {st, ch, d1, d2, type};
+  let type = "other";
+  if(st===0xB0) type="cc";
+  else if(st===0x90) type="noteon";
+  else if(st===0x80) type="noteoff";
+  return {st, ch, d1, d2, type};
 }
 
 function midiMsgToValue(data){
-  const st = data[0] & 0xF0;
-  const ch = data[0] & 0x0F;
-  const d1 = data[1] ?? 0;
-  const d2 = data[2] ?? 0;
+  const st = data[0] & 0xF0;
+  const ch = data[0] & 0x0F;
+  const d1 = data[1] ?? 0;
+  const d2 = data[2] ?? 0;
 
-  const wantCh = parseInt(selMIDICh.value,10);
-  if(wantCh !== -1 && ch !== wantCh) return null;
+  const wantCh = parseInt(selMIDICh.value,10);
+  if(wantCh !== -1 && ch !== wantCh) return null;
 
-  const mode = selMIDIType.value;
-  const num = Math.max(0, Math.min(127, parseInt(numMIDINum.value,10)||0));
+  const mode = selMIDIType.value;
+  const num = Math.max(0, Math.min(127, parseInt(numMIDINum.value,10)||0));
 
-  if(mode==="cc"){
-    if(st !== 0xB0) return null;
-    if(d1 !== num) return null;
-    return { raw01: d2/127, ch, type:"cc", num:d1, val:d2 };
-  }else{
-    if(st !== 0x90 && st !== 0x80) return null;
-    if(d1 !== num) return null;
-    const vel = (st===0x80) ? 0 : d2;
-    return { raw01: vel/127, ch, type:"note", num:d1, val:vel };
-  }
+  if(mode==="cc"){
+    if(st !== 0xB0) return null;
+    if(d1 !== num) return null;
+    return { raw01: d2/127, ch, type:"cc", num:d1, val:d2 };
+  }else{
+    if(st !== 0x90 && st !== 0x80) return null;
+    if(d1 !== num) return null;
+    const vel = (st===0x80) ? 0 : d2;
+    return { raw01: vel/127, ch, type:"note", num:d1, val:vel };
+  }
 }
 
 async function initMIDI(){
-  if(!navigator.requestMIDIAccess){
-    midiName="MIDI: not supported";
-    txtMIDISupport.textContent = "⚠️ 이 브라우저는 WebMIDI를 지원하지 않습니다. → Sim Touch로 테스트 가능";
-    pushMidiLog("requestMIDIAccess 없음");
-    return;
-  }
-  try{
-    midiAccess = await navigator.requestMIDIAccess({sysex:false});
-    midiAccess.onstatechange = ()=> rebuildMIDIInputs();
-    rebuildMIDIInputs(true);
-    txtMIDISupport.textContent = "✅ WebMIDI OK. TouchMe 연결 후 LEARN 누르고 한 번 터치하세요.";
-    pushMidiLog("MIDI ready.");
-  }catch(e){
-    console.error(e);
-    midiName="MIDI: blocked";
-    txtMIDISupport.textContent = "⚠️ MIDI 접근이 차단됨. Chrome 권한/보안(https) 확인.";
-    pushMidiLog("MIDI access failed");
-  }
+  if(!navigator.requestMIDIAccess){
+    midiName="MIDI: not supported";
+    txtMIDISupport.textContent = "⚠️ 이 브라우저는 WebMIDI를 지원하지 않습니다. → Sim Touch로 테스트 가능";
+    pushMidiLog("requestMIDIAccess 없음");
+    return;
+  }
+  try{
+    midiAccess = await navigator.requestMIDIAccess({sysex:false});
+    midiAccess.onstatechange = ()=> rebuildMIDIInputs();
+    rebuildMIDIInputs(true);
+    txtMIDISupport.textContent = "✅ WebMIDI OK. TouchMe 연결 후 LEARN 누르고 한 번 터치하세요.";
+    pushMidiLog("MIDI ready.");
+  }catch(e){
+    console.error(e);
+    midiName="MIDI: blocked";
+    txtMIDISupport.textContent = "⚠️ MIDI 접근이 차단됨. Chrome 권한/보안(https) 확인.";
+    pushMidiLog("MIDI access failed");
+  }
 }
 
 function rebuildMIDIInputs(autoselect=false){
-  if(!midiAccess){
-    selMIDIIn.innerHTML = `<option value="">MIDI not ready</option>`;
-    return;
-  }
-  const inputs = [...midiAccess.inputs.values()];
-  selMIDIIn.innerHTML = "";
-  if(inputs.length===0){
-    selMIDIIn.innerHTML = `<option value="">No MIDI inputs</option>`;
-    midiName="MIDI: no inputs";
-    pushMidiLog("No MIDI devices. TouchMe USB/BT 확인.");
-    return;
-  }
+  if(!midiAccess){
+    selMIDIIn.innerHTML = `<option value="">MIDI not ready</option>`;
+    return;
+  }
+  const inputs = [...midiAccess.inputs.values()];
+  selMIDIIn.innerHTML = "";
+  if(inputs.length===0){
+    selMIDIIn.innerHTML = `<option value="">No MIDI inputs</option>`;
+    midiName="MIDI: no inputs";
+    pushMidiLog("No MIDI devices. TouchMe USB/BT 확인.");
+    return;
+  }
 
-  for(const inp of inputs){
-    const opt = document.createElement('option');
-    opt.value = inp.id;
-    opt.textContent = inp.name || `MIDI (${inp.id.slice(0,6)}…)`;
-    selMIDIIn.appendChild(opt);
-  }
+  for(const inp of inputs){
+    const opt = document.createElement('option');
+    opt.value = inp.id;
+    opt.textContent = inp.name || `MIDI (${inp.id.slice(0,6)}…)`;
+    selMIDIIn.appendChild(opt);
+  }
 
-  const savedId = S.midiInputId ?? "";
-  const hasSaved = inputs.some(i=>i.id===savedId);
+  const savedId = S.midiInputId ?? "";
+  const hasSaved = inputs.some(i=>i.id===savedId);
 
-  if(hasSaved){
-    selMIDIIn.value = savedId;
-    attachMIDIInput(savedId);
-  }else if(autoselect){
-    selMIDIIn.value = inputs[0].id;
-    attachMIDIInput(inputs[0].id);
-  }
+  if(hasSaved){
+    selMIDIIn.value = savedId;
+    attachMIDIInput(savedId);
+  }else if(autoselect){
+    selMIDIIn.value = inputs[0].id;
+    attachMIDIInput(inputs[0].id);
+  }
 }
 
 function setLearn(on){
-  midiLearn = on;
-  const b = document.getElementById('btnMIDILearn');
-  b.classList.toggle('on', on);
-  b.textContent = on ? "LEARN (ON)" : "LEARN";
-  if(on) pushMidiLog("LEARN: TouchMe를 한 번 터치하세요 (CC/NOTE 자동 매핑).");
+  midiLearn = on;
+  const b = document.getElementById('btnMIDILearn');
+  b.classList.toggle('on', on);
+  b.textContent = on ? "LEARN (ON)" : "LEARN";
+  if(on) pushMidiLog("LEARN: TouchMe를 한 번 터치하세요 (CC/NOTE 자동 매핑).");
 }
 
 function attachMIDIInput(id){
-  if(!midiAccess) return;
-  const inp = [...midiAccess.inputs.values()].find(i=>i.id===id);
-  if(!inp) return;
+  if(!midiAccess) return;
+  const inp = [...midiAccess.inputs.values()].find(i=>i.id===id);
+  if(!inp) return;
 
-  if(midiInput) midiInput.onmidimessage = null;
-  midiInput = inp;
-  S.midiInputId = id;
-  saveSettings(S);
+  if(midiInput) midiInput.onmidimessage = null;
+  midiInput = inp;
+  S.midiInputId = id;
+  saveSettings(S);
 
-  midiName = "MIDI: " + (midiInput.name || "input");
-  pushMidiLog("Connected: " + midiName);
+  midiName = "MIDI: " + (midiInput.name || "input");
+  pushMidiLog("Connected: " + midiName);
 
-  midiInput.onmidimessage = (e)=>{
-    const data = e.data;
-    const r = midiParseRaw(data);
-    lastMidiAt = performance.now();
-    lastMidiRawText = `st:0x${r.st.toString(16)} | ch:${r.ch+1} | d1:${r.d1} | d2:${r.d2} | type:${r.type}`;
-    txtMIDILast.textContent = lastMidiRawText;
+  midiInput.onmidimessage = (e)=>{
+    const data = e.data;
+    const r = midiParseRaw(data);
+    lastMidiAt = performance.now();
+    lastMidiRawText = `st:0x${r.st.toString(16)} | ch:${r.ch+1} | d1:${r.d1} | d2:${r.d2} | type:${r.type}`;
+    txtMIDILast.textContent = lastMidiRawText;
 
-    if(midiLearn){
-      if(r.st===0xB0){
-        selMIDIType.value = "cc";
-        numMIDINum.value = r.d1;
-        selMIDICh.value = String(r.ch);
-        saveSettings(Object.assign(S, { selMIDIType:"cc", numMIDINum: r.d1, selMIDICh: String(r.ch) }));
-        pushMidiLog(`LEARN OK: CC #${r.d1} ch:${r.ch+1}`);
-        setLearn(false);
-      }else if(r.st===0x90 || r.st===0x80){
-        selMIDIType.value = "note";
-        numMIDINum.value = r.d1;
-        selMIDICh.value = String(r.ch);
-        saveSettings(Object.assign(S, { selMIDIType:"note", numMIDINum: r.d1, selMIDICh: String(r.ch) }));
-        pushMidiLog(`LEARN OK: NOTE #${r.d1} ch:${r.ch+1}`);
-        setLearn(false);
-      }
-    }
+    if(midiLearn){
+      if(r.st===0xB0){
+        selMIDIType.value = "cc";
+        numMIDINum.value = r.d1;
+        selMIDICh.value = String(r.ch);
+        saveSettings(Object.assign(S, { selMIDIType:"cc", numMIDINum: r.d1, selMIDICh: String(r.ch) }));
+        pushMidiLog(`LEARN OK: CC #${r.d1} ch:${r.ch+1}`);
+        setLearn(false);
+      }else if(r.st===0x90 || r.st===0x80){
+        selMIDIType.value = "note";
+        numMIDINum.value = r.d1;
+        selMIDICh.value = String(r.ch);
+        saveSettings(Object.assign(S, { selMIDIType:"note", numMIDINum: r.d1, selMIDICh: String(r.ch) }));
+        pushMidiLog(`LEARN OK: NOTE #${r.d1} ch:${r.ch+1}`);
+        setLearn(false);
+      }
+    }
 
-    const parsed = midiMsgToValue(data);
-    if(!parsed){
-      if(Math.random() < 0.18) pushMidiLog(`raw=[${[...data].join(',')}] (not mapped)`);
-      return;
-    }
+    const parsed = midiMsgToValue(data);
+    if(!parsed){
+      if(Math.random() < 0.18) pushMidiLog(`raw=[${[...data].join(',')}] (not mapped)`);
+      return;
+    }
 
-    touchRaw = parsed.raw01;
-    touch = shapeMIDI(touchRaw);
+    touchRaw = parsed.raw01;
+    touch = shapeMIDI(touchRaw);
 
-    txtMIDIRaw.textContent =
-      `raw01:${touchRaw.toFixed(3)} -> touch:${touch.toFixed(3)} | ${parsed.type.toUpperCase()} #${parsed.num} ch:${parsed.ch+1} val:${parsed.val}`;
+    txtMIDIRaw.textContent =
+      `raw01:${touchRaw.toFixed(3)} -> touch:${touch.toFixed(3)} | ${parsed.type.toUpperCase()} #${parsed.num} ch:${parsed.ch+1} val:${parsed.val}`;
 
-    if(Math.random() < 0.22){
-      pushMidiLog(`mapped ${parsed.type} #${parsed.num} ch:${parsed.ch+1} -> touch=${touch.toFixed(3)}`);
-    }
-  };
+    if(Math.random() < 0.22){
+      pushMidiLog(`mapped ${parsed.type} #${parsed.num} ch:${parsed.ch+1} -> touch=${touch.toFixed(3)}`);
+    }
+  };
 }
 
 selMIDIIn.addEventListener('change', ()=> attachMIDIInput(selMIDIIn.value));
@@ -1379,116 +1366,116 @@ hookNumberSave('numMIDINum', 1);
 
 rngSimTouch.value = (S.rngSimTouch ?? 0);
 rngSimTouch.addEventListener('input', ()=>{
-  S.rngSimTouch = parseFloat(rngSimTouch.value);
-  saveSettings(S);
-  notifyTowerValue('rngSimTouch', rngSimTouch.value);
+  S.rngSimTouch = parseFloat(rngSimTouch.value);
+  saveSettings(S);
+  notifyTowerValue('rngSimTouch', rngSimTouch.value);
 });
 
 /* ==========================================================
-   FX PRESETS + MAPPING (Touch)
+   FX PRESETS + MAPPING (Touch)
 ========================================================== */
 function getPreset(){
-  return document.getElementById('selFXPreset').value || "digital";
+  return document.getElementById('selFXPreset').value || "digital";
 }
 
 /* Core knobs that presets affect (base targets) */
 function presetParams(preset){
-  // Return base settings; touch(t) will modulate around these
-  switch(preset){
-    case "piano":
-      return {
-        pre: 0.95, preMax: 1.25,
-        driveBase: 6, driveMax: 28,
-        bpFreq: 1400, bpMax: 5200, bpQ: 0.9, bpQMax: 5.5,
-        ringBase: 0, ringMax: 0.22, ringHz: 0, ringHzMax: 120,
-        widenBase: 0.25, widenMax: 0.65,
-        compTh: -20, compRt: 5.5
-      };
-    case "bells":
-      return {
-        pre: 0.80, preMax: 1.10,
-        driveBase: 5, driveMax: 18,
-        bpFreq: 2400, bpMax: 7800, bpQ: 1.4, bpQMax: 10,
-        ringBase: 0.10, ringMax: 0.55, ringHz: 120, ringHzMax: 520,
-        widenBase: 0.30, widenMax: 0.95,
-        compTh: -22, compRt: 6.0
-      };
-    case "warm":
-      return {
-        pre: 1.05, preMax: 1.55,
-        driveBase: 12, driveMax: 55,
-        bpFreq: 550, bpMax: 2400, bpQ: 0.8, bpQMax: 4.2,
-        ringBase: 0.00, ringMax: 0.15, ringHz: 0, ringHzMax: 60,
-        widenBase: 0.18, widenMax: 0.55,
-        compTh: -24, compRt: 7.5
-      };
-    case "glitch":
-      return {
-        pre: 0.75, preMax: 1.25,
-        driveBase: 18, driveMax: 95,
-        bpFreq: 900, bpMax: 7200, bpQ: 2.0, bpQMax: 18,
-        ringBase: 0.15, ringMax: 0.95, ringHz: 60, ringHzMax: 460,
-        widenBase: 0.20, widenMax: 1.00,
-        compTh: -26, compRt: 8.5
-      };
-    default: // "digital"
-      return {
-        pre: 0.85, preMax: 2.10,
-        driveBase: 10, driveMax: 105,
-        bpFreq: 180, bpMax: 7200, bpQ: 1.0, bpQMax: 19,
-        ringBase: 0.00, ringMax: 0.95, ringHz: 10, ringHzMax: 370,
-        widenBase: 0.10, widenMax: 0.95,
-        compTh: -22, compRt: 7.0
-      };
-  }
+  // Return base settings; touch(t) will modulate around these
+  switch(preset){
+    case "piano":
+      return {
+        pre: 0.95, preMax: 1.25,
+        driveBase: 6, driveMax: 28,
+        bpFreq: 1400, bpMax: 5200, bpQ: 0.9, bpQMax: 5.5,
+        ringBase: 0, ringMax: 0.22, ringHz: 0, ringHzMax: 120,
+        widenBase: 0.25, widenMax: 0.65,
+        compTh: -20, compRt: 5.5
+      };
+    case "bells":
+      return {
+        pre: 0.80, preMax: 1.10,
+        driveBase: 5, driveMax: 18,
+        bpFreq: 2400, bpMax: 7800, bpQ: 1.4, bpQMax: 10,
+        ringBase: 0.10, ringMax: 0.55, ringHz: 120, ringHzMax: 520,
+        widenBase: 0.30, widenMax: 0.95,
+        compTh: -22, compRt: 6.0
+      };
+    case "warm":
+      return {
+        pre: 1.05, preMax: 1.55,
+        driveBase: 12, driveMax: 55,
+        bpFreq: 550, bpMax: 2400, bpQ: 0.8, bpQMax: 4.2,
+        ringBase: 0.00, ringMax: 0.15, ringHz: 0, ringHzMax: 60,
+        widenBase: 0.18, widenMax: 0.55,
+        compTh: -24, compRt: 7.5
+      };
+    case "glitch":
+      return {
+        pre: 0.75, preMax: 1.25,
+        driveBase: 18, driveMax: 95,
+        bpFreq: 900, bpMax: 7200, bpQ: 2.0, bpQMax: 18,
+        ringBase: 0.15, ringMax: 0.95, ringHz: 60, ringHzMax: 460,
+        widenBase: 0.20, widenMax: 1.00,
+        compTh: -26, compRt: 8.5
+      };
+    default: // "digital"
+      return {
+        pre: 0.85, preMax: 2.10,
+        driveBase: 10, driveMax: 105,
+        bpFreq: 180, bpMax: 7200, bpQ: 1.0, bpQMax: 19,
+        ringBase: 0.00, ringMax: 0.95, ringHz: 10, ringHzMax: 370,
+        widenBase: 0.10, widenMax: 0.95,
+        compTh: -22, compRt: 7.0
+      };
+  }
 }
 
 function applyFX(){
-  if(!audioCtx) return;
+  if(!audioCtx) return;
 
-  const sim = Math.max(0, Math.min(1, parseFloat(rngSimTouch.value)||0));
-  const t = Math.max(touchSmooth, sim);
+  const sim = Math.max(0, Math.min(1, parseFloat(rngSimTouch.value)||0));
+  const t = Math.max(touchSmooth, sim);
 
-  const P = presetParams(getPreset());
+  const P = presetParams(getPreset());
 
-  // mild wobble always (keeps lively)
-  const wob = (Math.sin(performance.now()*0.0017)*0.5+0.5);
+  // mild wobble always (keeps lively)
+  const wob = (Math.sin(performance.now()*0.0017)*0.5+0.5);
 
-  // Drive
-  const driveAmt = P.driveBase + t*(P.driveMax - P.driveBase);
-  driveWS.curve = makeWaveshaper(driveAmt);
+  // Drive
+  const driveAmt = P.driveBase + t*(P.driveMax - P.driveBase);
+  driveWS.curve = makeWaveshaper(driveAmt);
 
-  // Gain staging
-  preGain.gain.setTargetAtTime(P.pre + t*(P.preMax - P.pre), audioCtx.currentTime, 0.03);
-  driveGain.gain.setTargetAtTime(0.95 + t*0.90, audioCtx.currentTime, 0.03);
+  // Gain staging
+  preGain.gain.setTargetAtTime(P.pre + t*(P.preMax - P.pre), audioCtx.currentTime, 0.03);
+  driveGain.gain.setTargetAtTime(0.95 + t*0.90, audioCtx.currentTime, 0.03);
 
-  // Filter
-  const f = P.bpFreq + Math.pow(t, 1.35) * (P.bpMax - P.bpFreq);
-  const q = P.bpQ + t*(P.bpQMax - P.bpQ);
-  filter.frequency.setTargetAtTime(f, audioCtx.currentTime, 0.03);
-  filter.Q.setTargetAtTime(q, audioCtx.currentTime, 0.03);
+  // Filter
+  const f = P.bpFreq + Math.pow(t, 1.35) * (P.bpMax - P.bpFreq);
+  const q = P.bpQ + t*(P.bpQMax - P.bpQ);
+  filter.frequency.setTargetAtTime(f, audioCtx.currentTime, 0.03);
+  filter.Q.setTargetAtTime(q, audioCtx.currentTime, 0.03);
 
-  // Ring
-  const ringDepth = P.ringBase + t*(P.ringMax - P.ringBase);
-  const ringHz = (P.ringHz===0 && P.ringHzMax===0) ? 0 : (P.ringHz + t*(P.ringHzMax - P.ringHz));
-  ringOsc.frequency.setTargetAtTime(Math.max(1, ringHz||1), audioCtx.currentTime, 0.03);
-  ringGain.gain.setTargetAtTime(ringDepth, audioCtx.currentTime, 0.03);
+  // Ring
+  const ringDepth = P.ringBase + t*(P.ringMax - P.ringBase);
+  const ringHz = (P.ringHz===0 && P.ringHzMax===0) ? 0 : (P.ringHz + t*(P.ringHzMax - P.ringHz));
+  ringOsc.frequency.setTargetAtTime(Math.max(1, ringHz||1), audioCtx.currentTime, 0.03);
+  ringGain.gain.setTargetAtTime(ringDepth, audioCtx.currentTime, 0.03);
 
-  // Widen (delay)
-  const widen = P.widenBase + t*(P.widenMax - P.widenBase);
-  dL.delayTime.setTargetAtTime(0.0015 + widen*0.014 + wob*0.0012, audioCtx.currentTime, 0.05);
-  dR.delayTime.setTargetAtTime(0.0040 + widen*0.020 + (1-wob)*0.0014, audioCtx.currentTime, 0.05);
+  // Widen (delay)
+  const widen = P.widenBase + t*(P.widenMax - P.widenBase);
+  dL.delayTime.setTargetAtTime(0.0015 + widen*0.014 + wob*0.0012, audioCtx.currentTime, 0.05);
+  dR.delayTime.setTargetAtTime(0.0040 + widen*0.020 + (1-wob)*0.0014, audioCtx.currentTime, 0.05);
 
-  // Compressor (preset-tuned)
-  comp.threshold.setTargetAtTime(P.compTh, audioCtx.currentTime, 0.08);
-  comp.ratio.setTargetAtTime(P.compRt, audioCtx.currentTime, 0.08);
+  // Compressor (preset-tuned)
+  comp.threshold.setTargetAtTime(P.compTh, audioCtx.currentTime, 0.08);
+  comp.ratio.setTargetAtTime(P.compRt, audioCtx.currentTime, 0.08);
 
-  document.getElementById('txtFx').textContent =
-    `preset:${getPreset()} | drive:${driveAmt.toFixed(1)} | filter:${f.toFixed(0)}Hz Q:${q.toFixed(1)} | ring:${(ringHz||0).toFixed(1)}Hz depth:${ringDepth.toFixed(2)} | widen:${widen.toFixed(2)}`;
+  document.getElementById('txtFx').textContent =
+    `preset:${getPreset()} | drive:${driveAmt.toFixed(1)} | filter:${f.toFixed(0)}Hz Q:${q.toFixed(1)} | ring:${(ringHz||0).toFixed(1)}Hz depth:${ringDepth.toFixed(2)} | widen:${widen.toFixed(2)}`;
 }
 
 /* ==========================================================
-   VISUAL UI + PARAMS
+   VISUAL UI + PARAMS
 ========================================================== */
 hookRangeSave('rngIdleDrama', 0.55);
 hookRangeSave('rngVisSens', 1.55);
@@ -1503,22 +1490,22 @@ applySelectValue('selPointColor', 'red');
 hookSelectSave('selPointColor');
 
 const rngIdleDrama = document.getElementById('rngIdleDrama');
-const rngVisSens   = document.getElementById('rngVisSens');
-const rngLine      = document.getElementById('rngLine');
-const rngPerf      = document.getElementById('rngPerf');
-const rngFade      = document.getElementById('rngFade');
+const rngVisSens   = document.getElementById('rngVisSens');
+const rngLine      = document.getElementById('rngLine');
+const rngPerf      = document.getElementById('rngPerf');
+const rngFade      = document.getElementById('rngFade');
 const rngPointSize = document.getElementById('rngPointSize');
-const rngGlow      = document.getElementById('rngGlow');
-const rngSpeed     = document.getElementById('rngSpeed');
+const rngGlow      = document.getElementById('rngGlow');
+const rngSpeed     = document.getElementById('rngSpeed');
 
 const txtIdleDrama = document.getElementById('txtIdleDrama');
-const txtVisSens   = document.getElementById('txtVisSens');
-const txtLine      = document.getElementById('txtLine');
-const txtPerf      = document.getElementById('txtPerf');
-const txtFade      = document.getElementById('txtFade');
+const txtVisSens   = document.getElementById('txtVisSens');
+const txtLine      = document.getElementById('txtLine');
+const txtPerf      = document.getElementById('txtPerf');
+const txtFade      = document.getElementById('txtFade');
 const txtPointSize = document.getElementById('txtPointSize');
-const txtGlow      = document.getElementById('txtGlow');
-const txtSpeed     = document.getElementById('txtSpeed');
+const txtGlow      = document.getElementById('txtGlow');
+const txtSpeed     = document.getElementById('txtSpeed');
 
 function getIdleDrama(){ return Math.max(0, Math.min(1, parseFloat(rngIdleDrama.value)||0.55)); }
 function getVisSens(){ return Math.max(0.6, Math.min(2.6, parseFloat(rngVisSens.value)||1.55)); }
@@ -1529,28 +1516,28 @@ function getPointSize(){ return Math.max(0.4, Math.min(1.2, parseFloat(rngPointS
 function getGlow(){ return Math.max(0.10, Math.min(1.0, parseFloat(rngGlow.value)||0.45)); }
 function getSpeedMul(){ return Math.max(0.35, Math.min(1.25, parseFloat(rngSpeed.value)||0.72)); }
 function getPointColor(){
-  return (document.getElementById('selPointColor').value === "red") ? "#ff3b3b" : "#ffffff";
+  return (document.getElementById('selPointColor').value === "red") ? "#ff3b3b" : "#ffffff";
 }
 
 function refreshVisualLabels(){
-  txtIdleDrama.textContent = `idle drama: ${getIdleDrama().toFixed(2)}`;
-  txtVisSens.textContent   = `visual sens: ${getVisSens().toFixed(2)}×`;
-  txtLine.textContent      = `line density: ${getLineMul().toFixed(2)}×`;
-  txtPerf.textContent      = `perf limit: ${getPerfLim().toFixed(2)}`;
-  txtFade.textContent      = `fade: ${getFade().toFixed(3)}`;
-  txtPointSize.textContent = `point size: ${getPointSize().toFixed(2)}×`;
-  txtGlow.textContent      = `glow: ${getGlow().toFixed(2)}×`;
-  txtSpeed.textContent     = `speed: ${getSpeedMul().toFixed(2)}× (slower)`;
+  txtIdleDrama.textContent = `idle drama: ${getIdleDrama().toFixed(2)}`;
+  txtVisSens.textContent   = `visual sens: ${getVisSens().toFixed(2)}×`;
+  txtLine.textContent      = `line density: ${getLineMul().toFixed(2)}×`;
+  txtPerf.textContent      = `perf limit: ${getPerfLim().toFixed(2)}`;
+  txtFade.textContent      = `fade: ${getFade().toFixed(3)}`;
+  txtPointSize.textContent = `point size: ${getPointSize().toFixed(2)}×`;
+  txtGlow.textContent      = `glow: ${getGlow().toFixed(2)}×`;
+  txtSpeed.textContent     = `speed: ${getSpeedMul().toFixed(2)}× (slower)`;
 }
 ['input','change'].forEach(ev=>{
-  [rngIdleDrama,rngVisSens,rngLine,rngPerf,rngFade,rngPointSize,rngGlow,rngSpeed].forEach(el=>{
-    el.addEventListener(ev, refreshVisualLabels);
-  });
+  [rngIdleDrama,rngVisSens,rngLine,rngPerf,rngFade,rngPointSize,rngGlow,rngSpeed].forEach(el=>{
+    el.addEventListener(ev, refreshVisualLabels);
+  });
 });
 refreshVisualLabels();
 
 /* ==========================================================
-   VISUAL FIELD
+   VISUAL FIELD
 ========================================================== */
 let N = 220;
 let pts = [];
@@ -1558,95 +1545,95 @@ let rot = 0;
 
 const BASE_QUIET_TH = 0.0032;
 const BASE_ACTIVE_TH = 0.0065;
-const BASE_ONSET_TH  = 0.0060;
+const BASE_ONSET_TH  = 0.0060;
 
 let energy = 0;
 let burstEnergy = 0;
 
 function initPoints(){
-  pts = [];
-  for(let i=0;i<N;i++){
-    pts.push({
-      x:(Math.random()*2-1)*(W*0.34),
-      y:(Math.random()*2-1)*(H*0.34),
-      z:(Math.random()*2-1)*340,
-      vx:0,vy:0,vz:0
-    });
-  }
+  pts = [];
+  for(let i=0;i<N;i++){
+    pts.push({
+      x:(Math.random()*2-1)*(W*0.34),
+      y:(Math.random()*2-1)*(H*0.34),
+      z:(Math.random()*2-1)*340,
+      vx:0,vy:0,vz:0
+    });
+  }
 }
 initPoints();
 
 function project(p){
-  const s=Math.sin(rot), c=Math.cos(rot);
-  const x = p.x*c - p.z*s;
-  const z = p.x*s + p.z*c;
-  const depth = 900;
-  const k = depth/(depth+z);
-  return { x:x*k + W/2, y:p.y*k + H/2, k, z };
+  const s=Math.sin(rot), c=Math.cos(rot);
+  const x = p.x*c - p.z*s;
+  const z = p.x*s + p.z*c;
+  const depth = 900;
+  const k = depth/(depth+z);
+  return { x:x*k + W/2, y:p.y*k + H/2, k, z };
 }
 
 function applyBounds(p, mode){
-  if(mode==="wrap"){
-    const maxX=W*0.65, maxY=H*0.65, maxZ=560;
-    if(p.x> maxX) p.x=-maxX;
-    if(p.x<-maxX) p.x= maxX;
-    if(p.y> maxY) p.y=-maxY;
-    if(p.y<-maxY) p.y= maxY;
-    if(p.z> maxZ) p.z=-maxZ;
-    if(p.z<-maxZ) p.z= maxZ;
-    return;
-  }
+  if(mode==="wrap"){
+    const maxX=W*0.65, maxY=H*0.65, maxZ=560;
+    if(p.x> maxX) p.x=-maxX;
+    if(p.x<-maxX) p.x= maxX;
+    if(p.y> maxY) p.y=-maxY;
+    if(p.y<-maxY) p.y= maxY;
+    if(p.z> maxZ) p.z=-maxZ;
+    if(p.z<-maxZ) p.z= maxZ;
+    return;
+  }
 
-  const maxX=W*0.58, maxY=H*0.58, maxZ=560;
+  const maxX=W*0.58, maxY=H*0.58, maxZ=560;
 
-  if(mode==="bounce"){
-    if(p.x> maxX){ p.x=maxX; p.vx*=-0.7; }
-    if(p.x<-maxX){ p.x=-maxX; p.vx*=-0.7; }
-    if(p.y> maxY){ p.y=maxY; p.vy*=-0.7; }
-    if(p.y<-maxY){ p.y=-maxY; p.vy*=-0.7; }
-    if(p.z> maxZ){ p.z=maxZ; p.vz*=-0.7; }
-    if(p.z<-maxZ){ p.z=-maxZ; p.vz*=-0.7; }
-    return;
-  }
+  if(mode==="bounce"){
+    if(p.x> maxX){ p.x=maxX; p.vx*=-0.7; }
+    if(p.x<-maxX){ p.x=-maxX; p.vx*=-0.7; }
+    if(p.y> maxY){ p.y=maxY; p.vy*=-0.7; }
+    if(p.y<-maxY){ p.y=-maxY; p.vy*=-0.7; }
+    if(p.z> maxZ){ p.z=maxZ; p.vz*=-0.7; }
+    if(p.z<-maxZ){ p.z=-maxZ; p.vz*=-0.7; }
+    return;
+  }
 
-  const pull = 0.0026;
-  const edgeX = Math.max(0, Math.abs(p.x) - maxX);
-  const edgeY = Math.max(0, Math.abs(p.y) - maxY);
-  const edgeZ = Math.max(0, Math.abs(p.z) - maxZ);
-  if(edgeX>0) p.vx += (-Math.sign(p.x)) * edgeX * pull;
-  if(edgeY>0) p.vy += (-Math.sign(p.y)) * edgeY * pull;
-  if(edgeZ>0) p.vz += (-Math.sign(p.z)) * edgeZ * pull;
+  const pull = 0.0026;
+  const edgeX = Math.max(0, Math.abs(p.x) - maxX);
+  const edgeY = Math.max(0, Math.abs(p.y) - maxY);
+  const edgeZ = Math.max(0, Math.abs(p.z) - maxZ);
+  if(edgeX>0) p.vx += (-Math.sign(p.x)) * edgeX * pull;
+  if(edgeY>0) p.vy += (-Math.sign(p.y)) * edgeY * pull;
+  if(edgeZ>0) p.vz += (-Math.sign(p.z)) * edgeZ * pull;
 }
 
 /* ==========================================================
-   TOP UI / TOGGLES
+   TOP UI / TOGGLES
 ========================================================== */
 function updateTopPill(q=1){
-  const pill = document.getElementById('topPill');
-  const a = audioCtx ? audioCtx.state : 'off';
-  const src = (currentSource==="mic")
-    ? (micStream ? "mic:on" : "mic:off")
-    : (fileAudioEl && fileAudioEl.src ? (fileAudioEl.paused ? "file:loaded" : "file:play") : "file:empty");
-  pill.textContent = `audio:${a} | src:${src} | q:${q.toFixed(2)}`;
+  const pill = document.getElementById('topPill');
+  const a = audioCtx ? audioCtx.state : 'off';
+  const src = (currentSource==="mic")
+    ? (micStream ? "mic:on" : "mic:off")
+    : (fileAudioEl && fileAudioEl.src ? (fileAudioEl.paused ? "file:loaded" : "file:play") : "file:empty");
+  pill.textContent = `audio:${a} | src:${src} | q:${q.toFixed(2)}`;
 }
 
 document.getElementById('btnMuteQuick').addEventListener('click', ()=>{
-  if(!audioCtx) return;
-  isMuted = !isMuted;
-  masterGain.gain.setTargetAtTime(isMuted?0:0.9, audioCtx.currentTime, 0.02);
-  document.getElementById('btnMuteQuick').textContent = isMuted ? '🔇' : '🔈';
+  if(!audioCtx) return;
+  isMuted = !isMuted;
+  masterGain.gain.setTargetAtTime(isMuted?0:0.9, audioCtx.currentTime, 0.02);
+  document.getElementById('btnMuteQuick').textContent = isMuted ? '🔇' : '🔈';
 });
 
 function toggleFullscreen(){
-  const el = document.documentElement;
-  if(!document.fullscreenElement) el.requestFullscreen?.();
-  else document.exitFullscreen?.();
+  const el = document.documentElement;
+  if(!document.fullscreenElement) el.requestFullscreen?.();
+  else document.exitFullscreen?.();
 }
 document.getElementById('btnFS').addEventListener('click', toggleFullscreen);
 document.getElementById('btnFSQuick').addEventListener('click', toggleFullscreen);
 
 /* ==========================================================
-   SOURCE SELECT UI (SYSTEM) + (ENTRY mirror)
+   SOURCE SELECT UI (SYSTEM) + (ENTRY mirror)
 ========================================================== */
 const selSrc = document.getElementById('selSrc');
 const rowMic = document.getElementById('rowMic');
@@ -1657,45 +1644,45 @@ const entryMicBox = document.getElementById('entryMicBox');
 const entryFileBox = document.getElementById('entryFileBox');
 
 function applySourceUI(){
-  currentSource = selSrc.value;
-  S.currentSource = currentSource;
-  saveSettings(S);
-  notifyTowerValue('selSrc', currentSource);
+  currentSource = selSrc.value;
+  S.currentSource = currentSource;
+  saveSettings(S);
+  notifyTowerValue('selSrc', currentSource);
 
-  rowMic.style.display = (currentSource==="mic") ? "" : "none";
-  rowFile.style.display = (currentSource==="file") ? "" : "none";
+  rowMic.style.display = (currentSource==="mic") ? "" : "none";
+  rowFile.style.display = (currentSource==="file") ? "" : "none";
 
-  // entry mirror
-  entrySelSrc.value = currentSource;
-  entryMicBox.style.display = (currentSource==="mic") ? "" : "none";
-  entryFileBox.style.display = (currentSource==="file") ? "" : "none";
+  // entry mirror
+  entrySelSrc.value = currentSource;
+  entryMicBox.style.display = (currentSource==="mic") ? "" : "none";
+  entryFileBox.style.display = (currentSource==="file") ? "" : "none";
 
-  setMicButtons(!!micStream);
-  updateTopPill(1);
+  setMicButtons(!!micStream);
+  updateTopPill(1);
 }
 selSrc.addEventListener('change', async ()=>{
-  applySourceUI();
-  if(currentSource==="mic"){
-    if(fileAudioEl){ try{ fileAudioEl.pause(); }catch(e){} }
-    if(fileNode){ try{ fileNode.disconnect(); }catch(e){} fileNode=null; }
-    ampSmooth=amp=ampDelta=prevAmp=0;
-  }else{
-    stopMic();
-    if(inputNode){ try{ inputNode.disconnect(); }catch(e){} inputNode=null; }
-    ampSmooth=amp=ampDelta=prevAmp=0;
-    if(fileAudioEl && fileAudioEl.src){
-      ensureAudio(); await audioCtx.resume();
-      connectFileToChain();
-      applyFileVol();
-    }
-  }
+  applySourceUI();
+  if(currentSource==="mic"){
+    if(fileAudioEl){ try{ fileAudioEl.pause(); }catch(e){} }
+    if(fileNode){ try{ fileNode.disconnect(); }catch(e){} fileNode=null; }
+    ampSmooth=amp=ampDelta=prevAmp=0;
+  }else{
+    stopMic();
+    if(inputNode){ try{ inputNode.disconnect(); }catch(e){} inputNode=null; }
+    ampSmooth=amp=ampDelta=prevAmp=0;
+    if(fileAudioEl && fileAudioEl.src){
+      ensureAudio(); await audioCtx.resume();
+      connectFileToChain();
+      applyFileVol();
+    }
+  }
 });
 entrySelSrc.addEventListener('change', async ()=>{
-  selSrc.value = entrySelSrc.value;
-  applySourceUI();
-  if(currentSource==="file"){
-    stopMic();
-  }
+  selSrc.value = entrySelSrc.value;
+  applySourceUI();
+  if(currentSource==="file"){
+    stopMic();
+  }
 });
 
 applySelectValue('selSrc', (S.currentSource ?? 'mic'));
@@ -1703,7 +1690,7 @@ hookSelectSave('selSrc');
 applySourceUI();
 
 /* ==========================================================
-   FILE CONTROLS (SYSTEM + ENTRY mirror)
+   FILE CONTROLS (SYSTEM + ENTRY mirror)
 ========================================================== */
 const fileAudio = document.getElementById('fileAudio');
 const btnFilePlay = document.getElementById('btnFilePlay');
@@ -1718,138 +1705,156 @@ const entryFileStop = document.getElementById('entryFileStop');
 const entryFileTxt = document.getElementById('entryFileTxt');
 
 function setSystemFileBtns(enabled){
-  btnFilePlay.disabled = !enabled;
-  btnFilePause.disabled = !enabled;
-  btnFileStop.disabled = !enabled;
+  btnFilePlay.disabled = !enabled;
+  btnFilePause.disabled = !enabled;
+  btnFileStop.disabled = !enabled;
 }
 function setEntryFileBtns(enabled){
-  entryFilePlay.disabled = !enabled;
-  entryFilePause.disabled = !enabled;
-  entryFileStop.disabled = !enabled;
+  entryFilePlay.disabled = !enabled;
+  entryFilePause.disabled = !enabled;
+  entryFileStop.disabled = !enabled;
 }
 setSystemFileBtns(false);
 setEntryFileBtns(false);
 
 async function loadFileFromInput(file){
-  if(!file) return;
+  if(!file) return;
 
-  ensureAudio();
-  await audioCtx.resume();
-  setupOutputRouting();
-  ensureFileAudioEl();
+  ensureAudio();
+  await audioCtx.resume();
+  setupOutputRouting();
+  ensureFileAudioEl();
 
-  const url = URL.createObjectURL(file);
-  try{ fileAudioEl.pause(); }catch(e){}
-  fileAudioEl.src = url;
-  fileAudioEl.loop = true;
-  fileAudioEl.volume = getFileVol();
+  const url = URL.createObjectURL(file);
+  try{ fileAudioEl.pause(); }catch(e){}
+  fileAudioEl.src = url;
+  fileAudioEl.loop = true;
+  fileAudioEl.volume = getFileVol();
 
-  txtFile.textContent = `loaded: ${file.name} (${Math.round(file.size/1024)} KB)`;
-  entryFileTxt.textContent = `loaded: ${file.name} (${Math.round(file.size/1024)} KB)`;
+  txtFile.textContent = `loaded: ${file.name} (${Math.round(file.size/1024)} KB)`;
+  entryFileTxt.textContent = `loaded: ${file.name} (${Math.round(file.size/1024)} KB)`;
 
-  if(currentSource!=="file"){
-    selSrc.value = "file";
-    applySourceUI();
-  }
+  if(currentSource!=="file"){
+    selSrc.value = "file";
+    applySourceUI();
+  }
 
-  connectFileToChain();
-  setSystemFileBtns(true);
-  setEntryFileBtns(true);
-  applyFileVol();
-  updateTopPill(1);
+  connectFileToChain();
+  setSystemFileBtns(true);
+  setEntryFileBtns(true);
+  applyFileVol();
+  updateTopPill(1);
 }
 
 fileAudio.addEventListener('change', async ()=>{
-  const f = fileAudio.files && fileAudio.files[0];
-  if(!f) return;
-  await loadFileFromInput(f);
+  const f = fileAudio.files && fileAudio.files[0];
+  if(!f) return;
+  await loadFileFromInput(f);
 });
 entryFileAudio.addEventListener('change', async ()=>{
-  const f = entryFileAudio.files && entryFileAudio.files[0];
-  if(!f) return;
-  await loadFileFromInput(f);
+  const f = entryFileAudio.files && entryFileAudio.files[0];
+  if(!f) return;
+  await loadFileFromInput(f);
 });
 
 /* ==========================================================
-   ENTRY ENTER
+   ENTRY ENTER
 ========================================================== */
 function hideEntryAndEnter(){ document.getElementById('hint').style.display='none'; }
 function showEntry(msg=""){
-  document.getElementById('hint').style.display='flex';
-  if(msg) startStatus(msg);
+  document.getElementById('hint').style.display='flex';
+  if(msg) startStatus(msg);
 }
 
 entryFilePlay.addEventListener('click', async ()=>{
-  if(!fileAudioEl || !fileAudioEl.src) return;
-  ensureAudio(); await audioCtx.resume();
-  connectFileToChain();
-  applyFileVol();
-  try{ await fileAudioEl.play(); }catch(e){
-    alert("재생이 막혔어요. 화면을 한번 터치/클릭한 뒤 다시 Play 눌러주세요.");
-    return;
-  }
-  updateTopPill(1);
-  hideEntryAndEnter();
+  if(!fileAudioEl || !fileAudioEl.src) return;
+  ensureAudio(); await audioCtx.resume();
+  connectFileToChain();
+  applyFileVol();
+  try{ await fileAudioEl.play(); }catch(e){
+    alert("재생이 막혔어요. 화면을 한번 터치/클릭한 뒤 다시 Play 눌러주세요.");
+    return;
+  }
+  updateTopPill(1);
+  hideEntryAndEnter();
 });
 entryFilePause.addEventListener('click', ()=>{
-  if(!fileAudioEl) return;
-  try{ fileAudioEl.pause(); }catch(e){}
-  updateTopPill(1);
+  if(!fileAudioEl) return;
+  try{ fileAudioEl.pause(); }catch(e){}
+  updateTopPill(1);
 });
 entryFileStop.addEventListener('click', ()=>{
-  if(!fileAudioEl) return;
-  try{ fileAudioEl.pause(); fileAudioEl.currentTime = 0; }catch(e){}
-  updateTopPill(1);
+  if(!fileAudioEl) return;
+  try{ fileAudioEl.pause(); fileAudioEl.currentTime = 0; }catch(e){}
+  updateTopPill(1);
 });
 
 btnFilePlay.addEventListener('click', async ()=>{
-  if(!fileAudioEl || !fileAudioEl.src) return;
-  ensureAudio(); await audioCtx.resume();
-  connectFileToChain();
-  applyFileVol();
-  try{ await fileAudioEl.play(); }catch(e){
-    alert("재생이 막혔어요. 화면을 한번 터치/클릭한 뒤 다시 Play 눌러주세요.");
-  }
-  updateTopPill(1);
+  if(!fileAudioEl || !fileAudioEl.src) return;
+  ensureAudio(); await audioCtx.resume();
+  connectFileToChain();
+  applyFileVol();
+  try{ await fileAudioEl.play(); }catch(e){
+    alert("재생이 막혔어요. 화면을 한번 터치/클릭한 뒤 다시 Play 눌러주세요.");
+  }
+  updateTopPill(1);
 });
 btnFilePause.addEventListener('click', ()=>{
-  if(!fileAudioEl) return;
-  try{ fileAudioEl.pause(); }catch(e){}
-  updateTopPill(1);
+  if(!fileAudioEl) return;
+  try{ fileAudioEl.pause(); }catch(e){}
+  updateTopPill(1);
 });
 btnFileStop.addEventListener('click', ()=>{
-  if(!fileAudioEl) return;
-  try{ fileAudioEl.pause(); fileAudioEl.currentTime = 0; }catch(e){}
-  updateTopPill(1);
+  if(!fileAudioEl) return;
+  try{ fileAudioEl.pause(); fileAudioEl.currentTime = 0; }catch(e){}
+  updateTopPill(1);
 });
 
 /* ENTRY mic buttons */
 document.getElementById('entryMicOn').addEventListener('click', async ()=>{
-  if(currentSource!=="mic") return;
-  await startMic(currentMicDeviceId, true);
+  if(currentSource!=="mic") return;
+  await startMic(currentMicDeviceId, true);
 });
 document.getElementById('entryMicOff').addEventListener('click', ()=> stopMic());
 
 /* ==========================================================
-   ENTRY: Start Audio (unlock) + device list + MIDI init
+   ENTRY: Start Audio (unlock) + device list + MIDI init
 ========================================================== */
+// [수정된 부분: Start Audio 버튼 이벤트 리스너]
 document.getElementById('btnStartAudio').addEventListener('click', async ()=>{
-  ensureAudio();
-  await audioCtx.resume();
-  await afterAudioUnlocked();
-  await initMIDI();
-  applyFileVol();
-  startStatus("Audio unlocked. 이제 Mic/File 선택 후 Enter 버튼으로 입장!");
+  // Ensure the audio context is created (if not already)
+  ensureAudio();
+  
+  // Try to resume/unlock the audio context
+  if (audioCtx.state === 'suspended') {
+    try {
+      await audioCtx.resume();
+      await afterAudioUnlocked();
+      await initMIDI();
+      applyFileVol();
+      startStatus("Audio unlocked. 이제 Mic/File 선택 후 Enter 버튼으로 입장!");
+    } catch (e) {
+      console.error("Audio Context Resume failed:", e);
+      startStatus("Audio unlock 실패. 브라우저 설정을 확인하세요.");
+    }
+  } else if (audioCtx.state === 'running') {
+    // Already running, just refresh device list and status
+    await afterAudioUnlocked();
+    await initMIDI();
+    applyFileVol();
+    startStatus("Audio already unlocked. Mic/File 선택 후 Enter 버튼으로 입장!");
+  }
 });
+// [수정된 부분 끝]
 
 addEventListener('pointerdown', async ()=>{
-  if(audioCtx && audioCtx.state==='suspended'){
-    await audioCtx.resume();
-  }
+  if(audioCtx && audioCtx.state==='suspended'){
+    await audioCtx.resume();
+  }
 },{passive:true});
 
 /* ==========================================================
-   VISUAL SELECT RESTORE
+   VISUAL SELECT RESTORE
 ========================================================== */
 applySelectValue('selMode', 'pulse');
 applySelectValue('selN', '220');
@@ -1860,81 +1865,81 @@ applySelectValue('selAutoReboot', '1');
 ['selMode','selN','selBounds','selQuietLines','selAutoReboot'].forEach(hookSelectSave);
 
 document.getElementById('selN').addEventListener('change', (e)=>{
-  N = parseInt(e.target.value,10);
-  initPoints();
+  N = parseInt(e.target.value,10);
+  initPoints();
 });
 
 /* ==========================================================
-   ENTRY REBOOT (lag/freeze → Entry)
+   ENTRY REBOOT (lag/freeze → Entry)
 ========================================================== */
 function clearRuntime(){
-  amp = 0; ampSmooth = 0; ampDelta = 0; prevAmp = 0;
-  touchRaw = 0; touch = 0; touchSmooth = 0; lastMidiAt = 0;
-  energy = 0; burstEnergy = 0; rot = 0;
-  initPoints();
+  amp = 0; ampSmooth = 0; ampDelta = 0; prevAmp = 0;
+  touchRaw = 0; touch = 0; touchSmooth = 0; lastMidiAt = 0;
+  energy = 0; burstEnergy = 0; rot = 0;
+  initPoints();
 
-  document.getElementById('hudMidi').textContent = "midi: -";
-  document.getElementById('hudTouch').textContent = "0.000";
-  document.getElementById('hudAmp').textContent = "0.000";
-  document.getElementById('hudTouchBar').style.width = "0%";
+  document.getElementById('hudMidi').textContent = "midi: -";
+  document.getElementById('hudTouch').textContent = "0.000";
+  document.getElementById('hudAmp').textContent = "0.000";
+  document.getElementById('hudTouchBar').style.width = "0%";
 
-  ctx.setTransform(DPR,0,0,DPR,0,0);
-  ctx.fillStyle="#000";
-  ctx.fillRect(0,0,W,H);
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  ctx.fillStyle="#000";
+  ctx.fillRect(0,0,W,H);
 }
 
 async function entryReboot(reason="lag"){
-  console.warn("ENTRY REBOOT:", reason);
+  console.warn("ENTRY REBOOT:", reason);
 
-  try{ stopMic(); }catch(e){}
-  try{
-    if(fileAudioEl){ try{ fileAudioEl.pause(); }catch(e){} }
-  }catch(e){}
+  try{ stopMic(); }catch(e){}
+  try{
+    if(fileAudioEl){ try{ fileAudioEl.pause(); }catch(e){} }
+  }catch(e){}
 
-  try{ disconnectInputs(); }catch(e){}
-  fileNode = null;
-  inputNode = null;
+  try{ disconnectInputs(); }catch(e){}
+  fileNode = null;
+  inputNode = null;
 
-  // close audio context to truly clear overload (user wants "Start Audio" stage again)
-  try{
-    if(audioCtx){
-      try{ await audioCtx.close(); }catch(e){}
-    }
-  }catch(e){}
-  audioCtx = null;
-  analyser = null;
-  timeData = null;
-  masterGain = null;
-  preGain = null;
-  eqLow = eqMid = eqHigh = null;
-  driveWS = driveGain = null;
-  filter = null;
-  ringOsc = null;
-  ringGain = null;
-  ringMult = null;
-  splitter = null;
-  dL = dR = null;
-  merger = null;
-  comp = null;
-  monitorDest = null;
-  fileGain = null;
+  // close audio context to truly clear overload (user wants "Start Audio" stage again)
+  try{
+    if(audioCtx){
+      try{ await audioCtx.close(); }catch(e){}
+    }
+  }catch(e){}
+  audioCtx = null;
+  analyser = null;
+  timeData = null;
+  masterGain = null;
+  preGain = null;
+  eqLow = eqMid = eqHigh = null;
+  driveWS = driveGain = null;
+  filter = null;
+  ringOsc = null;
+  ringGain = null;
+  ringMult = null;
+  splitter = null;
+  dL = dR = null;
+  merger = null;
+  comp = null;
+  monitorDest = null;
+  fileGain = null;
 
-  clearRuntime();
+  clearRuntime();
 
-  setMicButtons(false);
-  updateTopPill(1);
+  setMicButtons(false);
+  updateTopPill(1);
 
-  // Entry UI states (Start Audio must be pressed again)
-  document.getElementById('entrySelMic').disabled = true;
-  document.getElementById('entrySelMic').innerHTML = `<option>Start Audio 후 목록 로드</option>`;
-  document.getElementById('entryMicOn').disabled = true;
-  document.getElementById('entryMicOff').disabled = true;
+  // Entry UI states (Start Audio must be pressed again)
+  document.getElementById('entrySelMic').disabled = true;
+  document.getElementById('entrySelMic').innerHTML = `<option>Start Audio 후 목록 로드</option>`;
+  document.getElementById('entryMicOn').disabled = true;
+  document.getElementById('entryMicOff').disabled = true;
 
-  showEntry(`렉 감지 → Entry로 복귀 (reason: ${reason})`);
+  showEntry(`렉 감지 → Entry로 복귀 (reason: ${reason})`);
 }
 
 /* ==========================================================
-   AUTO REBOOT ON LAG / FREEZE
+   AUTO REBOOT ON LAG / FREEZE
 ========================================================== */
 const selAutoReboot = document.getElementById('selAutoReboot');
 function autoRebootEnabled(){ return (selAutoReboot.value === "1"); }
@@ -1945,470 +1950,470 @@ let lagTimer = 0;
 
 let lastAnimTick = performance.now();
 setInterval(()=>{
-  const now = performance.now();
-  if(!autoRebootEnabled()) return;
-  if(now - lastAnimTick > 1600){
-    entryReboot("freeze watchdog");
-    lastAnimTick = now;
-  }
+  const now = performance.now();
+  if(!autoRebootEnabled()) return;
+  if(now - lastAnimTick > 1600){
+    entryReboot("freeze watchdog");
+    lastAnimTick = now;
+  }
 }, 400);
 
 function checkLag(dt){
-  if(!autoRebootEnabled()) return;
-  if(dt > 45){
-    lagTimer += dt;
-    if(lagTimer > 2200){
-      entryReboot("lag reboot");
-      lagTimer = 0;
-    }
-  }else{
-    lagTimer = Math.max(0, lagTimer - 50);
-  }
+  if(!autoRebootEnabled()) return;
+  if(dt > 45){
+    lagTimer += dt;
+    if(lagTimer > 2200){
+      entryReboot("lag reboot");
+      lagTimer = 0;
+    }
+  }else{
+    lagTimer = Math.max(0, lagTimer - 50);
+  }
 }
 
 /* ==========================================================
-   RECORDING (canvas + master audio)
+   RECORDING (canvas + master audio)
 ========================================================== */
 let rec = { recorder:null, chunks:[], stream:null, url:null, startedAt:0 };
 
 function canRecord(){
-  return typeof MediaRecorder !== "undefined" && typeof canvas.captureStream === "function";
+  return typeof MediaRecorder !== "undefined" && typeof canvas.captureStream === "function";
 }
 
 function buildRecordStream(){
-  setupOutputRouting();
-  const vStream = canvas.captureStream(30);
-  const aTrack = (monitorDest && monitorDest.stream.getAudioTracks()[0]) ? monitorDest.stream.getAudioTracks()[0] : null;
+  setupOutputRouting();
+  const vStream = canvas.captureStream(30);
+  const aTrack = (monitorDest && monitorDest.stream.getAudioTracks()[0]) ? monitorDest.stream.getAudioTracks()[0] : null;
 
-  // video stream + (optional) audio track into one MediaStream
-  const mixed = new MediaStream();
-  vStream.getVideoTracks().forEach(t=>mixed.addTrack(t));
-  if(aTrack) mixed.addTrack(aTrack);
+  // video stream + (optional) audio track into one MediaStream
+  const mixed = new MediaStream();
+  vStream.getVideoTracks().forEach(t=>mixed.addTrack(t));
+  if(aTrack) mixed.addTrack(aTrack);
 
-  return mixed;
+  return mixed;
 }
 
 function pickMimeType(){
-  const candidates = [
-    'video/webm;codecs=vp9,opus',
-    'video/webm;codecs=vp8,opus',
-    'video/webm;codecs=opus',
-    'video/webm'
-  ];
-  for(const m of candidates){
-    if(MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(m)) return m;
-  }
-  return '';
+  const candidates = [
+    'video/webm;codecs=vp9,opus',
+    'video/webm;codecs=vp8,opus',
+    'video/webm;codecs=opus',
+    'video/webm'
+  ];
+  for(const m of candidates){
+    if(MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(m)) return m;
+  }
+  return '';
 }
 
 const btnRecStart = document.getElementById('btnRecStart');
-const btnRecStop  = document.getElementById('btnRecStop');
+const btnRecStop  = document.getElementById('btnRecStop');
 const aRecDownload = document.getElementById('aRecDownload');
 const txtRecInfo = document.getElementById('txtRecInfo');
 
 function resetRecUI(){
-  btnRecStart.disabled = false;
-  btnRecStop.disabled = true;
-  aRecDownload.style.display = "none";
-  txtRecInfo.textContent = "";
+  btnRecStart.disabled = false;
+  btnRecStop.disabled = true;
+  aRecDownload.style.display = "none";
+  txtRecInfo.textContent = "";
 }
 
 async function startRecording(){
-  if(!canRecord()){
-    alert("이 브라우저는 canvas 녹화를 지원하지 않습니다. (Chrome 권장)");
-    return;
-  }
-  ensureAudio();
-  await audioCtx.resume();
-  setupOutputRouting();
+  if(!canRecord()){
+    alert("이 브라우저는 canvas 녹화를 지원하지 않습니다. (Chrome 권장)");
+    return;
+  }
+  ensureAudio();
+  await audioCtx.resume();
+  setupOutputRouting();
 
-  // already recording?
-  if(rec.recorder && rec.recorder.state==="recording") return;
+  // already recording?
+  if(rec.recorder && rec.recorder.state==="recording") return;
 
-  // cleanup previous
-  if(rec.url){
-    try{ URL.revokeObjectURL(rec.url); }catch(e){}
-    rec.url = null;
-  }
-  rec.chunks = [];
+  // cleanup previous
+  if(rec.url){
+    try{ URL.revokeObjectURL(rec.url); }catch(e){}
+    rec.url = null;
+  }
+  rec.chunks = [];
 
-  try{
-    rec.stream = buildRecordStream();
-    const mimeType = pickMimeType();
+  try{
+    rec.stream = buildRecordStream();
+    const mimeType = pickMimeType();
 
-    const opts = {};
-    if(mimeType) opts.mimeType = mimeType;
+    const opts = {};
+    if(mimeType) opts.mimeType = mimeType;
 
-    rec.recorder = new MediaRecorder(rec.stream, opts);
+    rec.recorder = new MediaRecorder(rec.stream, opts);
 
-    rec.recorder.ondataavailable = (e)=>{
-      if(e.data && e.data.size>0) rec.chunks.push(e.data);
-    };
+    rec.recorder.ondataavailable = (e)=>{
+      if(e.data && e.data.size>0) rec.chunks.push(e.data);
+    };
 
-    rec.recorder.onstop = ()=>{
-      try{
-        const type = (rec.recorder && rec.recorder.mimeType) ? rec.recorder.mimeType : 'video/webm';
-        const blob = new Blob(rec.chunks, { type });
-        rec.url = URL.createObjectURL(blob);
+    rec.recorder.onstop = ()=>{
+      try{
+        const type = (rec.recorder && rec.recorder.mimeType) ? rec.recorder.mimeType : 'video/webm';
+        const blob = new Blob(rec.chunks, { type });
+        rec.url = URL.createObjectURL(blob);
 
-        aRecDownload.href = rec.url;
-        aRecDownload.download = `limen_recording_${new Date().toISOString().replace(/[:.]/g,'-')}.webm`;
-        aRecDownload.style.display = "inline-block";
+        aRecDownload.href = rec.url;
+        aRecDownload.download = `limen_recording_${new Date().toISOString().replace(/[:.]/g,'-')}.webm`;
+        aRecDownload.style.display = "inline-block";
 
-        const sec = (performance.now() - rec.startedAt) / 1000;
-        txtRecInfo.textContent = `Saved: ${blob.size.toLocaleString()} bytes | ${sec.toFixed(1)} sec | ${type}`;
+        const sec = (performance.now() - rec.startedAt) / 1000;
+        txtRecInfo.textContent = `Saved: ${blob.size.toLocaleString()} bytes | ${sec.toFixed(1)} sec | ${type}`;
 
-      }catch(err){
-        console.error(err);
-        txtRecInfo.textContent = "Recording saved, but download link creation failed.";
-      }
+      }catch(err){
+        console.error(err);
+        txtRecInfo.textContent = "Recording saved, but download link creation failed.";
+      }
 
-      // stop tracks so it doesn't keep capturing
-      try{
-        if(rec.stream){
-          rec.stream.getTracks().forEach(t=>t.stop());
-        }
-      }catch(e){}
-      rec.stream = null;
+      // stop tracks so it doesn't keep capturing
+      try{
+        if(rec.stream){
+          rec.stream.getTracks().forEach(t=>t.stop());
+        }
+      }catch(e){}
+      rec.stream = null;
 
-      btnRecStart.disabled = false;
-      btnRecStop.disabled = true;
-      notifyTowerValue('recState', 'stopped');
-    };
+      btnRecStart.disabled = false;
+      btnRecStop.disabled = true;
+      notifyTowerValue('recState', 'stopped');
+    };
 
-    rec.startedAt = performance.now();
-    rec.recorder.start(100); // collect chunks periodically
+    rec.startedAt = performance.now();
+    rec.recorder.start(100); // collect chunks periodically
 
-    btnRecStart.disabled = true;
-    btnRecStop.disabled  = false;
-    aRecDownload.style.display = "none";
-    txtRecInfo.textContent = "Recording…";
+    btnRecStart.disabled = true;
+    btnRecStop.disabled  = false;
+    aRecDownload.style.display = "none";
+    txtRecInfo.textContent = "Recording…";
 
-    notifyTowerValue('recState', 'recording');
+    notifyTowerValue('recState', 'recording');
 
-  }catch(e){
-    console.error(e);
-    alert("녹화 시작 실패. (권한/코덱/브라우저 확인)");
-    resetRecUI();
-  }
+  }catch(e){
+    console.error(e);
+    alert("녹화 시작 실패. (권한/코덱/브라우저 확인)");
+    resetRecUI();
+  }
 }
 
 function stopRecording(){
-  if(!rec.recorder) return;
-  if(rec.recorder.state !== "recording") return;
-  try{ rec.recorder.stop(); }catch(e){ console.error(e); }
+  if(!rec.recorder) return;
+  if(rec.recorder.state !== "recording") return;
+  try{ rec.recorder.stop(); }catch(e){ console.error(e); }
 }
 
 btnRecStart.addEventListener('click', startRecording);
 btnRecStop.addEventListener('click', stopRecording);
 
 /* ==========================================================
-   UI SHOW/HIDE (hidden main) - kept for popup
+   UI SHOW/HIDE (hidden main) - kept for popup
 ========================================================== */
 const ui = document.getElementById('ui');
 document.getElementById('btnHideUI').addEventListener('click', ()=>{
-  ui.classList.remove('show');
+  ui.classList.remove('show');
 });
 
 /* ==========================================================
-   CONTROL TOWER (popup window)
-   - main 화면은 설정 숨김
-   - popup은 동일 UI를 "복제 렌더"로 보여주고,
-     값 변경은 postMessage로 메인에 전달
+   CONTROL TOWER (popup window)
+   - main 화면은 설정 숨김
+   - popup은 동일 UI를 "복제 렌더"로 보여주고,
+     값 변경은 postMessage로 메인에 전달
 ========================================================== */
 let towerWin = null;
 const TOWER_NAME = "limen_control_tower_v4";
 
 function openTower(){
-  // if already open, focus
-  if(towerWin && !towerWin.closed){
-    towerWin.focus();
-    return;
-  }
+  // if already open, focus
+  if(towerWin && !towerWin.closed){
+    towerWin.focus();
+    return;
+  }
 
-  // popup content: we build a minimal HTML and inject the UI markup
-  const w = Math.min(520, Math.floor(screen.width*0.42));
-  const h = Math.min(860, Math.floor(screen.height*0.86));
-  const left = Math.floor(screenX + (outerWidth - w) - 20);
-  const top  = Math.floor(screenY + 20);
+  // popup content: we build a minimal HTML and inject the UI markup
+  const w = Math.min(520, Math.floor(screen.width*0.42));
+  const h = Math.min(860, Math.floor(screen.height*0.86));
+  const left = Math.floor(screenX + (outerWidth - w) - 20);
+  const top  = Math.floor(screenY + 20);
 
-  towerWin = window.open('', TOWER_NAME, `width=${w},height=${h},left=${left},top=${top},resizable=yes,scrollbars=yes`);
+  towerWin = window.open('', TOWER_NAME, `width=${w},height=${h},left=${left},top=${top},resizable=yes,scrollbars=yes`);
 
-  if(!towerWin){
-    alert("팝업이 차단되었습니다. 브라우저에서 팝업 허용 후 다시 눌러주세요.");
-    return;
-  }
+  if(!towerWin){
+    alert("팝업이 차단되었습니다. 브라우저에서 팝업 허용 후 다시 눌러주세요.");
+    return;
+  }
 
-  const css = `
-  <style>
-    html,body{margin:0;height:100%;background:#070707;color:#eee;font-family:system-ui,-apple-system,sans-serif;}
-    .wrap{padding:12px;}
-    .hint{font-size:12px;color:#9aa;line-height:1.5;margin:0 0 10px;}
-    /* bring over original #ui styles minimally */
-    #ui{display:block !important; position:relative; width:100%; max-width:none; height:auto; max-height:none; overflow:visible;}
-    #ui *{box-sizing:border-box;}
-    .mono{font-family:ui-monospace, SFMono-Regular, Menlo, monospace;}
-    .pillBtn{padding:8px 10px;border-radius:10px;border:1px solid rgba(255,255,255,.18);background:rgba(0,0,0,.24);color:#eee;font-weight:700;cursor:pointer;}
-    .pillBtn.on{border-color:rgba(255,80,80,.9); box-shadow:0 0 0 2px rgba(255,80,80,.14) inset;}
-    .meter{height:10px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden;border:1px solid rgba(255,255,255,.10);}
-    .meter i{display:block;height:100%;width:0%;background:rgba(255,80,80,.90);}
-    /* Tabs/panels aesthetics */
-    #bar{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px;}
-    #bar .title{font-weight:900}
-    #bar .pill{font-size:12px;color:#bbb;border:1px solid rgba(255,255,255,.12);padding:6px 10px;border-radius:999px;background:rgba(0,0,0,.30)}
-    #tabs{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0;}
-    .tab{cursor:pointer;border:1px solid rgba(255,255,255,.12);padding:8px 10px;border-radius:10px;background:rgba(0,0,0,.25);font-weight:800;font-size:12px;color:#ddd;}
-    .tab.active{border-color:rgba(255,255,255,.32)}
-    .panel{display:none;border:1px solid rgba(255,255,255,.10);border-radius:14px;padding:10px;background:rgba(0,0,0,.20)}
-    .panel.active{display:block;}
-    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:8px 0;}
-    .label{font-size:12px;color:#aaa;width:128px;}
-    .grow{flex:1;min-width:200px;}
-    button,select,input[type="range"],input[type="number"]{background:#0f0f0f;color:#eee;border:1px solid rgba(255,255,255,.16);border-radius:10px;padding:8px 10px;font-weight:650;outline:none;}
-    input[type="range"]{padding:6px 10px;}
-    button:hover,select:hover{border-color:rgba(255,255,255,.32)}
-    button:disabled,select:disabled{opacity:.5;cursor:not-allowed}
-    .small{font-size:11px;color:#9aa;line-height:1.45;}
-    .two{display:grid;grid-template-columns:1fr;gap:10px;}
-    @media(min-width:720px){.two{grid-template-columns:1fr 1fr;}}
-    .box{border:1px solid rgba(255,255,255,.10);border-radius:12px;padding:10px;background:rgba(0,0,0,.18);}
-  </style>`;
+  const css = `
+  <style>
+    html,body{margin:0;height:100%;background:#070707;color:#eee;font-family:system-ui,-apple-system,sans-serif;}
+    .wrap{padding:12px;}
+    .hint{font-size:12px;color:#9aa;line-height:1.5;margin:0 0 10px;}
+    /* bring over original #ui styles minimally */
+    #ui{display:block !important; position:relative; width:100%; max-width:none; height:auto; max-height:none; overflow:visible;}
+    #ui *{box-sizing:border-box;}
+    .mono{font-family:ui-monospace, SFMono-Regular, Menlo, monospace;}
+    .pillBtn{padding:8px 10px;border-radius:10px;border:1px solid rgba(255,255,255,.18);background:rgba(0,0,0,.24);color:#eee;font-weight:700;cursor:pointer;}
+    .pillBtn.on{border-color:rgba(255,80,80,.9); box-shadow:0 0 0 2px rgba(255,80,80,.14) inset;}
+    .meter{height:10px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden;border:1px solid rgba(255,255,255,.10);}
+    .meter i{display:block;height:100%;width:0%;background:rgba(255,80,80,.90);}
+    /* Tabs/panels aesthetics */
+    #bar{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px;}
+    #bar .title{font-weight:900}
+    #bar .pill{font-size:12px;color:#bbb;border:1px solid rgba(255,255,255,.12);padding:6px 10px;border-radius:999px;background:rgba(0,0,0,.30)}
+    #tabs{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0;}
+    .tab{cursor:pointer;border:1px solid rgba(255,255,255,.12);padding:8px 10px;border-radius:10px;background:rgba(0,0,0,.25);font-weight:800;font-size:12px;color:#ddd;}
+    .tab.active{border-color:rgba(255,255,255,.32)}
+    .panel{display:none;border:1px solid rgba(255,255,255,.10);border-radius:14px;padding:10px;background:rgba(0,0,0,.20)}
+    .panel.active{display:block;}
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:8px 0;}
+    .label{font-size:12px;color:#aaa;width:128px;}
+    .grow{flex:1;min-width:200px;}
+    button,select,input[type="range"],input[type="number"]{background:#0f0f0f;color:#eee;border:1px solid rgba(255,255,255,.16);border-radius:10px;padding:8px 10px;font-weight:650;outline:none;}
+    input[type="range"]{padding:6px 10px;}
+    button:hover,select:hover{border-color:rgba(255,255,255,.32)}
+    button:disabled,select:disabled{opacity:.5;cursor:not-allowed}
+    .small{font-size:11px;color:#9aa;line-height:1.45;}
+    .two{display:grid;grid-template-columns:1fr;gap:10px;}
+    @media(min-width:720px){.two{grid-template-columns:1fr 1fr;}}
+    .box{border:1px solid rgba(255,255,255,.10);border-radius:12px;padding:10px;background:rgba(0,0,0,.18);}
+  </style>`;
 
-  // clone UI node HTML (hidden in main) into popup
-  const uiHTML = document.getElementById('ui').outerHTML;
+  // clone UI node HTML (hidden in main) into popup
+  const uiHTML = document.getElementById('ui').outerHTML;
 
-  // Build popup doc
-  towerWin.document.open();
-  towerWin.document.write(`
-    <!doctype html><html><head><meta charset="utf-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>Control Tower</title>
-    ${css}
-    </head><body>
-      <div class="wrap">
-        <p class="hint">⚙️ Control Tower (팝업)<br/>값 변경은 즉시 메인 화면에 반영됩니다. (Chrome 권장)</p>
-        ${uiHTML}
-      </div>
+  // Build popup doc
+  towerWin.document.open();
+  towerWin.document.write(`
+    <!doctype html><html><head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Control Tower</title>
+    ${css}
+    </head><body>
+      <div class="wrap">
+        <p class="hint">⚙️ Control Tower (팝업)<br/>값 변경은 즉시 메인 화면에 반영됩니다. (Chrome 권장)</p>
+        ${uiHTML}
+      </div>
 
-      <script>
-        // Bridge: forward any changes in popup to opener
-        const send = (type, payload)=> {
-          try{
-            window.opener && window.opener.postMessage({ __limen_tower: true, type, payload }, "*");
-          }catch(e){}
-        };
+      <script>
+        // Bridge: forward any changes in popup to opener
+        const send = (type, payload)=> {
+          try{
+            window.opener && window.opener.postMessage({ __limen_tower: true, type, payload }, "*");
+          }catch(e){}
+        };
 
-        // Tabs
-        const tabs = [...document.querySelectorAll(".tab")];
-        const panels = [...document.querySelectorAll(".panel")];
-        tabs.forEach(t=>{
-          t.addEventListener("click", ()=>{
-            tabs.forEach(x=>x.classList.remove("active"));
-            panels.forEach(p=>p.classList.remove("active"));
-            t.classList.add("active");
-            const id = "panel-" + t.dataset.tab;
-            const p = document.getElementById(id);
-            p && p.classList.add("active");
-          });
-        });
+        // Tabs
+        const tabs = [...document.querySelectorAll(".tab")];
+        const panels = [...document.querySelectorAll(".panel")];
+        tabs.forEach(t=>{
+          t.addEventListener("click", ()=>{
+            tabs.forEach(x=>x.classList.remove("active"));
+            panels.forEach(p=>p.classList.remove("active"));
+            t.classList.add("active");
+            const id = "panel-" + t.dataset.tab;
+            const p = document.getElementById(id);
+            p && p.classList.add("active");
+          });
+        });
 
-        // Remove close button function (it only hides in popup - optional)
-        const hideBtn = document.getElementById("btnHideUI");
-        if(hideBtn){
-          hideBtn.textContent = "Close Tower";
-          hideBtn.addEventListener("click", ()=> window.close());
-        }
+        // Remove close button function (it only hides in popup - optional)
+        const hideBtn = document.getElementById("btnHideUI");
+        if(hideBtn){
+          hideBtn.textContent = "Close Tower";
+          hideBtn.addEventListener("click", ()=> window.close());
+        }
 
-        // Hook all inputs/selects/ranges to send changes
-        function hook(el){
-          const id = el.id;
-          if(!id) return;
-          const ev = (el.type==="range" || el.type==="number") ? "input" : "change";
-          el.addEventListener(ev, ()=>{
-            let v = el.value;
-            send("set", { id, value:v });
-          });
-        }
-        [...document.querySelectorAll("input,select")].forEach(hook);
+        // Hook all inputs/selects/ranges to send changes
+        function hook(el){
+          const id = el.id;
+          if(!id) return;
+          const ev = (el.type==="range" || el.type==="number") ? "input" : "change";
+          el.addEventListener(ev, ()=>{
+            let v = el.value;
+            send("set", { id, value:v });
+          });
+        }
+        [...document.querySelectorAll("input,select")].forEach(hook);
 
-        // Buttons (specific)
-        const mapBtn = (id, msgType)=>{
-          const b = document.getElementById(id);
-          if(!b) return;
-          b.addEventListener("click", ()=> send("btn", { id, msgType }));
-        };
-        mapBtn("btnResume","resume");
-        mapBtn("btnFilePlay","filePlay");
-        mapBtn("btnFilePause","filePause");
-        mapBtn("btnFileStop","fileStop");
-        mapBtn("btnMIDIInit","midiInit");
-        mapBtn("btnMIDILearn","midiLearnToggle");
-        mapBtn("btnRecStart","recStart");
-        mapBtn("btnRecStop","recStop");
+        // Buttons (specific)
+        const mapBtn = (id, msgType)=>{
+          const b = document.getElementById(id);
+          if(!b) return;
+          b.addEventListener("click", ()=> send("btn", { id, msgType }));
+        };
+        mapBtn("btnResume","resume");
+        mapBtn("btnFilePlay","filePlay");
+        mapBtn("btnFilePause","filePause");
+        mapBtn("btnFileStop","fileStop");
+        mapBtn("btnMIDIInit","midiInit");
+        mapBtn("btnMIDILearn","midiLearnToggle");
+        mapBtn("btnRecStart","recStart");
+        mapBtn("btnRecStop","recStop");
 
-        // file input: can't pass File object; user must choose file in MAIN entry/system.
-        const f1 = document.getElementById("fileAudio");
-        if(f1){
-          f1.disabled = true;
-          const txt = document.getElementById("txtFile");
-          if(txt) txt.textContent = "※ 파일 선택은 메인 화면에서만 가능합니다 (브라우저 보안).";
-        }
+        // file input: can't pass File object; user must choose file in MAIN entry/system.
+        const f1 = document.getElementById("fileAudio");
+        if(f1){
+          f1.disabled = true;
+          const txt = document.getElementById("txtFile");
+          if(txt) txt.textContent = "※ 파일 선택은 메인 화면에서만 가능합니다 (브라우저 보안).";
+        }
 
-        // receive state update from main
-        window.addEventListener("message", (e)=>{
-          const d = e.data;
-          if(!d || !d.__limen_main) return;
-          if(d.type==="state"){
-            const {id, value} = d.payload||{};
-            const el = document.getElementById(id);
-            if(el){
-              // do not overwrite file input
-              if(el.type==="file") return;
-              el.value = value;
-            }
-            // special text updates
-            if(id==="topPill"){
-              const pill = document.getElementById("topPill");
-              if(pill) pill.textContent = value;
-            }
-            if(id==="txtRecInfo"){
-              const t = document.getElementById("txtRecInfo");
-              if(t) t.textContent = value;
-            }
-          }
-        });
+        // receive state update from main
+        window.addEventListener("message", (e)=>{
+          const d = e.data;
+          if(!d || !d.__limen_main) return;
+          if(d.type==="state"){
+            const {id, value} = d.payload||{};
+            const el = document.getElementById(id);
+            if(el){
+              // do not overwrite file input
+              if(el.type==="file") return;
+              el.value = value;
+            }
+            // special text updates
+            if(id==="topPill"){
+              const pill = document.getElementById("topPill");
+              if(pill) pill.textContent = value;
+            }
+            if(id==="txtRecInfo"){
+              const t = document.getElementById("txtRecInfo");
+              if(t) t.textContent = value;
+            }
+          }
+        });
 
-        // tell main we are ready
-        send("ready", {});
-      <\/script>
-    </body></html>
-  `);
-  towerWin.document.close();
+        // tell main we are ready
+        send("ready", {});
+      <\/script>
+    </body></html>
+  `);
+  towerWin.document.close();
 
-  // small delay then sync values
-  setTimeout(syncTowerAll, 120);
+  // small delay then sync values
+  setTimeout(syncTowerAll, 120);
 }
 
 document.getElementById('btnOpenTower').addEventListener('click', openTower);
 document.getElementById('btnGear').addEventListener('click', openTower);
 
 function notifyTowerValue(id, value){
-  if(!towerWin || towerWin.closed) return;
-  try{
-    towerWin.postMessage({ __limen_main:true, type:"state", payload:{ id, value } }, "*");
-  }catch(e){}
+  if(!towerWin || towerWin.closed) return;
+  try{
+    towerWin.postMessage({ __limen_main:true, type:"state", payload:{ id, value } }, "*");
+  }catch(e){}
 }
 
 function syncTowerAll(){
-  if(!towerWin || towerWin.closed) return;
+  if(!towerWin || towerWin.closed) return;
 
-  // sync all visible controls' current values
-  const ids = [
-    // tabs + core
-    'selMode','selN','selBounds','selQuietLines','selPointColor',
-    'rngIdleDrama','rngVisSens','rngLine','rngPerf','rngFade','rngPointSize','rngGlow','rngSpeed',
+  // sync all visible controls' current values
+  const ids = [
+    // tabs + core
+    'selMode','selN','selBounds','selQuietLines','selPointColor',
+    'rngIdleDrama','rngVisSens','rngLine','rngPerf','rngFade','rngPointSize','rngGlow','rngSpeed',
 
-    // audio
-    'rngMediaGain','rngFileVol','rngSens','rngGamma','rngCap',
-    'selFXPreset','rngEQLow','rngEQMid','rngEQHigh',
+    // audio
+    'rngMediaGain','rngFileVol','rngSens','rngGamma','rngCap',
+    'selFXPreset','rngEQLow','rngEQMid','rngEQHigh',
 
-    // midi
-    'selMIDIIn','selMIDIType','numMIDINum','selMIDICh','selMIDIInvert',
-    'rngMIDIDead','rngMIDIGain','rngMIDICurve','rngMIDISmooth','rngSimTouch',
+    // midi
+    'selMIDIIn','selMIDIType','numMIDINum','selMIDICh','selMIDIInvert',
+    'rngMIDIDead','rngMIDIGain','rngMIDICurve','rngMIDISmooth','rngSimTouch',
 
-    // system
-    'selSrc','selMic','selAutoReboot'
-  ];
+    // system
+    'selSrc','selMic','selAutoReboot'
+  ];
 
-  for(const id of ids){
-    const el = document.getElementById(id);
-    if(!el) continue;
-    notifyTowerValue(id, el.value);
-  }
+  for(const id of ids){
+    const el = document.getElementById(id);
+    if(!el) continue;
+    notifyTowerValue(id, el.value);
+  }
 
-  // topPill + rec info
-  const pill = document.getElementById('topPill');
-  if(pill) notifyTowerValue('topPill', pill.textContent);
+  // topPill + rec info
+  const pill = document.getElementById('topPill');
+  if(pill) notifyTowerValue('topPill', pill.textContent);
 
-  if(txtRecInfo) notifyTowerValue('txtRecInfo', txtRecInfo.textContent || "");
+  if(txtRecInfo) notifyTowerValue('txtRecInfo', txtRecInfo.textContent || "");
 }
 
 /* Listen messages from tower */
 window.addEventListener("message", async (e)=>{
-  const d = e.data;
-  if(!d || !d.__limen_tower) return;
+  const d = e.data;
+  if(!d || !d.__limen_tower) return;
 
-  if(d.type==="ready"){
-    syncTowerAll();
-    return;
-  }
+  if(d.type==="ready"){
+    syncTowerAll();
+    return;
+  }
 
-  if(d.type==="set"){
-    const {id, value} = d.payload||{};
-    const el = document.getElementById(id);
-    if(el){
-      // set local value & trigger proper handlers
-      el.value = value;
+  if(d.type==="set"){
+    const {id, value} = d.payload||{};
+    const el = document.getElementById(id);
+    if(el){
+      // set local value & trigger proper handlers
+      el.value = value;
 
-      // Some need extra apply
-      if(id==="rngFileVol") applyFileVol();
-      if(id==="rngEQLow" || id==="rngEQMid" || id==="rngEQHigh") applyEQ();
-      if(id==="selSrc") applySourceUI();
+      // Some need extra apply
+      if(id==="rngFileVol") applyFileVol();
+      if(id==="rngEQLow" || id==="rngEQMid" || id==="rngEQHigh") applyEQ();
+      if(id==="selSrc") applySourceUI();
 
-      // For others, fire events
-      const evName = (el.type==="range" || el.type==="number") ? "input" : "change";
-      el.dispatchEvent(new Event(evName, { bubbles:true }));
-    }
-    return;
-  }
+      // For others, fire events
+      const evName = (el.type==="range" || el.type==="number") ? "input" : "change";
+      el.dispatchEvent(new Event(evName, { bubbles:true }));
+    }
+    return;
+  }
 
-  if(d.type==="btn"){
-    const {msgType} = d.payload||{};
-    // map tower button actions to main
-    if(msgType==="resume"){
-      ensureAudio();
-      await audioCtx.resume();
-      await afterAudioUnlocked();
-      applyFileVol();
-      break;
-    }
-    if(msgType==="filePlay") btnFilePlay.click();
-    if(msgType==="filePause") btnFilePause.click();
-    if(msgType==="fileStop") btnFileStop.click();
-    if(msgType==="midiInit") await initMIDI();
-    if(msgType==="midiLearnToggle") document.getElementById('btnMIDILearn').click();
-    if(msgType==="recStart") await startRecording();
-    if(msgType==="recStop") stopRecording();
-    return;
-  }
+  if(d.type==="btn"){
+    const {msgType} = d.payload||{};
+    // map tower button actions to main
+    if(msgType==="resume"){
+      ensureAudio();
+      await audioCtx.resume();
+      await afterAudioUnlocked();
+      applyFileVol();
+      break;
+    }
+    if(msgType==="filePlay") btnFilePlay.click();
+    if(msgType==="filePause") btnFilePause.click();
+    if(msgType==="fileStop") btnFileStop.click();
+    if(msgType==="midiInit") await initMIDI();
+    if(msgType==="midiLearnToggle") document.getElementById('btnMIDILearn').click();
+    if(msgType==="recStart") await startRecording();
+    if(msgType==="recStop") stopRecording();
+    return;
+  }
 });
 
 /* ==========================================================
-   TAB LOGIC (main hidden, but used by popup too)
+   TAB LOGIC (main hidden, but used by popup too)
 ========================================================== */
 (function setupTabs(){
-  const tabs = [...document.querySelectorAll("#tabs .tab")];
-  const panels = [...document.querySelectorAll("#panels .panel")];
-  tabs.forEach(t=>{
-    t.addEventListener('click', ()=>{
-      tabs.forEach(x=>x.classList.remove('active'));
-      panels.forEach(p=>p.classList.remove('active'));
-      t.classList.add('active');
-      const p = document.getElementById('panel-'+t.dataset.tab);
-      p && p.classList.add('active');
-    });
-  });
+  const tabs = [...document.querySelectorAll("#tabs .tab")];
+  const panels = [...document.querySelectorAll("#panels .panel")];
+  tabs.forEach(t=>{
+    t.addEventListener('click', ()=>{
+      tabs.forEach(x=>x.classList.remove('active'));
+      panels.forEach(p=>p.classList.remove('active'));
+      t.classList.add('active');
+      const p = document.getElementById('panel-'+t.dataset.tab);
+      p && p.classList.add('active');
+    });
+  });
 })();
 
 /* ==========================================================
-   SYSTEM buttons
+   SYSTEM buttons
 ========================================================== */
 document.getElementById('btnResume').addEventListener('click', async ()=>{
-  ensureAudio();
-  await audioCtx.resume();
-  await afterAudioUnlocked();
-  applyFileVol();
-  startStatus("Audio resumed / unlocked.");
+  ensureAudio();
+  await audioCtx.resume();
+  await afterAudioUnlocked();
+  applyFileVol();
+  startStatus("Audio resumed / unlocked.");
 });
 
 document.getElementById('entryFilePause').addEventListener('click', ()=>{});
@@ -2420,285 +2425,285 @@ document.getElementById('entryMicOn').disabled = true;
 document.getElementById('entryMicOff').disabled = true;
 
 /* ==========================================================
-   FULLSCREEN quick buttons
+   FULLSCREEN quick buttons
 ========================================================== */
 document.getElementById('btnFSQuick').addEventListener('click', toggleFullscreen);
 
 /* ==========================================================
-   HUD updates
+   HUD updates
 ========================================================== */
 const hudTouch = document.getElementById('hudTouch');
-const hudAmp   = document.getElementById('hudAmp');
-const hudMidi  = document.getElementById('hudMidi');
+const hudAmp   = document.getElementById('hudAmp');
+const hudMidi  = document.getElementById('hudMidi');
 const hudTouchBar = document.getElementById('hudTouchBar');
 
 function updateHUD(){
-  const sim = Math.max(0, Math.min(1, parseFloat(rngSimTouch.value)||0));
-  const t = Math.max(touchSmooth, sim);
+  const sim = Math.max(0, Math.min(1, parseFloat(rngSimTouch.value)||0));
+  const t = Math.max(touchSmooth, sim);
 
-  hudTouch.textContent = t.toFixed(3);
-  hudAmp.textContent   = amp.toFixed(3);
+  hudTouch.textContent = t.toFixed(3);
+  hudAmp.textContent   = amp.toFixed(3);
 
-  if(midiInput && !midiInput.connection) hudMidi.textContent = "midi: (connected)";
-  else if(midiInput) hudMidi.textContent = "midi: " + (midiInput.name||"input");
-  else hudMidi.textContent = "midi: -";
+  if(midiInput && !midiInput.connection) hudMidi.textContent = "midi: (connected)";
+  else if(midiInput) hudMidi.textContent = "midi: " + (midiInput.name||"input");
+  else hudMidi.textContent = "midi: -";
 
-  hudTouchBar.style.width = (t*100).toFixed(1) + "%";
+  hudTouchBar.style.width = (t*100).toFixed(1) + "%";
 }
 
 /* ==========================================================
-   VISUAL DRAW
+   VISUAL DRAW
 ========================================================== */
 const meterIn = document.getElementById('meterIn');
 const meterTouch = document.getElementById('meterTouch');
 const txtAmpEl = document.getElementById('txtAmp');
 
 function draw(){
-  const now = performance.now();
-  const dt = now - lastFrameT;
-  lastFrameT = now;
-  lastAnimTick = now;
+  const now = performance.now();
+  const dt = now - lastFrameT;
+  lastFrameT = now;
+  lastAnimTick = now;
 
-  // lag check
-  checkLag(dt);
+  // lag check
+  checkLag(dt);
 
-  // background fade
-  ctx.fillStyle = `rgba(0,0,0,${getFade()})`;
-  ctx.fillRect(0,0,W,H);
+  // background fade
+  ctx.fillStyle = `rgba(0,0,0,${getFade()})`;
+  ctx.fillRect(0,0,W,H);
 
-  // update audio
-  if(audioCtx && analyser){
-    updateAmp();
-    applyFX();
-    applyEQ();
-  }else{
-    amp *= 0.98;
-    ampSmooth *= 0.98;
-    ampDelta *= 0.98;
-  }
+  // update audio
+  if(audioCtx && analyser){
+    updateAmp();
+    applyFX();
+    applyEQ();
+  }else{
+    amp *= 0.98;
+    ampSmooth *= 0.98;
+    ampDelta *= 0.98;
+  }
 
-  // update midi touch
-  const sim = Math.max(0, Math.min(1, parseFloat(rngSimTouch.value)||0));
-  if(sim>0.0001){
-    touch = sim;
-    lastMidiAt = performance.now();
-  }
-  updateTouch();
+  // update midi touch
+  const sim = Math.max(0, Math.min(1, parseFloat(rngSimTouch.value)||0));
+  if(sim>0.0001){
+    touch = sim;
+    lastMidiAt = performance.now();
+  }
+  updateTouch();
 
-  // meters
-  const t01 = Math.max(touchSmooth, sim);
-  if(meterTouch) meterTouch.style.width = (t01*100).toFixed(1)+"%";
-  if(meterIn) meterIn.style.width = Math.min(100, (amp/getCap())*100).toFixed(1)+"%";
+  // meters
+  const t01 = Math.max(touchSmooth, sim);
+  if(meterTouch) meterTouch.style.width = (t01*100).toFixed(1)+"%";
+  if(meterIn) meterIn.style.width = Math.min(100, (amp/getCap())*100).toFixed(1)+"%";
 
-  if(txtAmpEl){
-    txtAmpEl.textContent = `amp: ${amp.toFixed(4)} | dAmp: ${ampDelta.toFixed(4)}`;
-  }
+  if(txtAmpEl){
+    txtAmpEl.textContent = `amp: ${amp.toFixed(4)} | dAmp: ${ampDelta.toFixed(4)}`;
+  }
 
-  // energy
-  const visSens = getVisSens();
-  const idleDrama = getIdleDrama();
-  const speedMul = getSpeedMul();
+  // energy
+  const visSens = getVisSens();
+  const idleDrama = getIdleDrama();
+  const speedMul = getSpeedMul();
 
-  energy += (amp*visSens - energy) * 0.10;
-  burstEnergy += (ampDelta*visSens*4 - burstEnergy) * 0.12;
+  energy += (amp*visSens - energy) * 0.10;
+  burstEnergy += (ampDelta*visSens*4 - burstEnergy) * 0.12;
 
-  // rotation + subtle idle movement
-  rot += (0.00065 + idleDrama*0.0012 + energy*0.0022) * speedMul;
+  // rotation + subtle idle movement
+  rot += (0.00065 + idleDrama*0.0012 + energy*0.0022) * speedMul;
 
-  // thresholds + density
-  const quietTh = BASE_QUIET_TH * (1/visSens);
-  const activeTh= BASE_ACTIVE_TH * (1/visSens);
-  const onsetTh = BASE_ONSET_TH * (1/visSens);
+  // thresholds + density
+  const quietTh = BASE_QUIET_TH * (1/visSens);
+  const activeTh= BASE_ACTIVE_TH * (1/visSens);
+  const onsetTh = BASE_ONSET_TH * (1/visSens);
 
-  const mode = document.getElementById('selMode').value;
-  const boundsMode = document.getElementById('selBounds').value;
-  const quietLinesMode = parseInt(document.getElementById('selQuietLines').value,10);
+  const mode = document.getElementById('selMode').value;
+  const boundsMode = document.getElementById('selBounds').value;
+  const quietLinesMode = parseInt(document.getElementById('selQuietLines').value,10);
 
-  // perf quality (reduce connections & dynamics)
-  const perf = getPerfLim(); // 0.25..1
-  const maxLinksBase = 520 * perf * getLineMul();
-  const maxLinks = Math.max(40, Math.floor(maxLinksBase));
+  // perf quality (reduce connections & dynamics)
+  const perf = getPerfLim(); // 0.25..1
+  const maxLinksBase = 520 * perf * getLineMul();
+  const maxLinks = Math.max(40, Math.floor(maxLinksBase));
 
-  // update points
-  for(const p of pts){
-    const n = (Math.sin((p.x+p.y+p.z)*0.0009 + now*0.0007)+1)*0.5;
+  // update points
+  for(const p of pts){
+    const n = (Math.sin((p.x+p.y+p.z)*0.0009 + now*0.0007)+1)*0.5;
 
-    // base drift
-    const drift = (0.004 + idleDrama*0.012) * speedMul;
-    p.vx += (n-0.5)*drift;
-    p.vy += ((1-n)-0.5)*drift;
-    p.vz += (0.5-n)*drift;
+    // base drift
+    const drift = (0.004 + idleDrama*0.012) * speedMul;
+    p.vx += (n-0.5)*drift;
+    p.vy += ((1-n)-0.5)*drift;
+    p.vz += (0.5-n)*drift;
 
-    // audio influence
-    const a = energy;
-    const d = burstEnergy;
+    // audio influence
+    const a = energy;
+    const d = burstEnergy;
 
-    if(mode==="pulse"){
-      const k = (0.02 + a*0.22) * speedMul;
-      p.vx += (Math.cos(now*0.0007 + p.z*0.003)*k);
-      p.vy += (Math.sin(now*0.0008 + p.x*0.003)*k);
-      p.vz += (Math.sin(now*0.0006 + p.y*0.003)*k*0.6);
-    }else if(mode==="burst"){
-      const k = (0.03 + d*0.55) * speedMul;
-      p.vx += (Math.sin(now*0.0012 + p.y*0.004)*k);
-      p.vy += (Math.cos(now*0.0010 + p.z*0.004)*k);
-      p.vz += (Math.sin(now*0.0011 + p.x*0.004)*k);
-    }else{ // calm
-      const k = (0.01 + a*0.08) * speedMul;
-      p.vx += (Math.cos(now*0.0004 + p.y*0.002)*k);
-      p.vy += (Math.sin(now*0.00045+ p.x*0.002)*k);
-      p.vz += (Math.cos(now*0.00035+ p.z*0.002)*k*0.5);
-    }
+    if(mode==="pulse"){
+      const k = (0.02 + a*0.22) * speedMul;
+      p.vx += (Math.cos(now*0.0007 + p.z*0.003)*k);
+      p.vy += (Math.sin(now*0.0008 + p.x*0.003)*k);
+      p.vz += (Math.sin(now*0.0006 + p.y*0.003)*k*0.6);
+    }else if(mode==="burst"){
+      const k = (0.03 + d*0.55) * speedMul;
+      p.vx += (Math.sin(now*0.0012 + p.y*0.004)*k);
+      p.vy += (Math.cos(now*0.0010 + p.z*0.004)*k);
+      p.vz += (Math.sin(now*0.0011 + p.x*0.004)*k);
+    }else{ // calm
+      const k = (0.01 + a*0.08) * speedMul;
+      p.vx += (Math.cos(now*0.0004 + p.y*0.002)*k);
+      p.vy += (Math.sin(now*0.00045+ p.x*0.002)*k);
+      p.vz += (Math.cos(now*0.00035+ p.z*0.002)*k*0.5);
+    }
 
-    // touch influence (soft “press”)
-    const t = t01;
-    if(t>0.001){
-      const kk = (0.02 + t*0.28) * speedMul;
-      p.vx += (Math.sin(now*0.0009 + p.x*0.003) * kk);
-      p.vy += (Math.cos(now*0.0010 + p.y*0.003) * kk);
-      p.vz += (Math.sin(now*0.0011 + p.z*0.003) * kk * 0.8);
-    }
+    // touch influence (soft “press”)
+    const t = t01;
+    if(t>0.001){
+      const kk = (0.02 + t*0.28) * speedMul;
+      p.vx += (Math.sin(now*0.0009 + p.x*0.003) * kk);
+      p.vy += (Math.cos(now*0.0010 + p.y*0.003) * kk);
+      p.vz += (Math.sin(now*0.0011 + p.z*0.003) * kk * 0.8);
+    }
 
-    // damping
-    const damp = 0.965 - (1-perf)*0.02; // lower perf => slightly more damping
-    p.vx *= damp; p.vy *= damp; p.vz *= damp;
+    // damping
+    const damp = 0.965 - (1-perf)*0.02; // lower perf => slightly more damping
+    p.vx *= damp; p.vy *= damp; p.vz *= damp;
 
-    p.x += p.vx;
-    p.y += p.vy;
-    p.z += p.vz;
+    p.x += p.vx;
+    p.y += p.vy;
+    p.z += p.vz;
 
-    applyBounds(p, boundsMode);
-  }
+    applyBounds(p, boundsMode);
+  }
 
-  // draw points & lines
-  const col = getPointColor();
-  const glow = getGlow();
-  const pSize = getPointSize();
+  // draw points & lines
+  const col = getPointColor();
+  const glow = getGlow();
+  const pSize = getPointSize();
 
-  // connection distance depends on energy
-  const baseDist = Math.min(W,H) * (0.10 + 0.12*perf);
-  const dist = baseDist * (0.85 + energy*2.2) * getLineMul();
+  // connection distance depends on energy
+  const baseDist = Math.min(W,H) * (0.10 + 0.12*perf);
+  const dist = baseDist * (0.85 + energy*2.2) * getLineMul();
 
-  // gather projected positions
-  const proj = pts.map(p=>project(p));
+  // gather projected positions
+  const proj = pts.map(p=>project(p));
 
-  // sort by depth for nicer layering
-  const idx = proj.map((o,i)=>({i, z:o.z})).sort((a,b)=>a.z-b.z).map(o=>o.i);
+  // sort by depth for nicer layering
+  const idx = proj.map((o,i)=>({i, z:o.z})).sort((a,b)=>a.z-b.z).map(o=>o.i);
 
-  // lines
-  let links=0;
-  const wantLines = (amp > activeTh) || (quietLinesMode>0);
-  if(wantLines){
-    ctx.globalCompositeOperation = "lighter";
+  // lines
+  let links=0;
+  const wantLines = (amp > activeTh) || (quietLinesMode>0);
+  if(wantLines){
+    ctx.globalCompositeOperation = "lighter";
 
-    const quietAlphaBase = (quietLinesMode===2)? 0.16 : 0.08;
-    const quietAlpha = quietAlphaBase * perf * (0.7 + glow*0.8);
+    const quietAlphaBase = (quietLinesMode===2)? 0.16 : 0.08;
+    const quietAlpha = quietAlphaBase * perf * (0.7 + glow*0.8);
 
-    // create a lightweight distance check
-    for(let a=0; a<idx.length; a++){
-      const i = idx[a];
-      const pi = proj[i];
-      for(let b=a+1; b<idx.length; b++){
-        const j = idx[b];
-        const pj = proj[j];
+    // create a lightweight distance check
+    for(let a=0; a<idx.length; a++){
+      const i = idx[a];
+      const pi = proj[i];
+      for(let b=a+1; b<idx.length; b++){
+        const j = idx[b];
+        const pj = proj[j];
 
-        const dx = pi.x - pj.x;
-        const dy = pi.y - pj.y;
-        const dd = Math.sqrt(dx*dx + dy*dy);
+        const dx = pi.x - pj.x;
+        const dy = pi.y - pj.y;
+        const dd = Math.sqrt(dx*dx + dy*dy);
 
-        if(dd < dist){
-          links++;
-          if(links > maxLinks) break;
+        if(dd < dist){
+          links++;
+          if(links > maxLinks) break;
 
-          // alpha depends on amp/touch, distance, glow
-          let alpha = 0.0;
+          // alpha depends on amp/touch, distance, glow
+          let alpha = 0.0;
 
-          if(amp > activeTh){
-            const k = 1 - (dd/dist);
-            alpha = (0.06 + energy*0.55 + t01*0.35) * k * perf;
-          }else{
-            // quiet lines
-            const k = 1 - (dd/dist);
-            alpha = quietAlpha * k;
-          }
+          if(amp > activeTh){
+            const k = 1 - (dd/dist);
+            alpha = (0.06 + energy*0.55 + t01*0.35) * k * perf;
+          }else{
+            // quiet lines
+            const k = 1 - (dd/dist);
+            alpha = quietAlpha * k;
+          }
 
-          alpha = Math.min(0.45, alpha);
+          alpha = Math.min(0.45, alpha);
 
-          ctx.strokeStyle = `rgba(${col==="#ffffff"?"255,255,255":"255,80,80"},${alpha})`;
-          ctx.lineWidth = 1.0;
+          ctx.strokeStyle = `rgba(${col==="#ffffff"?"255,255,255":"255,80,80"},${alpha})`;
+          ctx.lineWidth = 1.0;
 
-          ctx.beginPath();
-          ctx.moveTo(pi.x, pi.y);
-          ctx.lineTo(pj.x, pj.y);
-          ctx.stroke();
-        }
-      }
-      if(links > maxLinks) break;
-    }
+          ctx.beginPath();
+          ctx.moveTo(pi.x, pi.y);
+          ctx.lineTo(pj.x, pj.y);
+          ctx.stroke();
+        }
+      }
+      if(links > maxLinks) break;
+    }
 
-    ctx.globalCompositeOperation = "source-over";
-  }
+    ctx.globalCompositeOperation = "source-over";
+  }
 
-  // points
-  for(const i of idx){
-    const p = proj[i];
-    const k = (p.k||1);
-    const r = (1.6 + 2.8*energy + 1.6*t01) * k * pSize;
+  // points
+  for(const i of idx){
+    const p = proj[i];
+    const k = (p.k||1);
+    const r = (1.6 + 2.8*energy + 1.6*t01) * k * pSize;
 
-    // subtle glow
-    const a = 0.10 + 0.65*energy + 0.25*t01;
-    const aa = Math.min(0.95, a) * (0.65 + glow*0.75);
+    // subtle glow
+    const a = 0.10 + 0.65*energy + 0.25*t01;
+    const aa = Math.min(0.95, a) * (0.65 + glow*0.75);
 
-    ctx.fillStyle = `rgba(${col==="#ffffff"?"255,255,255":"255,80,80"},${aa})`;
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, r, 0, Math.PI*2);
-    ctx.fill();
-  }
+    ctx.fillStyle = `rgba(${col==="#ffffff"?"255,255,255":"255,80,80"},${aa})`;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, r, 0, Math.PI*2);
+    ctx.fill();
+  }
 
-  // onset sparkle (tiny flash)
-  if(ampDelta > onsetTh){
-    ctx.fillStyle = `rgba(255,255,255,0.06)`;
-    ctx.fillRect(0,0,W,H);
-  }
+  // onset sparkle (tiny flash)
+  if(ampDelta > onsetTh){
+    ctx.fillStyle = `rgba(255,255,255,0.06)`;
+    ctx.fillRect(0,0,W,H);
+  }
 
-  updateHUD();
-  updateTopPill(perf);
+  updateHUD();
+  updateTopPill(perf);
 
-  requestAnimationFrame(draw);
+  requestAnimationFrame(draw);
 }
 requestAnimationFrame(draw);
 
 /* ==========================================================
-   ENTRY quick controls
+   ENTRY quick controls
 ========================================================== */
 document.getElementById('btnFS').addEventListener('click', toggleFullscreen);
 document.getElementById('btnFSQuick').addEventListener('click', toggleFullscreen);
 
 /* ==========================================================
-   FILE volume initial apply
+   FILE volume initial apply
 ========================================================== */
 function applyAllInitial(){
-  refreshAudioLabels();
-  refreshVisualLabels();
-  refreshMIDILabels();
-  applyFileVol();
-  applySourceUI();
-  resetRecUI();
+  refreshAudioLabels();
+  refreshVisualLabels();
+  refreshMIDILabels();
+  applyFileVol();
+  applySourceUI();
+  resetRecUI();
 }
 applyAllInitial();
 
 /* ==========================================================
-   ENTRY buttons states for file (after load)
+   ENTRY buttons states for file (after load)
 ========================================================== */
 function refreshFileBtnState(){
-  const ok = (fileAudioEl && fileAudioEl.src);
-  setSystemFileBtns(!!ok);
-  setEntryFileBtns(!!ok);
+  const ok = (fileAudioEl && fileAudioEl.src);
+  setSystemFileBtns(!!ok);
+  setEntryFileBtns(!!ok);
 }
 setInterval(refreshFileBtnState, 700);
 
 /* ==========================================================
-   INITIAL startup status text
+   INITIAL startup status text
 ========================================================== */
 startStatus("Start Audio를 먼저 눌러주세요.");
 
