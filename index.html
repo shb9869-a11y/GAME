@@ -3,146 +3,397 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-<title>TouchMe – Chrome Hard Reset Audio</title>
-
+<title>TouchMe + Mic THRU + Press-to-FX (Chrome Debug)</title>
 <style>
-html,body{
-  margin:0; height:100%;
-  background:#0b0b0b; color:#eee;
-  font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;
-  touch-action:manipulation;
-}
-#hint{
-  position:fixed; inset:0;
-  display:flex; align-items:center; justify-content:center;
-  text-align:center;
-  background:radial-gradient(circle, rgba(255,255,255,0.06), transparent 55%);
-}
-#hint .box{
-  padding:20px;
-  border:1px solid #333;
-  border-radius:16px;
-  background:rgba(15,15,15,.85);
-}
-.meter{height:10px;background:#222;border-radius:999px;overflow:hidden;margin-top:8px}
-.meter>div{height:100%;width:0;background:#eee}
-#log{
-  position:fixed; bottom:12px; left:12px; right:12px;
-  font-size:12px;
-  background:#111; border:1px solid #333;
-  border-radius:12px; padding:10px;
-  font-family:monospace;
-}
+  :root{color-scheme:dark}
+  html,body{height:100%;margin:0}
+  body{
+    background:#0b0b0b;color:#eee;
+    font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+    touch-action:manipulation;
+    -webkit-tap-highlight-color:transparent;
+  }
+  #hint{
+    position:fixed; inset:0; z-index:2147483647;
+    display:flex; align-items:center; justify-content:center;
+    pointer-events:none;
+    background:radial-gradient(circle, rgba(255,255,255,0.06), transparent 55%);
+  }
+  #hint .box{
+    pointer-events:none;
+    padding:18px 16px;
+    border:1px solid #333;border-radius:16px;
+    background:rgba(15,15,15,.85);
+    max-width:720px; text-align:center;
+  }
+  #panel{
+    max-width:1100px; margin:0 auto; padding:18px;
+  }
+  .card{
+    background:#141414;border:1px solid #2a2a2a;border-radius:16px;padding:16px;
+  }
+  .row{display:flex; gap:10px; flex-wrap:wrap; margin-top:10px}
+  .row>*{flex:1; min-width:220px}
+  button,input{
+    width:100%;
+    padding:12px; border-radius:12px;
+    border:1px solid #333; background:#0f0f0f; color:#eee;
+  }
+  button{cursor:pointer}
+  button:disabled{opacity:.55; cursor:not-allowed}
+  .mono{
+    margin-top:12px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;
+    font-size:12px;
+    background:#0f0f0f; border:1px solid #2a2a2a; border-radius:12px;
+    padding:12px; white-space:pre-wrap;
+  }
+  .meter{height:10px;border-radius:999px;background:#1a1a1a;border:1px solid #2a2a2a;overflow:hidden}
+  .meter>div{height:100%;width:0%;background:#eaeaea;opacity:.9}
+  label{display:block; margin-top:10px; font-size:13px; opacity:.9}
 </style>
 </head>
-
 <body>
 
 <div id="hint">
   <div class="box">
-    <h2>Chrome TouchMe Audio</h2>
-    <p><b>화면 아무 곳이나 한 번 클릭</b></p>
-    <p>→ 마이크 + 오디오 + MIDI 초기화</p>
+    <h2 style="margin:0 0 8px">Chrome: TouchMe + Mic</h2>
+    <div style="opacity:.9;line-height:1.5">
+      <b>화면 아무 곳이나 한 번 클릭/터치</b> → 오디오 시작<br/>
+      그 다음 <b>Test Beep</b>로 출력 확인 → <b>Mic On</b><br/>
+      TouchMe 누르는 동안만 FX가 올라감
+    </div>
   </div>
 </div>
 
-<div id="log">waiting…</div>
+<div id="panel">
+  <div class="card">
+    <div class="row">
+      <button id="beepBtn" disabled>Test Beep (출력 확인)</button>
+      <button id="micBtn" disabled>Mic On</button>
+      <button id="micOffBtn" disabled>Mic Off</button>
+      <button id="panicBtn" disabled>Panic (Mute)</button>
+    </div>
+
+    <div class="row">
+      <div>
+        <label>Mic level</label>
+        <div class="meter"><div id="micBar"></div></div>
+      </div>
+      <div>
+        <label>TouchMe velocity</label>
+        <div class="meter"><div id="midiBar"></div></div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div>
+        <label>DRY (원음)</label>
+        <input id="dry" type="range" min="0" max="100" value="85" disabled />
+      </div>
+      <div>
+        <label>WET MAX (TouchMe 누를 때 FX)</label>
+        <input id="wetmax" type="range" min="0" max="100" value="90" disabled />
+      </div>
+      <div>
+        <label>Smear (Delay/Blur)</label>
+        <input id="smear" type="range" min="0" max="100" value="65" disabled />
+      </div>
+      <div>
+        <label>Muffle (LPF)</label>
+        <input id="muffle" type="range" min="0" max="100" value="70" disabled />
+      </div>
+    </div>
+
+    <div id="log" class="mono">waiting…</div>
+  </div>
+</div>
 
 <script>
 (() => {
-  const log = m => {
-    const el = document.getElementById("log");
-    el.textContent = m + "\n" + el.textContent;
-  };
+  const $=id=>document.getElementById(id);
+  const logEl=$("log");
+  const log=(m)=>{ logEl.textContent = m + "\n" + logEl.textContent; };
+  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+  const lerp=(a,b,t)=>a+(b-a)*t;
+  const norm=(x)=>clamp(x/100,0,1);
 
-  // 🔹 완전 새 세션 ID (쿠키/캐시 영향 최소화)
-  const SESSION_ID = Math.random().toString(36).slice(2);
-  log("session=" + SESSION_ID);
+  let ctx=null;
 
-  let ctx, mic, micSrc;
-  let fxGain, outGain;
-  let midiVel = 0;
-  let active = false;
+  // mic
+  let micStream=null, micSrc=null;
 
-  // ---------- AUDIO GRAPH ----------
-  function buildAudio() {
-    ctx = new AudioContext();
-    outGain = ctx.createGain();
-    outGain.gain.value = 0.9;
-    outGain.connect(ctx.destination);
+  // mixer
+  let dryGain=null, wetGain=null, master=null;
 
-    fxGain = ctx.createGain();
-    fxGain.gain.value = 0.0;
-    fxGain.connect(outGain);
+  // FX chain (simple but audible)
+  let lp=null, delay=null, fb=null, shaper=null;
+
+  // analyser (meter)
+  let an=null;
+
+  // MIDI (TouchMe)
+  let midiVel=0;     // 0..1
+  let pressed=0;     // note on count
+  let wetGate=0;     // smoothed
+
+  function enableUI(on){
+    ["beepBtn","micBtn","micOffBtn","panicBtn","dry","wetmax","smear","muffle"]
+      .forEach(id=>$(id).disabled=!on);
   }
 
-  async function micOn() {
-    mic = await navigator.mediaDevices.getUserMedia({
+  function buildAudioGraph(){
+    // master out
+    master = ctx.createGain();
+    master.gain.value = 0.95;
+    master.connect(ctx.destination);
+
+    // dry / wet
+    dryGain = ctx.createGain();
+    wetGain = ctx.createGain();
+    dryGain.gain.value = norm($("dry").value);
+    wetGain.gain.value = 0.0;
+
+    dryGain.connect(master);
+    wetGain.connect(master);
+
+    // FX: mic -> shaper -> lp -> delay -> wetGain
+    shaper = ctx.createWaveShaper();
+    shaper.curve = makeCurve(0.8);
+    shaper.oversample = "4x";
+
+    lp = ctx.createBiquadFilter();
+    lp.type="lowpass";
+    lp.frequency.value = 2000;
+    lp.Q.value = 0.7;
+
+    delay = ctx.createDelay(1.0);
+    delay.delayTime.value = 0.18;
+
+    fb = ctx.createGain();
+    fb.gain.value = 0.35;
+
+    // feedback loop: delay -> fb -> delay
+    delay.connect(fb);
+    fb.connect(delay);
+
+    // analyser for mic level
+    an = ctx.createAnalyser();
+    an.fftSize = 2048;
+    an.smoothingTimeConstant = 0.85;
+  }
+
+  function makeCurve(amount){
+    // simple distortion curve
+    const n = 4096;
+    const curve = new Float32Array(n);
+    const k = amount * 40;
+    for(let i=0;i<n;i++){
+      const x = (i/(n-1))*2 - 1;
+      curve[i] = (1 + k) * x / (1 + k * Math.abs(x));
+    }
+    return curve;
+  }
+
+  function updateParams(){
+    if(!ctx) return;
+    dryGain.gain.value = norm($("dry").value);
+
+    const smear = norm($("smear").value);   // 0..1
+    const muffle= norm($("muffle").value);  // 0..1
+
+    lp.frequency.value = lerp(14000, 700, muffle);
+    delay.delayTime.value = lerp(0.04, 0.28, smear);
+    fb.gain.value = clamp(lerp(0.05, 0.88, smear), 0, 0.92);
+  }
+
+  function updateWetGate(){
+    const wetMax = norm($("wetmax").value);
+    const isOn = pressed>0 ? 1 : 0;
+    const target = isOn ? clamp(wetMax*(0.20 + 0.95*midiVel), 0, 1) : 0;
+
+    wetGate = lerp(wetGate, target, isOn ? 0.18 : 0.10);
+    wetGain.gain.value = wetGate;
+
+    if(!isOn) midiVel *= 0.985;
+    $("midiBar").style.width = `${Math.round(midiVel*100)}%`;
+  }
+
+  async function startAll(ev){
+    if(ctx) return;
+    ev.preventDefault?.();
+    ev.stopPropagation?.();
+
+    // 안내 제거
+    const hint=$("hint");
+    if(hint) hint.remove();
+
+    ctx = new (window.AudioContext||window.webkitAudioContext)();
+    await ctx.resume();
+
+    buildAudioGraph();
+    enableUI(true);
+    updateParams();
+
+    log("STARTED ✅  AudioContext state=" + ctx.state + "  sr=" + ctx.sampleRate);
+
+    // MIDI: TouchMe "무조건" 연결 시도 (첫 입력 하나만)
+    initMIDI();
+
+    // meter loop
+    requestAnimationFrame(loopMeter);
+    requestAnimationFrame(loopFX);
+  }
+
+  // 크롬에서도 절대 안 씹히는 캡처
+  ["pointerdown","touchstart","mousedown"].forEach(t=>{
+    window.addEventListener(t, startAll, {capture:true, passive:false});
+  });
+
+  function testBeep(){
+    const osc=ctx.createOscillator();
+    const g=ctx.createGain();
+    osc.type="sine";
+    osc.frequency.value=880;
+    g.gain.value=0;
+
+    g.connect(master);
+
+    const t=ctx.currentTime;
+    g.gain.setValueAtTime(0.0, t);
+    g.gain.linearRampToValueAtTime(0.18, t+0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, t+0.25);
+
+    osc.connect(g);
+    osc.start(t);
+    osc.stop(t+0.26);
+
+    log("BEEP 🔈 (이게 안 들리면: 탭 음소거/사이트 소리 차단/OS 출력 장치 문제)");
+  }
+
+  async function micOn(){
+    micStream = await navigator.mediaDevices.getUserMedia({
       audio:{ echoCancellation:false, noiseSuppression:false, autoGainControl:false }
     });
-    micSrc = ctx.createMediaStreamSource(mic);
 
-    // 원음 항상 THRU
-    micSrc.connect(outGain);
+    const tracks = micStream.getAudioTracks();
+    log("Mic tracks=" + tracks.length + " live=" + (tracks[0]?.readyState || "n/a") + " label=" + (tracks[0]?.label || "no label"));
 
-    // FX 입력
-    micSrc.connect(fxGain);
+    micSrc = ctx.createMediaStreamSource(micStream);
 
-    log("mic ON");
+    // analyser tap
+    micSrc.connect(an);
+
+    // DRY always (원음)
+    micSrc.connect(dryGain);
+
+    // WET FX path
+    micSrc.connect(shaper);
+    shaper.connect(lp);
+    lp.connect(delay);
+    delay.connect(wetGain);
+
+    log("Mic ON ✅ (원음은 항상 들려야 정상)");
   }
 
-  // ---------- MIDI (TouchMe) ----------
-  async function midiOn() {
-    if (!navigator.requestMIDIAccess) {
-      log("no MIDI");
+  function micOff(){
+    if(micSrc){ try{ micSrc.disconnect(); }catch(e){} micSrc=null; }
+    if(micStream){ try{ micStream.getTracks().forEach(t=>t.stop()); }catch(e){} micStream=null; }
+    log("Mic OFF");
+  }
+
+  function panic(){
+    if(!master) return;
+    const prev=master.gain.value;
+    master.gain.value=0;
+    setTimeout(()=>master.gain.value=prev, 250);
+    log("PANIC");
+  }
+
+  async function initMIDI(){
+    if(!navigator.requestMIDIAccess){
+      log("MIDI ❌ WebMIDI 미지원(크롬이면 보통 됨)");
       return;
     }
-    const midi = await navigator.requestMIDIAccess();
-    for (const input of midi.inputs.values()) {
-      input.onmidimessage = e => {
-        const [st, , vel] = e.data;
-        if ((st & 0xF0) === 0x90 && vel > 0) {
-          midiVel = vel / 127;
-          active = true;
-        } else {
-          active = false;
-        }
-      };
-      log("MIDI connected: " + input.name);
-      break;
+    const access = await navigator.requestMIDIAccess({sysex:false});
+    const inputs = Array.from(access.inputs.values());
+    if(inputs.length===0){
+      log("MIDI 입력 없음 (TouchMe 연결 확인)");
+      return;
     }
+    // 첫 입력에만 연결
+    const inp = inputs[0];
+    inp.onmidimessage = (msg)=>{
+      const [st, , vel] = msg.data;
+      const cmd = st & 0xF0;
+
+      if(cmd===0x90 && vel>0){
+        pressed++;
+        midiVel = clamp(vel/127,0,1);
+        log("MIDI note ON vel=" + midiVel.toFixed(2));
+      }else if(cmd===0x80 || (cmd===0x90 && vel===0)){
+        pressed = Math.max(0, pressed-1);
+        log("MIDI note OFF");
+      }
+      updateParams();
+    };
+    log("MIDI ✅ connected: " + (inp.name || "input"));
   }
 
-  // ---------- FX LOOP ----------
-  function fxLoop() {
-    if (!ctx) return;
-    const target = active ? midiVel : 0;
-    fxGain.gain.value += (target - fxGain.gain.value) * 0.15;
-    requestAnimationFrame(fxLoop);
+  function loopFX(){
+    if(ctx){
+      // 혹시 state가 돌아가다 suspended로 떨어지면 로깅
+      if(ctx.state !== "running") log("AudioContext state=" + ctx.state);
+      updateWetGate();
+    }
+    requestAnimationFrame(loopFX);
   }
 
-  // ---------- ONE GESTURE START ----------
-  async function startAll(ev) {
-    if (ctx) return;
-    ev.preventDefault();
-    ev.stopPropagation();
-
-    document.getElementById("hint").remove();
-
-    buildAudio();
-    await ctx.resume();
-    await micOn();
-    await midiOn();
-
-    fxLoop();
-
-    log("STARTED ✅ chrome-safe");
+  function loopMeter(){
+    if(!an){
+      requestAnimationFrame(loopMeter);
+      return;
+    }
+    const data=new Uint8Array(an.fftSize);
+    an.getByteTimeDomainData(data);
+    let rms=0;
+    for(let i=0;i<data.length;i++){
+      const v=(data[i]-128)/128;
+      rms += v*v;
+    }
+    rms = Math.sqrt(rms/data.length);
+    const level = clamp(rms*3.0, 0, 1);
+    $("micBar").style.width = Math.round(level*100) + "%";
+    requestAnimationFrame(loopMeter);
   }
 
-  // 🔥 크롬에서도 절대 안 씹히는 캡처
-  ["pointerdown","mousedown","touchstart"].forEach(type=>{
-    window.addEventListener(type, startAll, {capture:true, passive:false});
+  // UI bindings
+  enableUI(false);
+
+  $("beepBtn").addEventListener("click", ()=>{ if(ctx) testBeep(); });
+
+  $("micBtn").addEventListener("click", async ()=>{
+    try{
+      await micOn();
+      $("micBtn").disabled = true;
+      $("micOffBtn").disabled = false;
+    }catch(e){
+      log("Mic error: " + e.message);
+    }
   });
+
+  $("micOffBtn").addEventListener("click", ()=>{
+    micOff();
+    $("micBtn").disabled = false;
+    $("micOffBtn").disabled = true;
+  });
+
+  $("panicBtn").addEventListener("click", panic);
+
+  ["dry","wetmax","smear","muffle"].forEach(id=>{
+    $(id).addEventListener("input", updateParams);
+  });
+
 })();
 </script>
 </body>
