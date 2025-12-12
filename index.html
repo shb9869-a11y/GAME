@@ -8,9 +8,47 @@
   html,body{margin:0;height:100%;background:#000;overflow:hidden;touch-action:none;}
   canvas{display:block;width:100vw;height:100vh;}
 
-  /* UI */
+  /* Hint / Start */
+  #hint{
+    position:fixed; inset:0;
+    display:flex; align-items:center; justify-content:center;
+    background:rgba(0,0,0,.72);
+    color:#ddd; font-family:system-ui, -apple-system, sans-serif;
+    text-align:center; padding:20px;
+    z-index:50;
+  }
+  #hint .box{
+    width:min(560px, 92vw);
+    border:1px solid rgba(255,255,255,.12);
+    border-radius:14px;
+    padding:18px 16px;
+    background:rgba(0,0,0,.55);
+  }
+
+  /* Top-right buttons */
+  #topRight{
+    position:fixed; right:12px; top:12px;
+    display:flex; gap:8px;
+    z-index:40;
+  }
+  .iconBtn{
+    width:42px; height:42px;
+    display:grid; place-items:center;
+    background:rgba(0,0,0,.38);
+    color:#eee;
+    border:1px solid rgba(255,255,255,.14);
+    border-radius:12px;
+    backdrop-filter: blur(10px);
+    cursor:pointer;
+    user-select:none;
+    font-size:18px;
+  }
+  .iconBtn:hover{border-color:rgba(255,255,255,.30)}
+  .iconBtn:active{transform:translateY(1px)}
+
+  /* Settings panel (toggle) */
   #ui{
-    position:fixed; left:12px; top:12px;
+    position:fixed; right:12px; top:62px;
     width:min(520px, calc(100vw - 24px));
     color:#ddd;
     font-family:system-ui, -apple-system, sans-serif;
@@ -20,6 +58,11 @@
     box-shadow:0 0 0 1px rgba(255,255,255,.06) inset;
     backdrop-filter: blur(10px);
     overflow:hidden;
+    z-index:40;
+    transform-origin: top right;
+  }
+  #ui.hidden{
+    display:none;
   }
   #bar{
     display:flex; align-items:center; gap:8px;
@@ -37,6 +80,7 @@
     background:rgba(0,0,0,.25);
     white-space:nowrap;
   }
+
   button, select{
     background:#0f0f0f; color:#eee;
     border:1px solid rgba(255,255,255,.16);
@@ -72,7 +116,7 @@
   .panel.active{display:block;}
 
   .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin:8px 0;}
-  .label{font-size:12px; color:#aaa; width:110px;}
+  .label{font-size:12px; color:#aaa; width:118px;}
   .grow{flex:1; min-width:180px;}
 
   .meter{
@@ -104,21 +148,6 @@
     max-height:160px;
     overflow:auto;
   }
-
-  #hint{
-    position:fixed; inset:0;
-    display:flex; align-items:center; justify-content:center;
-    background:rgba(0,0,0,.72);
-    color:#ddd; font-family:system-ui, -apple-system, sans-serif;
-    text-align:center; padding:20px;
-  }
-  #hint .box{
-    width:min(560px, 92vw);
-    border:1px solid rgba(255,255,255,.12);
-    border-radius:14px;
-    padding:18px 16px;
-    background:rgba(0,0,0,.55);
-  }
 </style>
 </head>
 <body>
@@ -127,9 +156,9 @@
   <div class="box">
     <div style="font-weight:800; font-size:16px; margin-bottom:10px;">SLEEP – Start</div>
     <div class="small" style="margin-bottom:12px;">
-      1) 먼저 <b>Start Audio</b>로 오디오 컨텍스트를 열고<br/>
-      2) <b>마이크 인풋</b>을 선택한 뒤, 입력 레벨이 올라오는지 확인해줘.<br/>
-      3) TouchMe(MIDI)가 들어오면 MIDI 탭에서 값이 움직이는지 확인.
+      1) <b>Start Audio</b>로 오디오를 열고<br/>
+      2) <b>Mic ON</b> 후 AUDIO 탭에서 레벨(amp) 확인<br/>
+      3) TouchMe(MIDI) 값은 MIDI 탭에서 확인
     </div>
     <div class="row">
       <button id="btnStartAudio">Start Audio</button>
@@ -143,12 +172,18 @@
 
 <canvas id="c"></canvas>
 
-<!-- Control UI -->
-<div id="ui" aria-hidden="false">
+<!-- Top right quick buttons -->
+<div id="topRight">
+  <div class="iconBtn" id="btnGear" title="Settings">⚙️</div>
+  <div class="iconBtn" id="btnMuteQuick" title="Mute">🔇</div>
+  <div class="iconBtn" id="btnFSQuick" title="Fullscreen">⛶</div>
+</div>
+
+<!-- Settings UI (toggle) -->
+<div id="ui" class="hidden">
   <div id="bar">
-    <div class="title">SLEEP Control</div>
-    <button id="btnFS2" title="Fullscreen">⛶</button>
-    <button id="btnMute" title="Mute">Mute</button>
+    <div class="title">Settings</div>
+    <button id="btnHideUI" title="Close">닫기</button>
     <div class="pill" id="topPill">audio:off | mic:off | midi:?</div>
   </div>
 
@@ -156,7 +191,7 @@
     <div class="tab active" data-tab="visual">VISUAL</div>
     <div class="tab" data-tab="audio">AUDIO</div>
     <div class="tab" data-tab="midi">MIDI</div>
-    <div class="tab" data-tab="settings">SETTINGS</div>
+    <div class="tab" data-tab="settings">SYSTEM</div>
   </div>
 
   <div id="panels">
@@ -164,11 +199,12 @@
       <div class="row">
         <div class="label">Mode</div>
         <select id="selMode" class="grow">
-          <option value="calm">Calm (slow drift)</option>
-          <option value="pulse">Pulse (amp-driven)</option>
+          <option value="calm">Calm (quiet 3D dots)</option>
+          <option value="pulse" selected>Pulse (amp-driven)</option>
           <option value="burst">Burst (delta-driven)</option>
         </select>
       </div>
+
       <div class="row">
         <div class="label">Particles</div>
         <select id="selN" class="grow">
@@ -177,26 +213,35 @@
           <option value="320">320</option>
         </select>
       </div>
+
       <div class="row">
         <div class="label">Keep in screen</div>
         <select id="selBounds" class="grow">
-          <option value="soft" selected>Soft boundary (recommended)</option>
+          <option value="soft" selected>Soft boundary</option>
           <option value="bounce">Bounce</option>
-          <option value="wrap">Wrap around (old)</option>
+          <option value="wrap">Wrap</option>
         </select>
       </div>
+
+      <div class="row">
+        <div class="label">Quiet lines</div>
+        <select id="selQuietLines" class="grow">
+          <option value="0">Off</option>
+          <option value="1" selected>Very subtle</option>
+          <option value="2">On</option>
+        </select>
+      </div>
+
       <div class="small">
-        - “점이 화면 밖으로 떠남” 방지: 기본 <b>Soft boundary</b>로 유지됨.<br/>
-        - 소리 변화(Δamp) ↑ → 더 “파바박” / Touch ↑ → 연결거리/혼돈/전자 사운드 변형 ↑
+        무음일 때도 점은 사라지지 않고 “입체 점 상태”로 유지됩니다.<br/>
+        소리/변화가 들어오면 연결·확장·수축·회전·멈춤 같은 상태 전이가 생깁니다.
       </div>
     </div>
 
     <div class="panel" id="panel-audio">
       <div class="row">
         <div class="label">Input level</div>
-        <div class="grow">
-          <div class="meter"><i id="meterIn"></i></div>
-        </div>
+        <div class="grow"><div class="meter"><i id="meterIn"></i></div></div>
       </div>
       <div class="row">
         <div class="label">Amp / Δ</div>
@@ -207,24 +252,18 @@
         <div class="mono grow" id="txtFx">drive: - | filter: - | ring: - | widen: -</div>
       </div>
       <div class="small">
-        여기서 <b>amp가 0만 계속</b>이면: 마이크가 다른 장치로 잡혔거나(기본값), 권한/장치 선택 문제야.<br/>
-        SETTINGS에서 마이크를 직접 선택해봐.
+        amp가 0이면 SYSTEM에서 마이크 입력 장치를 바꿔보세요.
       </div>
     </div>
 
     <div class="panel" id="panel-midi">
       <div class="row">
         <div class="label">Touch value</div>
-        <div class="grow">
-          <div class="meter"><i id="meterTouch"></i></div>
-        </div>
+        <div class="grow"><div class="meter"><i id="meterTouch"></i></div></div>
       </div>
       <div class="row">
-        <div class="label">MIDI status</div>
+        <div class="label">MIDI log</div>
         <div class="mono grow" id="txtMIDI">Waiting…</div>
-      </div>
-      <div class="small">
-        TouchMe가 들어오면 Touch 미터가 움직이고, 최근 메시지가 로그에 찍힘.
       </div>
     </div>
 
@@ -257,6 +296,33 @@
 
 <script>
 /* ==========================================================
+   SETTINGS PERSISTENCE (localStorage)
+========================================================== */
+const STORE_KEY = "sleep_settings_v2";
+function loadSettings(){
+  try{ return JSON.parse(localStorage.getItem(STORE_KEY)||"{}"); }
+  catch(e){ return {}; }
+}
+function saveSettings(obj){
+  localStorage.setItem(STORE_KEY, JSON.stringify(obj));
+}
+const S = loadSettings();
+
+function applySelectValue(id, fallback){
+  const el = document.getElementById(id);
+  const v = (S[id] ?? fallback);
+  if(el) el.value = v;
+}
+function hookSelectSave(id){
+  const el = document.getElementById(id);
+  if(!el) return;
+  el.addEventListener('change', ()=>{
+    S[id] = el.value;
+    saveSettings(S);
+  });
+}
+
+/* ==========================================================
    CANVAS / DPR
 ========================================================== */
 const canvas = document.getElementById('c');
@@ -265,8 +331,7 @@ let W=0,H=0,DPR=1;
 
 function resize(){
   DPR = Math.max(1, Math.min(2, devicePixelRatio||1));
-  W = innerWidth|0;
-  H = innerHeight|0;
+  W = innerWidth|0; H = innerHeight|0;
   canvas.width  = (W*DPR)|0;
   canvas.height = (H*DPR)|0;
   ctx.setTransform(DPR,0,0,DPR,0,0);
@@ -351,7 +416,7 @@ function ensureAudio(){
   comp.attack.value = 0.004;
   comp.release.value = 0.12;
 
-  // chain (input connects to preGain)
+  // chain
   preGain.connect(driveWS);
   driveWS.connect(driveGain);
   driveGain.connect(filter);
@@ -369,7 +434,6 @@ function ensureAudio(){
   masterGain.connect(audioCtx.destination);
 
   ringOsc.start();
-
   updateTopPill();
 }
 
@@ -395,11 +459,9 @@ const selMic = document.getElementById('selMic');
 const selSpk = document.getElementById('selSpk');
 const txtSupport = document.getElementById('txtSupport');
 
-let currentMicDeviceId = "default";
+let currentMicDeviceId = S.currentMicDeviceId ?? "default";
 let outputSupported = false;
 
-// We'll route output selection via a hidden <audio> element, because setSinkId is on HTMLMediaElement.
-// We'll create a "monitor" element that plays the WebAudio output using MediaStreamDestination.
 const monitorAudio = new Audio();
 monitorAudio.autoplay = true;
 monitorAudio.playsInline = true;
@@ -408,29 +470,18 @@ let monitorDest = null;
 function setupOutputRouting(){
   if(!audioCtx) return;
   if(monitorDest) return;
-
   monitorDest = audioCtx.createMediaStreamDestination();
-
-  // Rewire: masterGain -> monitorDest + destination
-  // simplest: keep destination, and ALSO feed monitorDest
   masterGain.connect(monitorDest);
-
   monitorAudio.srcObject = monitorDest.stream;
 }
 
 async function listDevices(){
-  // enumerateDevices requires permission in some browsers; so we try after getUserMedia at least once
   let devices = [];
-  try{
-    devices = await navigator.mediaDevices.enumerateDevices();
-  }catch(e){
-    // ignore
-  }
+  try{ devices = await navigator.mediaDevices.enumerateDevices(); }catch(e){}
 
   const mics = devices.filter(d=>d.kind==="audioinput");
   const spks = devices.filter(d=>d.kind==="audiooutput");
 
-  // mic select
   selMic.innerHTML = "";
   if(mics.length===0){
     selMic.disabled = true;
@@ -446,7 +497,6 @@ async function listDevices(){
     }
   }
 
-  // speaker select (only if supported)
   outputSupported = typeof monitorAudio.setSinkId === "function";
   selSpk.innerHTML = "";
   if(!outputSupported){
@@ -454,32 +504,43 @@ async function listDevices(){
     selSpk.innerHTML = `<option>브라우저가 출력 선택을 지원하지 않음</option>`;
   }else{
     selSpk.disabled = false;
-    // add default
-    for(const d of spks){
-      const opt = document.createElement('option');
-      opt.value = d.deviceId;
-      opt.textContent = d.label || `Speaker (${d.deviceId.slice(0,6)}…)`;
-      selSpk.appendChild(opt);
-    }
     if(spks.length===0){
       selSpk.innerHTML = `<option value="default">default</option>`;
+    }else{
+      for(const d of spks){
+        const opt = document.createElement('option');
+        opt.value = d.deviceId;
+        opt.textContent = d.label || `Speaker (${d.deviceId.slice(0,6)}…)`;
+        if(S.currentSpkDeviceId && d.deviceId===S.currentSpkDeviceId) opt.selected = true;
+        selSpk.appendChild(opt);
+      }
     }
   }
 
   txtSupport.textContent =
-    `지원 상태: mic devices=${mics.length} | speaker devices=${spks.length} | outputSelect=${outputSupported ? 'YES' : 'NO'}\n` +
-    `Tip: 크롬에서 "amp=0"이면 Settings에서 Mic input을 바꿔봐.`;
+    `지원 상태: mic=${mics.length} | spk=${spks.length} | outputSelect=${outputSupported ? 'YES' : 'NO'}\n` +
+    `amp=0이면 Mic input을 바꿔보세요.`;
+
+  // restore speaker selection if supported
+  if(outputSupported && S.currentSpkDeviceId){
+    try{
+      setupOutputRouting();
+      await monitorAudio.setSinkId(S.currentSpkDeviceId);
+    }catch(e){}
+  }
 }
 
 selMic.addEventListener('change', async ()=>{
   currentMicDeviceId = selMic.value;
-  if(micStream) {
-    await startMic(currentMicDeviceId); // restart
-  }
+  S.currentMicDeviceId = currentMicDeviceId;
+  saveSettings(S);
+  if(micStream) await startMic(currentMicDeviceId);
 });
 
 selSpk.addEventListener('change', async ()=>{
   if(!outputSupported) return;
+  S.currentSpkDeviceId = selSpk.value;
+  saveSettings(S);
   try{
     setupOutputRouting();
     await monitorAudio.setSinkId(selSpk.value);
@@ -495,8 +556,8 @@ selSpk.addEventListener('change', async ()=>{
 async function startMic(deviceId="default"){
   ensureAudio();
   await audioCtx.resume();
-  setupOutputRouting(); // for optional output selection
-  stopMic(); // stop existing
+  setupOutputRouting();
+  stopMic();
 
   try{
     micStream = await navigator.mediaDevices.getUserMedia({
@@ -510,8 +571,6 @@ async function startMic(deviceId="default"){
 
     const src = audioCtx.createMediaStreamSource(micStream);
     inputNode = src;
-
-    // connect input to chain
     try{ src.disconnect(); }catch(e){}
     src.connect(preGain);
 
@@ -521,8 +580,8 @@ async function startMic(deviceId="default"){
     startStatus("Mic ON. AUDIO 탭에서 레벨(amp) 확인.");
   }catch(e){
     console.error(e);
-    startStatus("Mic ON 실패. 권한/장치 선택을 확인.");
-    alert("마이크 권한 또는 장치 선택에 실패했어요. 크롬 주소창 왼쪽 자물쇠에서 권한 확인!");
+    startStatus("Mic ON 실패. 권한/장치 선택 확인.");
+    alert("마이크 권한 또는 장치 선택에 실패했어요. 크롬 권한 확인!");
   }
 }
 
@@ -566,7 +625,7 @@ function pushMidiLog(line){
 async function initMIDI(){
   if(!navigator.requestMIDIAccess){
     midiName="MIDI: not supported";
-    pushMidiLog("navigator.requestMIDIAccess 없음");
+    pushMidiLog("requestMIDIAccess 없음");
     return;
   }
   try{
@@ -577,8 +636,6 @@ async function initMIDI(){
       pushMidiLog("MIDI 입력 장치 없음");
       return;
     }
-
-    // 첫 입력
     const input = inputs[0];
     midiName = "MIDI: " + (input.name || "input");
     pushMidiLog("Connected: " + midiName);
@@ -607,47 +664,49 @@ function applyFX(){
   if(!audioCtx) return;
   const t = touchSmooth;
 
-  // drive
   const driveAmt = 6 + t*60;
   driveWS.curve = makeWaveshaper(driveAmt);
   preGain.gain.setTargetAtTime(0.9 + t*1.1, audioCtx.currentTime, 0.03);
   driveGain.gain.setTargetAtTime(1.0 + t*0.8, audioCtx.currentTime, 0.03);
 
-  // filter
   const f = 250 + Math.pow(t, 1.8) * 5200;
   const q = 1.2 + t*14;
   filter.frequency.setTargetAtTime(f, audioCtx.currentTime, 0.03);
   filter.Q.setTargetAtTime(q, audioCtx.currentTime, 0.03);
 
-  // ringmod
   const ringHz = 12 + t*220;
   ringOsc.frequency.setTargetAtTime(ringHz, audioCtx.currentTime, 0.03);
   ringGain.gain.setTargetAtTime(t*0.85, audioCtx.currentTime, 0.03);
 
-  // widen
   const wob = (Math.sin(performance.now()*0.0015)*0.5+0.5);
   dL.delayTime.setTargetAtTime(0.002 + t*0.010 + wob*0.0007, audioCtx.currentTime, 0.05);
   dR.delayTime.setTargetAtTime(0.006 + t*0.015 + (1-wob)*0.0009, audioCtx.currentTime, 0.05);
 
-  // UI text
   document.getElementById('txtFx').textContent =
-    `driveAmt:${driveAmt.toFixed(1)} | filter:${f.toFixed(0)}Hz Q:${q.toFixed(1)} | ring:${ringHz.toFixed(1)}Hz depth:${(t*0.85).toFixed(2)} | widen:${(t).toFixed(2)}`;
+    `drive:${driveAmt.toFixed(1)} | filter:${f.toFixed(0)}Hz Q:${q.toFixed(1)} | ring:${ringHz.toFixed(1)}Hz depth:${(t*0.85).toFixed(2)} | widen:${t.toFixed(2)}`;
 }
 
 /* ==========================================================
-   VISUAL FIELD (2.5D) + "KEEP IN SCREEN"
+   VISUAL FIELD + QUIET/ACTIVE "STATE"
 ========================================================== */
 let N = 220;
 let pts = [];
 let rot = 0;
 
+// state machine params
+const QUIET_TH = 0.012;        // 무음 임계 (amp)
+const ACTIVE_TH = 0.020;       // 활성 임계 (amp)
+const ONSET_TH = 0.020;        // 갑작스런 변화 (dAmp)
+let energy = 0;                // 0(quiet)~1(active) 사이
+let burstEnergy = 0;           // 순간 파바박 에너지
+
 function initPoints(){
   pts = [];
   for(let i=0;i<N;i++){
     pts.push({
-      x:(Math.random()*2-1)*(W*0.35),
-      y:(Math.random()*2-1)*(H*0.35),
-      z:(Math.random()*2-1)*320,
+      x:(Math.random()*2-1)*(W*0.34),
+      y:(Math.random()*2-1)*(H*0.34),
+      z:(Math.random()*2-1)*340,
       vx:0,vy:0,vz:0
     });
   }
@@ -663,10 +722,9 @@ function project(p){
   return { x:x*k + W/2, y:p.y*k + H/2, k, z };
 }
 
-// boundary modes
 function applyBounds(p, mode){
   if(mode==="wrap"){
-    const maxX=W*0.65, maxY=H*0.65, maxZ=520;
+    const maxX=W*0.65, maxY=H*0.65, maxZ=560;
     if(p.x> maxX) p.x=-maxX;
     if(p.x<-maxX) p.x= maxX;
     if(p.y> maxY) p.y=-maxY;
@@ -676,7 +734,7 @@ function applyBounds(p, mode){
     return;
   }
 
-  const maxX=W*0.58, maxY=H*0.58, maxZ=520;
+  const maxX=W*0.58, maxY=H*0.58, maxZ=560;
 
   if(mode==="bounce"){
     if(p.x> maxX){ p.x=maxX; p.vx*=-0.7; }
@@ -688,19 +746,18 @@ function applyBounds(p, mode){
     return;
   }
 
-  // soft boundary: 벽 근처에서 중심으로 부드럽게 되돌림 (튀는 느낌 최소)
-  const pull = 0.0025;
+  // soft boundary (recommended)
+  const pull = 0.0026;
   const edgeX = Math.max(0, Math.abs(p.x) - maxX);
   const edgeY = Math.max(0, Math.abs(p.y) - maxY);
   const edgeZ = Math.max(0, Math.abs(p.z) - maxZ);
-
   if(edgeX>0) p.vx += (-Math.sign(p.x)) * edgeX * pull;
   if(edgeY>0) p.vy += (-Math.sign(p.y)) * edgeY * pull;
   if(edgeZ>0) p.vz += (-Math.sign(p.z)) * edgeZ * pull;
 }
 
 /* ==========================================================
-   UI / TABS / FULLSCREEN / MUTE
+   UI / TABS / TOGGLES
 ========================================================== */
 function updateTopPill(){
   const pill = document.getElementById('topPill');
@@ -710,24 +767,36 @@ function updateTopPill(){
   pill.textContent = `audio:${a} | mic:${mic} | midi:${midi}`;
 }
 
-document.getElementById('btnMute').addEventListener('click', ()=>{
+// gear toggle
+const ui = document.getElementById('ui');
+const btnGear = document.getElementById('btnGear');
+const btnHideUI = document.getElementById('btnHideUI');
+
+function setUIVisible(v){
+  ui.classList.toggle('hidden', !v);
+  S.uiVisible = v ? 1 : 0;
+  saveSettings(S);
+}
+btnGear.addEventListener('click', ()=> setUIVisible(ui.classList.contains('hidden')));
+btnHideUI.addEventListener('click', ()=> setUIVisible(false));
+setUIVisible( (S.uiVisible ?? 0) === 1 );
+
+// mute + fullscreen quick
+document.getElementById('btnMuteQuick').addEventListener('click', ()=>{
   if(!audioCtx) return;
   isMuted = !isMuted;
   masterGain.gain.setTargetAtTime(isMuted?0:0.9, audioCtx.currentTime, 0.02);
-  document.getElementById('btnMute').textContent = isMuted ? 'Unmute' : 'Mute';
+  document.getElementById('btnMuteQuick').textContent = isMuted ? '🔈' : '🔇';
 });
-
 function toggleFullscreen(){
   const el = document.documentElement;
-  if(!document.fullscreenElement){
-    el.requestFullscreen?.();
-  }else{
-    document.exitFullscreen?.();
-  }
+  if(!document.fullscreenElement) el.requestFullscreen?.();
+  else document.exitFullscreen?.();
 }
 document.getElementById('btnFS').addEventListener('click', toggleFullscreen);
-document.getElementById('btnFS2').addEventListener('click', toggleFullscreen);
+document.getElementById('btnFSQuick').addEventListener('click', toggleFullscreen);
 
+// resume
 document.getElementById('btnResume').addEventListener('click', async ()=>{
   ensureAudio();
   await audioCtx.resume();
@@ -736,6 +805,7 @@ document.getElementById('btnResume').addEventListener('click', async ()=>{
   updateTopPill();
 });
 
+// hint start buttons
 document.getElementById('btnStartAudio').addEventListener('click', async ()=>{
   ensureAudio();
   await audioCtx.resume();
@@ -751,48 +821,121 @@ document.getElementById('btnStartAudio').addEventListener('click', async ()=>{
 document.getElementById('btnStartMic').addEventListener('click', async ()=>{
   await startMic(currentMicDeviceId);
   document.getElementById('hint').style.display='none';
-  running = true;
 });
 
-document.getElementById('btnStopMic').addEventListener('click', ()=>{
-  stopMic();
-});
+document.getElementById('btnStopMic').addEventListener('click', ()=> stopMic());
 
-document.getElementById('btnMicOn').addEventListener('click', async ()=>{
-  await startMic(currentMicDeviceId);
-});
-document.getElementById('btnMicOff').addEventListener('click', ()=>{
-  stopMic();
-});
+// system mic control
+document.getElementById('btnMicOn').addEventListener('click', async ()=> startMic(currentMicDeviceId));
+document.getElementById('btnMicOff').addEventListener('click', ()=> stopMic());
 
-// Tabs
+// tabs
 document.querySelectorAll('.tab').forEach(t=>{
   t.addEventListener('click', ()=>{
     document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
     document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));
     t.classList.add('active');
     document.getElementById('panel-'+t.dataset.tab).classList.add('active');
+    S.activeTab = t.dataset.tab;
+    saveSettings(S);
   });
 });
 
-// Visual settings
+// restore tab
+if(S.activeTab){
+  const tabEl = document.querySelector(`.tab[data-tab="${S.activeTab}"]`);
+  if(tabEl) tabEl.click();
+}
+
+// restore select values + hook saves
+applySelectValue('selMode', 'pulse');
+applySelectValue('selN', '220');
+applySelectValue('selBounds', 'soft');
+applySelectValue('selQuietLines', '1');
+['selMode','selN','selBounds','selQuietLines'].forEach(hookSelectSave);
+
+// visual settings apply
 document.getElementById('selN').addEventListener('change', (e)=>{
   N = parseInt(e.target.value,10);
   initPoints();
 });
-document.getElementById('selMode').addEventListener('change', ()=>{});
-document.getElementById('selBounds').addEventListener('change', ()=>{});
 
 /* ==========================================================
-   MAIN LOOP
+   DEVICE HANDLERS
 ========================================================== */
-let running=false;
+async function startMic(deviceId="default"){
+  ensureAudio();
+  await audioCtx.resume();
+  setupOutputRouting();
+  stopMic();
 
+  try{
+    micStream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        deviceId: deviceId ? { exact: deviceId } : undefined,
+        echoCancellation:false,
+        noiseSuppression:false,
+        autoGainControl:false
+      }
+    });
+
+    const src = audioCtx.createMediaStreamSource(micStream);
+    inputNode = src;
+    try{ src.disconnect(); }catch(e){}
+    src.connect(preGain);
+
+    await listDevices();
+    updateTopPill();
+    setStartButtons(true);
+    startStatus("Mic ON. AUDIO 탭에서 레벨(amp) 확인.");
+  }catch(e){
+    console.error(e);
+    startStatus("Mic ON 실패. 권한/장치 선택 확인.");
+    alert("마이크 권한 또는 장치 선택에 실패했어요. 크롬 권한 확인!");
+  }
+}
+
+function stopMic(){
+  if(micStream){
+    micStream.getTracks().forEach(t=>t.stop());
+    micStream = null;
+  }
+  if(inputNode){
+    try{ inputNode.disconnect(); }catch(e){}
+    inputNode = null;
+  }
+  updateTopPill();
+  setStartButtons(false);
+}
+
+function setStartButtons(micOn){
+  document.getElementById('btnStartMic').disabled = !audioCtx || micOn;
+  document.getElementById('btnStopMic').disabled  = !micOn;
+  document.getElementById('btnMicOn').disabled    = !audioCtx || micOn;
+  document.getElementById('btnMicOff').disabled   = !micOn;
+}
+
+function startStatus(msg){
+  const el = document.getElementById('startStatus');
+  if(el) el.textContent = msg;
+}
+
+/* ==========================================================
+   MIDI
+========================================================== */
+function updateTouch(){
+  touchSmooth += (touch-touchSmooth)*0.18;
+}
+
+/* ==========================================================
+   MAIN LOOP: Quiet presence -> Active geometry
+========================================================== */
 function loop(){
-  // background trail
-  ctx.fillStyle = "rgba(0,0,0,0.16)";
+  // fade background (keep presence)
+  ctx.fillStyle = "rgba(0,0,0,0.13)";
   ctx.fillRect(0,0,W,H);
 
+  // update sensors
   if(audioCtx) updateAmp();
   updateTouch();
   if(audioCtx) applyFX();
@@ -803,43 +946,82 @@ function loop(){
   document.getElementById('txtAmp').textContent = `amp: ${amp.toFixed(4)} | dAmp: ${ampDelta.toFixed(4)}`;
   document.getElementById('meterTouch').style.width = (touchSmooth*100).toFixed(1)+"%";
 
-  // Visual dynamics
+  // --- STATE: quiet vs active (but dots never disappear)
+  // energy rises when amp is above ACTIVE_TH, falls when below QUIET_TH
+  const targetEnergy = (amp > ACTIVE_TH) ? 1 : (amp < QUIET_TH ? 0 : energy);
+  energy += (targetEnergy - energy) * 0.05;
+
+  // burst energy spikes on delta
+  const onset = Math.max(0, (ampDelta - ONSET_TH));
+  burstEnergy += (onset*6.0 - burstEnergy) * 0.12; // quick rise
+  burstEnergy *= 0.92; // decay
+
+  // visual mode
   const mode = document.getElementById('selMode').value;
   const boundsMode = document.getElementById('selBounds').value;
+  const quietLines = parseInt(document.getElementById('selQuietLines').value,10);
 
-  const calm = 0.10;
-  const speedBase = calm + amp*5.5;
-  const chaosBase = (ampDelta*80) + (touchSmooth*30);
-  const linkDist = 45 + amp*240 + touchSmooth*260;
+  // rotation / breathe
+  const t = performance.now()*0.001;
+  const breathe = 0.5 + 0.5*Math.sin(t*1.2); // 0~1
 
-  let speed = speedBase, chaos = chaosBase;
-  if(mode==="calm"){ speed = 0.10 + amp*2.5; chaos = (ampDelta*40) + (touchSmooth*14); }
-  if(mode==="burst"){ speed = 0.10 + amp*4.0; chaos = (ampDelta*140) + (touchSmooth*40); }
+  // quiet: slow, stable
+  const baseSpeedQuiet = 0.10;
+  const baseChaosQuiet = 0.8;
+  // active: more connection, more motion
+  const baseSpeedActive = 0.12 + amp*4.2;
+  const baseChaosActive = (ampDelta*120) + (touchSmooth*40) + burstEnergy*90;
 
-  // "원 안 모임 ↔ 밖으로 연결" 느낌
-  const centerPull = (0.006 + touchSmooth*0.020) * (1.0 - Math.min(1, amp*1.4));
-  const burst = (amp*0.020 + ampDelta*0.060 + touchSmooth*0.012);
+  let speed = baseSpeedQuiet*(1-energy) + baseSpeedActive*energy;
+  let chaos = baseChaosQuiet*(1-energy) + baseChaosActive*energy;
 
-  rot += 0.0015 + amp*0.010 + touchSmooth*0.006;
+  if(mode==="calm"){ speed *= 0.85; chaos *= 0.75; }
+  if(mode==="burst"){ speed *= 1.05; chaos *= 1.25; }
+
+  // link distance: quiet almost none, active lots
+  const linkDistQuiet = 26;
+  const linkDistActive = 60 + amp*260 + touchSmooth*300 + burstEnergy*120;
+  const linkDist = linkDistQuiet*(1-energy) + linkDistActive*energy;
+
+  // center pull vs burst: quiet more “모여있음”, active more “밖으로 연결”
+  const centerPull = (0.008 + touchSmooth*0.018) * (1.0 - Math.min(1, amp*1.3));
+  const burst = (amp*0.020 + ampDelta*0.070 + touchSmooth*0.012 + burstEnergy*0.030);
+
+  // rotation: quiet slow, active fast, and sometimes "멈춤"
+  // 멈춤 느낌: energy가 높아도 ampDelta가 낮으면 잠깐 회전 감속
+  const freeze = energy * Math.max(0, 1 - (ampDelta*20)); // 변화가 적으면 1에 가까움
+  const rotSpeed = (0.0012 + energy*0.012 + burstEnergy*0.010) * (1 - 0.7*freeze);
+  rot += rotSpeed;
+
+  // “수축/팽창” 스케일: active일수록 breathe가 더 크게 작동
+  const scale = 1.0 + energy*(breathe-0.5)*0.25;
 
   // update points
   for(const p of pts){
+    // chaos: 파바박
     p.vx += (Math.random()-0.5)*chaos;
     p.vy += (Math.random()-0.5)*chaos;
-    p.vz += (Math.random()-0.5)*chaos*0.5;
+    p.vz += (Math.random()-0.5)*chaos*0.55;
 
-    p.vx += (-p.x)*centerPull;
-    p.vy += (-p.y)*centerPull;
-    p.vz += (-p.z)*centerPull*0.6;
+    // center pull (quiet presence)
+    p.vx += (-p.x)*centerPull*(0.9 - energy*0.4);
+    p.vy += (-p.y)*centerPull*(0.9 - energy*0.4);
+    p.vz += (-p.z)*centerPull*(0.6 - energy*0.2);
 
-    p.vx += (p.x)*burst;
-    p.vy += (p.y)*burst;
-    p.vz += (p.z)*burst*0.6;
+    // burst (active spread)
+    p.vx += (p.x)*burst*energy;
+    p.vy += (p.y)*burst*energy;
+    p.vz += (p.z)*burst*energy*0.6;
 
-    p.vx *= 0.88; p.vy *= 0.88; p.vz *= 0.90;
-    p.x += p.vx*speed;
-    p.y += p.vy*speed;
-    p.z += p.vz*speed;
+    // damping
+    p.vx *= 0.90 - energy*0.05;
+    p.vy *= 0.90 - energy*0.05;
+    p.vz *= 0.92 - energy*0.04;
+
+    // movement + scale breathing
+    p.x = (p.x + p.vx*speed) * scale + (1-scale)*p.x;
+    p.y = (p.y + p.vy*speed) * scale + (1-scale)*p.y;
+    p.z = (p.z + p.vz*speed) * (0.92 + 0.08*scale) + (1-(0.92 + 0.08*scale))*p.z;
 
     applyBounds(p, boundsMode);
   }
@@ -847,32 +1029,44 @@ function loop(){
   // project
   const pr = pts.map(project);
 
-  // lines
-  ctx.lineWidth = 1;
-  for(let i=0;i<N;i++){
-    const a = pr[i];
-    for(let j=i+1;j<N;j++){
-      const b = pr[j];
-      const dx=a.x-b.x, dy=a.y-b.y;
-      const d=Math.hypot(dx,dy);
-      if(d<linkDist){
-        const alpha = 1 - d/linkDist;
-        const punch = Math.min(1, alpha * (0.35 + amp*1.6 + ampDelta*2.0));
-        ctx.globalAlpha = punch * 0.9;
-        ctx.strokeStyle = "rgba(255,255,255,0.9)";
-        ctx.beginPath();
-        ctx.moveTo(a.x,a.y);
-        ctx.lineTo(b.x,b.y);
-        ctx.stroke();
+  // lines (quiet: almost off, active: strong)
+  if(energy > 0.05 || quietLines>0){
+    for(let i=0;i<N;i++){
+      const a = pr[i];
+      for(let j=i+1;j<N;j++){
+        const b = pr[j];
+        const dx=a.x-b.x, dy=a.y-b.y;
+        const d=Math.hypot(dx,dy);
+        if(d<linkDist){
+          const alpha = 1 - d/linkDist;
+          // quiet lines are extremely subtle
+          const quietGain = (quietLines===0) ? 0 : (quietLines===1 ? 0.10 : 0.22);
+          const onGain = 0.35 + amp*1.7 + burstEnergy*1.8;
+          const punch = Math.min(1, alpha * (quietGain*(1-energy) + onGain*energy));
+          ctx.globalAlpha = punch;
+          ctx.strokeStyle = "rgba(255,255,255,0.9)";
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(a.x,a.y);
+          ctx.lineTo(b.x,b.y);
+          ctx.stroke();
+        }
       }
     }
   }
 
-  // points
+  // points: NEVER disappear. quiet = small but present. active = bigger/pulse
   for(let i=0;i<N;i++){
     const p = pr[i];
-    const r = (1.0 + amp*3.0 + touchSmooth*1.2) * (0.7 + p.k*0.7);
-    const a = Math.min(1, 0.22 + amp*1.2 + touchSmooth*0.5);
+    const baseR = 1.0 + p.k*0.6;
+    const rQuiet = baseR * 0.95;
+    const rActive = baseR * (1.2 + amp*3.1 + touchSmooth*1.2 + burstEnergy*0.9);
+    const r = rQuiet*(1-energy) + rActive*energy;
+
+    const aQuiet = 0.22; // always visible
+    const aActive = Math.min(1, 0.28 + amp*1.25 + touchSmooth*0.55 + burstEnergy*0.7);
+    const a = aQuiet*(1-energy) + aActive*energy;
+
     ctx.globalAlpha = a;
     ctx.fillStyle = "#fff";
     ctx.beginPath();
@@ -887,14 +1081,30 @@ function loop(){
 loop();
 
 /* ==========================================================
-   SAFETY: audio unlock on any gesture
+   START / QUICK ACTIONS
 ========================================================== */
+document.getElementById('btnMuteQuick').addEventListener('click', ()=>{
+  if(!audioCtx) return;
+  isMuted = !isMuted;
+  masterGain.gain.setTargetAtTime(isMuted?0:0.9, audioCtx.currentTime, 0.02);
+  document.getElementById('btnMuteQuick').textContent = isMuted ? '🔈' : '🔇';
+});
+
+document.getElementById('btnFSQuick').addEventListener('click', toggleFullscreen);
+
+// audio unlock safety
 addEventListener('pointerdown', async ()=>{
   if(audioCtx && audioCtx.state==='suspended'){
     await audioCtx.resume();
     updateTopPill();
   }
 },{passive:true});
+
+/* ==========================================================
+   INIT UI RESTORE
+========================================================== */
+N = parseInt(document.getElementById('selN').value,10);
+initPoints();
 </script>
 </body>
 </html>
