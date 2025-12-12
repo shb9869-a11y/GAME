@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-<title>SLEEP – Monitorable Sound/Touch Reactive Field</title>
+<title>LIMEN WORKSHOP – Monitorable Sound/Touch Reactive Field</title>
 <style>
   html,body{margin:0;height:100%;background:#000;overflow:hidden;touch-action:none;}
   canvas{display:block;width:100vw;height:100vh;}
@@ -18,7 +18,7 @@
     z-index:50;
   }
   #hint .box{
-    width:min(560px, 92vw);
+    width:min(620px, 94vw);
     border:1px solid rgba(255,255,255,.12);
     border-radius:14px;
     padding:18px 16px;
@@ -59,7 +59,7 @@
   /* Settings panel (toggle) */
   #ui{
     position:fixed; right:12px; top:62px;
-    width:min(520px, calc(100vw - 24px));
+    width:min(560px, calc(100vw - 24px));
     color:#ddd;
     font-family:system-ui, -apple-system, sans-serif;
     background:rgba(0,0,0,.42);
@@ -89,7 +89,7 @@
     white-space:nowrap;
   }
 
-  button, select, input[type="range"]{
+  button, select, input[type="range"], input[type="number"]{
     background:#0f0f0f; color:#eee;
     border:1px solid rgba(255,255,255,.16);
     border-radius:10px;
@@ -125,8 +125,8 @@
   .panel.active{display:block;}
 
   .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin:8px 0;}
-  .label{font-size:12px; color:#aaa; width:118px;}
-  .grow{flex:1; min-width:180px;}
+  .label{font-size:12px; color:#aaa; width:132px;}
+  .grow{flex:1; min-width:200px;}
 
   .meter{
     height:10px; border-radius:999px;
@@ -151,13 +151,11 @@
     border:1px solid rgba(255,255,255,.10);
     border-radius:10px;
     padding:8px;
-    max-height:160px;
+    max-height:170px;
     overflow:auto;
   }
 
-  .fileLine{
-    display:flex; gap:8px; align-items:center; flex-wrap:wrap;
-  }
+  .fileLine{display:flex; gap:8px; align-items:center; flex-wrap:wrap;}
   .fileLine input[type="file"]{
     padding:6px 10px;
     border-radius:10px;
@@ -165,18 +163,32 @@
     background:rgba(0,0,0,.22);
     color:#ddd;
   }
+
+  .two{
+    display:flex; gap:10px; flex-wrap:wrap;
+  }
+  .two > .box{
+    flex:1; min-width:240px;
+    border:1px solid rgba(255,255,255,.10);
+    border-radius:12px;
+    padding:10px;
+    background:rgba(0,0,0,.20);
+  }
+  .mini{
+    font-size:11px; color:#aab;
+  }
 </style>
 </head>
 <body>
 
 <div id="hint">
   <div class="box">
-    <div style="font-weight:800; font-size:16px; margin-bottom:10px;">SLEEP – Start</div>
+    <div style="font-weight:900; font-size:16px; margin-bottom:10px;">LIMEN WORKSHOP – Start</div>
     <div class="small" style="margin-bottom:12px;">
-      1) <b>Start Audio</b>로 오디오를 열고<br/>
+      1) <b>Start Audio</b>로 오디오 잠금 해제<br/>
       2) <b>Mic ON</b> 또는 <b>File</b> 선택 후 AUDIO 탭에서 레벨 확인<br/>
-      3) TouchMe(MIDI) 값은 MIDI 탭에서 확인<br/>
-      4) 렉 먹으면 좌상단 <b>RESET ⟲</b> 로 즉시 복구
+      3) MIDI는 <b>MIDI</b> 탭에서 <b>Input / CC</b> 선택 + 감도/커브 조절<br/>
+      4) 멈춤/렉 발생 시: 좌상단 <b>RESET ⟲</b> (완전 재시작) / 시스템이 자동으로 첫 화면 복귀
     </div>
     <div class="row">
       <button id="btnStartAudio">Start Audio</button>
@@ -192,7 +204,7 @@
 
 <!-- Left top quick -->
 <div id="topLeft">
-  <div class="iconBtn danger" id="btnReset" title="Reset (Hard)">⟲</div>
+  <div class="iconBtn danger" id="btnReset" title="RESET (Full Reboot to Start)">⟲</div>
 </div>
 
 <!-- Top right quick -->
@@ -214,7 +226,7 @@
     <div class="tab active" data-tab="visual">VISUAL</div>
     <div class="tab" data-tab="audio">AUDIO</div>
     <div class="tab" data-tab="midi">MIDI</div>
-    <div class="tab" data-tab="settings">SYSTEM</div>
+    <div class="tab" data-tab="system">SYSTEM</div>
   </div>
 
   <div id="panels">
@@ -257,6 +269,14 @@
       </div>
 
       <div class="row">
+        <div class="label">Point color</div>
+        <select id="selPointColor" class="grow">
+          <option value="red" selected>Red</option>
+          <option value="white">White</option>
+        </select>
+      </div>
+
+      <div class="row">
         <div class="label">Idle Drama</div>
         <div class="grow">
           <input id="rngIdleDrama" type="range" min="0" max="1" step="0.01" value="0.55" style="width:100%;">
@@ -292,7 +312,7 @@
         <div class="label">BG fade</div>
         <div class="grow">
           <input id="rngFade" type="range" min="0.02" max="0.20" step="0.005" value="0.03" style="width:100%;">
-          <div class="small" id="txtFade">fade: 0.030 (잔상 거의 없음 추천)</div>
+          <div class="small" id="txtFade">fade: 0.030</div>
         </div>
       </div>
 
@@ -300,7 +320,7 @@
         <div class="label">Point size</div>
         <div class="grow">
           <input id="rngPointSize" type="range" min="0.4" max="1.2" step="0.01" value="0.60" style="width:100%;">
-          <div class="small" id="txtPointSize">point size: 0.60× (기본보다 작게)</div>
+          <div class="small" id="txtPointSize">point size: 0.60×</div>
         </div>
       </div>
 
@@ -308,13 +328,13 @@
         <div class="label">Glow</div>
         <div class="grow">
           <input id="rngGlow" type="range" min="0.10" max="1.0" step="0.01" value="0.45" style="width:100%;">
-          <div class="small" id="txtGlow">glow: 0.45× (빛남 억제)</div>
+          <div class="small" id="txtGlow">glow: 0.45×</div>
         </div>
       </div>
 
       <div class="small">
-        ✅ 렉 오면 <b>Perf limit↓</b> → <b>Line density↓</b> → <b>Particles↓</b><br/>
-        ✅ 렉이 심하게 오면 좌상단 <b>RESET</b> 또는 자동 리부트가 작동합니다.
+        ✅ 렉/멈춤 오면 <b>Perf limit↓</b> → <b>Line density↓</b> → <b>Particles↓</b><br/>
+        ✅ 심하게 멈추면 시스템이 <b>자동으로 첫 화면(START)</b>로 복귀합니다.
       </div>
     </div>
 
@@ -357,7 +377,7 @@
         </div>
       </div>
 
-      <!-- EQ (TouchMe + Mic + File 공용) -->
+      <!-- EQ -->
       <div class="row">
         <div class="label">EQ Low</div>
         <div class="grow">
@@ -390,24 +410,112 @@
       </div>
 
       <div class="small">
-        EQ는 <b>마이크/파일/터치미</b> 전부 동일하게 먹습니다. (캐릭터 조형용)
+        EQ는 <b>마이크/파일</b> 공통 적용. MIDI(터치값)는 FX/비주얼을 흔듭니다.
       </div>
     </div>
 
     <!-- MIDI -->
     <div class="panel" id="panel-midi">
-      <div class="row">
-        <div class="label">Touch value</div>
-        <div class="grow"><div class="meter"><i id="meterTouch"></i></div></div>
-      </div>
-      <div class="row">
-        <div class="label">MIDI log</div>
-        <div class="mono grow" id="txtMIDI">Waiting…</div>
+      <div class="two">
+        <div class="box">
+          <div class="row">
+            <div class="label">MIDI Input</div>
+            <select id="selMIDIIn" class="grow">
+              <option value="">Loading…</option>
+            </select>
+          </div>
+
+          <div class="row">
+            <div class="label">Map Source</div>
+            <select id="selMIDIType" class="grow">
+              <option value="cc" selected>Control Change (CC)</option>
+              <option value="note">Note Velocity</option>
+            </select>
+          </div>
+
+          <div class="row">
+            <div class="label">CC / Note#</div>
+            <input id="numMIDINum" class="grow" type="number" min="0" max="127" step="1" value="1" />
+          </div>
+
+          <div class="row">
+            <div class="label">Channel</div>
+            <select id="selMIDICh" class="grow">
+              <option value="-1" selected>Any</option>
+              <option value="0">1</option><option value="1">2</option><option value="2">3</option><option value="3">4</option>
+              <option value="4">5</option><option value="5">6</option><option value="6">7</option><option value="7">8</option>
+              <option value="8">9</option><option value="9">10</option><option value="10">11</option><option value="11">12</option>
+              <option value="12">13</option><option value="13">14</option><option value="14">15</option><option value="15">16</option>
+            </select>
+          </div>
+
+          <div class="row">
+            <div class="label">Invert</div>
+            <select id="selMIDIInvert" class="grow">
+              <option value="0" selected>Normal</option>
+              <option value="1">Invert (1-x)</option>
+            </select>
+          </div>
+
+          <div class="row">
+            <div class="label">Deadzone</div>
+            <div class="grow">
+              <input id="rngMIDIDead" type="range" min="0" max="0.25" step="0.005" value="0.02" style="width:100%;">
+              <div class="small" id="txtMIDIDead">deadzone: 0.020</div>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="label">Gain</div>
+            <div class="grow">
+              <input id="rngMIDIGain" type="range" min="0.3" max="3.0" step="0.01" value="1.35" style="width:100%;">
+              <div class="small" id="txtMIDIGain">gain: 1.35×</div>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="label">Curve</div>
+            <div class="grow">
+              <input id="rngMIDICurve" type="range" min="0.4" max="2.8" step="0.01" value="1.40" style="width:100%;">
+              <div class="small" id="txtMIDICurve">curve: 1.40 ( >1 = 더 예민 )</div>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="label">Smoothing</div>
+            <div class="grow">
+              <input id="rngMIDISmooth" type="range" min="0.02" max="0.50" step="0.01" value="0.18" style="width:100%;">
+              <div class="small" id="txtMIDISmooth">smooth: 0.18</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="box">
+          <div class="row">
+            <div class="label">Touch value</div>
+            <div class="grow"><div class="meter"><i id="meterTouch"></i></div></div>
+          </div>
+
+          <div class="row">
+            <div class="label">Raw</div>
+            <div class="mono grow" id="txtMIDIRaw">raw: -</div>
+          </div>
+
+          <div class="row">
+            <div class="label">MIDI log</div>
+            <div class="mono grow" id="txtMIDI">Waiting…</div>
+          </div>
+
+          <div class="small">
+            ✅ “CC / Note#”를 바꾸면 다른 노브/패드로 즉시 매핑 가능<br/>
+            ✅ Gain/Curve로 “살짝만 만져도 확 반응” 세팅 가능
+          </div>
+        </div>
       </div>
     </div>
 
     <!-- SYSTEM -->
-    <div class="panel" id="panel-settings">
+    <div class="panel" id="panel-system">
       <div class="row">
         <div class="label">Audio context</div>
         <button id="btnResume" class="grow">Resume / Unlock Audio</button>
@@ -454,7 +562,19 @@
         <button id="btnMicOff" class="grow" disabled>Mic OFF</button>
       </div>
 
+      <div class="row">
+        <div class="label">Auto Reboot</div>
+        <select id="selAutoReboot" class="grow">
+          <option value="1" selected>ON (lag/freeze → START)</option>
+          <option value="0">OFF</option>
+        </select>
+      </div>
+
       <div class="small" id="txtSupport"></div>
+      <div class="small">
+        ⟲ RESET은 “그냥 파라미터 리셋”이 아니라 <b>완전 재시작(START 화면 복귀)</b>입니다.<br/>
+        (멈춤 방지용으로 일부 상태만 유지합니다: 설정값(localStorage)은 그대로.)
+      </div>
     </div>
   </div>
 </div>
@@ -463,7 +583,7 @@
 /* ==========================================================
    SETTINGS PERSISTENCE (localStorage)
 ========================================================== */
-const STORE_KEY = "sleep_settings_v6";
+const STORE_KEY = "limen_workshop_settings_v1";
 function loadSettings(){ try{ return JSON.parse(localStorage.getItem(STORE_KEY)||"{}"); }catch(e){ return {}; } }
 function saveSettings(obj){ localStorage.setItem(STORE_KEY, JSON.stringify(obj)); }
 const S = loadSettings();
@@ -483,6 +603,12 @@ function hookRangeSave(id, fallback){
   if(!el) return;
   el.value = (S[id] ?? fallback);
   el.addEventListener('input', ()=>{ S[id] = parseFloat(el.value); saveSettings(S); });
+}
+function hookNumberSave(id, fallback){
+  const el = document.getElementById(id);
+  if(!el) return;
+  el.value = (S[id] ?? fallback);
+  el.addEventListener('input', ()=>{ S[id] = parseInt(el.value,10); saveSettings(S); });
 }
 
 /* ==========================================================
@@ -783,7 +909,7 @@ async function listDevices(){
 
   txtSupport.textContent =
     `지원 상태: mic=${mics.length} | spk=${spks.length} | outputSelect=${outputSupported ? 'YES' : 'NO'}\n`+
-    `렉 나면 자동 리부트 + 좌상단 RESET로 즉시 복구`;
+    `멈춤/렉 감지 시 자동으로 START로 복귀 (SYSTEM > Auto Reboot)`;
 
   if(outputSupported && S.currentSpkDeviceId){
     try{
@@ -827,7 +953,7 @@ async function startMic(deviceId="default"){
   await audioCtx.resume();
   setupOutputRouting();
 
-  // 여기선 "입력만" 교체하므로 기존 스트림 정리
+  // 입력만 교체
   if(micStream){ micStream.getTracks().forEach(t=>t.stop()); micStream = null; }
   if(inputNode){ try{ inputNode.disconnect(); }catch(e){} inputNode = null; }
   if(fileNode){ try{ fileNode.disconnect(); }catch(e){} fileNode = null; }
@@ -893,6 +1019,7 @@ function connectFileToChain(){
     fileNode = audioCtx.createMediaElementSource(fileAudioEl);
     fileNode.connect(preGain);
   }catch(e){
+    // Safari에서 재연결 이슈 대비
     try{
       const oldSrc = fileAudioEl.src;
       fileAudioEl.pause();
@@ -925,15 +1052,115 @@ function startStatus(msg){
 }
 
 /* ==========================================================
-   TOUCHME (MIDI) + LOG
+   MIDI (selectable input + mapping + shaping)
 ========================================================== */
-let touch=0, touchSmooth=0;
+let midiAccess = null;
+let midiInput = null;
+
+let touchRaw = 0;      // 0..1 (after map)
+let touch = 0;         // 0..1 (shaped)
+let touchSmooth = 0;   // smoothed
+
 let midiName="MIDI: ?";
 let midiLog = [];
 function pushMidiLog(line){
   midiLog.push(line);
   if(midiLog.length>18) midiLog.shift();
   document.getElementById('txtMIDI').textContent = `${midiName}\n` + midiLog.join('\n');
+}
+
+const selMIDIIn = document.getElementById('selMIDIIn');
+const selMIDIType = document.getElementById('selMIDIType');
+const numMIDINum = document.getElementById('numMIDINum');
+const selMIDICh = document.getElementById('selMIDICh');
+const selMIDIInvert = document.getElementById('selMIDIInvert');
+
+hookSelectSave('selMIDIType');
+hookNumberSave('numMIDINum', 1);
+hookSelectSave('selMIDICh');
+hookSelectSave('selMIDIInvert');
+
+hookRangeSave('rngMIDIDead', 0.02);
+hookRangeSave('rngMIDIGain', 1.35);
+hookRangeSave('rngMIDICurve', 1.40);
+hookRangeSave('rngMIDISmooth', 0.18);
+
+const rngMIDIDead = document.getElementById('rngMIDIDead');
+const rngMIDIGain = document.getElementById('rngMIDIGain');
+const rngMIDICurve = document.getElementById('rngMIDICurve');
+const rngMIDISmooth = document.getElementById('rngMIDISmooth');
+
+const txtMIDIDead = document.getElementById('txtMIDIDead');
+const txtMIDIGain = document.getElementById('txtMIDIGain');
+const txtMIDICurve = document.getElementById('txtMIDICurve');
+const txtMIDISmooth = document.getElementById('txtMIDISmooth');
+const txtMIDIRaw = document.getElementById('txtMIDIRaw');
+
+function refreshMIDILabels(){
+  txtMIDIDead.textContent = `deadzone: ${parseFloat(rngMIDIDead.value).toFixed(3)}`;
+  txtMIDIGain.textContent = `gain: ${parseFloat(rngMIDIGain.value).toFixed(2)}×`;
+  txtMIDICurve.textContent = `curve: ${parseFloat(rngMIDICurve.value).toFixed(2)} ( >1 = 더 예민 )`;
+  txtMIDISmooth.textContent = `smooth: ${parseFloat(rngMIDISmooth.value).toFixed(2)}`;
+}
+['input','change'].forEach(ev=>{
+  [rngMIDIDead,rngMIDIGain,rngMIDICurve,rngMIDISmooth].forEach(el=>el.addEventListener(ev, refreshMIDILabels));
+});
+refreshMIDILabels();
+
+function getMIDIDead(){ return Math.max(0, Math.min(0.25, parseFloat(rngMIDIDead.value)||0)); }
+function getMIDIGain(){ return Math.max(0.3, Math.min(3.0, parseFloat(rngMIDIGain.value)||1)); }
+function getMIDICurve(){ return Math.max(0.4, Math.min(2.8, parseFloat(rngMIDICurve.value)||1.4)); }
+function getMIDISmooth(){ return Math.max(0.02, Math.min(0.50, parseFloat(rngMIDISmooth.value)||0.18)); }
+
+function shapeMIDI(x){
+  // x:0..1
+  const inv = (selMIDIInvert.value==="1");
+  if(inv) x = 1-x;
+
+  const dead = getMIDIDead();
+  if(x < dead) x = 0;
+  else x = (x-dead) / (1-dead);
+
+  x *= getMIDIGain();
+  x = Math.max(0, Math.min(1, x));
+
+  const curve = getMIDICurve();
+  x = Math.pow(x, curve); // curve>1 => low쪽 더 눌림? / 여기선 "예민"을 위해 1~2.8에서 반응 커지게
+  return Math.max(0, Math.min(1, x));
+}
+
+function updateTouch(){
+  // smoothing: 0.02..0.50 (값이 클수록 더 빨리 따라감)
+  const k = getMIDISmooth();
+  touchSmooth += (touch - touchSmooth) * k;
+}
+
+function midiMsgToValue(data){
+  // returns null or {raw01, ch, type}
+  const st = data[0] & 0xF0;
+  const ch = data[0] & 0x0F;
+  const d1 = data[1] ?? 0;
+  const d2 = data[2] ?? 0;
+
+  const wantCh = parseInt(selMIDICh.value,10); // -1 any, else 0..15
+  if(wantCh !== -1 && ch !== wantCh) return null;
+
+  const mode = selMIDIType.value; // cc | note
+  const num = Math.max(0, Math.min(127, parseInt(numMIDINum.value,10)||0));
+
+  if(mode==="cc"){
+    // Control Change: 0xB0
+    if(st !== 0xB0) return null;
+    if(d1 !== num) return null;
+    return { raw01: d2/127, ch, type:"cc", num:d1, val:d2 };
+  }else{
+    // Note on/off velocity
+    // Note On: 0x90, Note Off: 0x80 (or 0x90 vel=0)
+    if(st !== 0x90 && st !== 0x80) return null;
+    if(d1 !== num) return null;
+    const vel = (st===0x80) ? 0 : d2;
+    return { raw01: vel/127, ch, type:"note", num:d1, val:vel };
+  }
 }
 
 async function initMIDI(){
@@ -943,30 +1170,93 @@ async function initMIDI(){
     return;
   }
   try{
-    const midi = await navigator.requestMIDIAccess({sysex:false});
-    const inputs = [...midi.inputs.values()];
-    if(inputs.length===0){
-      midiName="MIDI: no inputs";
-      pushMidiLog("MIDI 입력 장치 없음");
-      return;
-    }
-    const input = inputs[0];
-    midiName = "MIDI: " + (input.name || "input");
-    pushMidiLog("Connected: " + midiName);
+    midiAccess = await navigator.requestMIDIAccess({sysex:false});
+    midiAccess.onstatechange = ()=> rebuildMIDIInputs();
 
-    input.onmidimessage = (e)=>{
-      const data = [...e.data];
-      const v = data[2] ?? 0;
-      touch = Math.max(0, Math.min(1, v/127));
-      pushMidiLog(`data=[${data.join(',')}] -> touch=${touch.toFixed(3)}`);
-    };
+    rebuildMIDIInputs(true);
+    pushMidiLog("MIDI ready.");
   }catch(e){
     console.error(e);
     midiName="MIDI: blocked";
     pushMidiLog("MIDI access failed");
   }
 }
-function updateTouch(){ touchSmooth += (touch-touchSmooth)*0.18; }
+
+function rebuildMIDIInputs(autoselect=false){
+  if(!midiAccess){
+    selMIDIIn.innerHTML = `<option value="">MIDI not ready</option>`;
+    return;
+  }
+  const inputs = [...midiAccess.inputs.values()];
+  selMIDIIn.innerHTML = "";
+  if(inputs.length===0){
+    selMIDIIn.innerHTML = `<option value="">No MIDI inputs</option>`;
+    midiName="MIDI: no inputs";
+    return;
+  }
+
+  for(const inp of inputs){
+    const opt = document.createElement('option');
+    opt.value = inp.id;
+    opt.textContent = inp.name || `MIDI (${inp.id.slice(0,6)}…)`;
+    selMIDIIn.appendChild(opt);
+  }
+
+  const savedId = S.midiInputId ?? "";
+  const hasSaved = inputs.some(i=>i.id===savedId);
+
+  if(hasSaved){
+    selMIDIIn.value = savedId;
+    attachMIDIInput(savedId);
+  }else if(autoselect){
+    selMIDIIn.value = inputs[0].id;
+    attachMIDIInput(inputs[0].id);
+  }
+}
+
+function attachMIDIInput(id){
+  if(!midiAccess) return;
+  const inp = [...midiAccess.inputs.values()].find(i=>i.id===id);
+  if(!inp) return;
+
+  if(midiInput) midiInput.onmidimessage = null;
+  midiInput = inp;
+  S.midiInputId = id;
+  saveSettings(S);
+
+  midiName = "MIDI: " + (midiInput.name || "input");
+  pushMidiLog("Connected: " + midiName);
+
+  midiInput.onmidimessage = (e)=>{
+    const data = e.data;
+    const parsed = midiMsgToValue(data);
+    if(!parsed) return;
+
+    touchRaw = parsed.raw01;
+    touch = shapeMIDI(touchRaw);
+
+    txtMIDIRaw.textContent =
+      `raw01:${touchRaw.toFixed(3)} -> touch:${touch.toFixed(3)} | ${parsed.type.toUpperCase()} #${parsed.num} ch:${parsed.ch+1} val:${parsed.val}`;
+
+    // log (가끔만)
+    if(Math.random() < 0.25){
+      pushMidiLog(`msg=[${[...data].join(',')}] -> touch=${touch.toFixed(3)}`);
+    }
+  };
+}
+
+selMIDIIn.addEventListener('change', ()=>{
+  attachMIDIInput(selMIDIIn.value);
+});
+
+// restore midi controls
+applySelectValue('selMIDIType', 'cc');
+applySelectValue('selMIDICh', '-1');
+applySelectValue('selMIDIInvert', '0');
+hookSelectSave('selMIDIType');
+hookSelectSave('selMIDICh');
+hookSelectSave('selMIDIInvert');
+hookNumberSave('numMIDINum', 1);
 
 /* ==========================================================
    FX MAPPING (Touch)
@@ -1004,13 +1294,12 @@ hookRangeSave('rngIdleDrama', 0.55);
 hookRangeSave('rngVisSens', 1.55);
 hookRangeSave('rngLine', 0.75);
 hookRangeSave('rngPerf', 0.72);
-
-// 잔상 거의 없음 기본
 hookRangeSave('rngFade', 0.03);
-
-// 점 작게 + 덜 빛나게 기본
 hookRangeSave('rngPointSize', 0.60);
 hookRangeSave('rngGlow', 0.45);
+
+applySelectValue('selPointColor', 'red');
+hookSelectSave('selPointColor');
 
 const rngIdleDrama = document.getElementById('rngIdleDrama');
 const rngVisSens   = document.getElementById('rngVisSens');
@@ -1035,13 +1324,16 @@ function getPerfLim(){ return Math.max(0.25, Math.min(1.0, parseFloat(rngPerf.va
 function getFade(){ return Math.max(0.02, Math.min(0.20, parseFloat(rngFade.value)||0.03)); }
 function getPointSize(){ return Math.max(0.4, Math.min(1.2, parseFloat(rngPointSize.value)||0.6)); }
 function getGlow(){ return Math.max(0.10, Math.min(1.0, parseFloat(rngGlow.value)||0.45)); }
+function getPointColor(){
+  return (document.getElementById('selPointColor').value === "red") ? "#ff3b3b" : "#ffffff";
+}
 
 function refreshVisualLabels(){
   txtIdleDrama.textContent = `idle drama: ${getIdleDrama().toFixed(2)}`;
   txtVisSens.textContent   = `visual sens: ${getVisSens().toFixed(2)}×`;
   txtLine.textContent      = `line density: ${getLineMul().toFixed(2)}×`;
   txtPerf.textContent      = `perf limit: ${getPerfLim().toFixed(2)}`;
-  txtFade.textContent      = `fade: ${getFade().toFixed(3)} (잔상 거의 없음 추천)`;
+  txtFade.textContent      = `fade: ${getFade().toFixed(3)}`;
   txtPointSize.textContent = `point size: ${getPointSize().toFixed(2)}×`;
   txtGlow.textContent      = `glow: ${getGlow().toFixed(2)}×`;
 }
@@ -1179,23 +1471,6 @@ document.querySelectorAll('.tab').forEach(t=>{
     saveSettings(S);
   });
 });
-if(S.activeTab){
-  const tabEl = document.querySelector(`.tab[data-tab="${S.activeTab}"]`);
-  if(tabEl) tabEl.click();
-}
-
-// restore selects + saves
-applySelectValue('selMode', 'pulse');
-applySelectValue('selN', '220');
-applySelectValue('selBounds', 'soft');
-applySelectValue('selQuietLines', '1');
-applySelectValue('selSrc', (S.currentSource ?? 'mic'));
-['selMode','selN','selBounds','selQuietLines','selSrc'].forEach(hookSelectSave);
-
-document.getElementById('selN').addEventListener('change', (e)=>{
-  N = parseInt(e.target.value,10);
-  initPoints();
-});
 
 /* ==========================================================
    SOURCE SELECT UI
@@ -1231,6 +1506,8 @@ selSrc.addEventListener('change', async ()=>{
     }
   }
 });
+applySelectValue('selSrc', (S.currentSource ?? 'mic'));
+hookSelectSave('selSrc');
 applySourceUI();
 
 /* ==========================================================
@@ -1296,41 +1573,112 @@ btnFileStop.addEventListener('click', ()=>{
 });
 
 /* ==========================================================
-   HARD RESET (manual + auto)
+   SELECT RESTORE
 ========================================================== */
-function hardReset(reason="manual"){
-  console.warn("HARD RESET:", reason);
+applySelectValue('selMode', 'pulse');
+applySelectValue('selN', '220');
+applySelectValue('selBounds', 'soft');
+applySelectValue('selQuietLines', '1');
+applySelectValue('selAutoReboot', '1');
 
-  // VISUAL RESET
-  energy = 0;
-  burstEnergy = 0;
-  rot = 0;
+['selMode','selN','selBounds','selQuietLines','selAutoReboot'].forEach(hookSelectSave);
+
+document.getElementById('selN').addEventListener('change', (e)=>{
+  N = parseInt(e.target.value,10);
   initPoints();
+});
 
-  // AUDIO RESET (입력은 유지: mic/file 연결은 끊지 않음)
-  amp = 0; ampSmooth = 0; ampDelta = 0; prevAmp = 0;
-
-  if(audioCtx){
-    // 안정값으로 빠르게 회복
-    preGain.gain.setTargetAtTime(1.0, audioCtx.currentTime, 0.01);
-    driveGain.gain.setTargetAtTime(1.0, audioCtx.currentTime, 0.01);
-    ringGain.gain.setTargetAtTime(0.0, audioCtx.currentTime, 0.01);
-    filter.frequency.setTargetAtTime(900, audioCtx.currentTime, 0.01);
-    filter.Q.setTargetAtTime(2.0, audioCtx.currentTime, 0.01);
-    // EQ는 사용자 세팅 유지하되, applyEQ로 안정 적용
-    applyEQ();
-    audioCtx.resume?.().catch(()=>{});
-  }
-
-  // SCREEN CLEAR
-  ctx.setTransform(DPR,0,0,DPR,0,0);
-  ctx.fillStyle = "#000";
-  ctx.fillRect(0,0,W,H);
-
-  startStatus(`RESET: ${reason}`);
+/* ==========================================================
+   FULL REBOOT to START (핵심!)
+   - RESET 누르면: 입력 끊고, 파일 정지, 오디오 ctx 정리/재생성 준비
+   - hint(START) 화면으로 복귀
+   - 설정(localStorage)은 유지
+========================================================== */
+function showStartScreen(msg=""){
+  document.getElementById('hint').style.display = 'flex';
+  if(msg) startStatus(msg);
 }
 
-document.getElementById("btnReset").addEventListener("click", ()=> hardReset("manual button"));
+async function fullReboot(reason="manual"){
+  console.warn("FULL REBOOT:", reason);
+
+  // stop inputs
+  try{ stopMic(); }catch(e){}
+  try{
+    if(fileAudioEl){
+      try{ fileAudioEl.pause(); }catch(e){}
+      try{ fileAudioEl.currentTime = 0; }catch(e){}
+    }
+  }catch(e){}
+
+  try{ disconnectInputs(); }catch(e){}
+  fileNode = null;
+  inputNode = null;
+
+  // reset analysis
+  amp = 0; ampSmooth = 0; ampDelta = 0; prevAmp = 0;
+  touchRaw = 0; touch = 0; touchSmooth = 0;
+
+  // reset visual
+  energy = 0; burstEnergy = 0; rot = 0;
+  initPoints();
+
+  // clear frame
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  ctx.fillStyle="#000";
+  ctx.fillRect(0,0,W,H);
+
+  // audio context: 너무 오래 돌다 멈추는 케이스 대비로 "재생성" (안전)
+  try{
+    if(audioCtx){
+      // disconnect routing to avoid pile-up
+      try{ masterGain.disconnect(); }catch(e){}
+      try{ analyser.disconnect(); }catch(e){}
+      try{ comp.disconnect(); }catch(e){}
+      try{ merger.disconnect(); }catch(e){}
+      try{ splitter.disconnect(); }catch(e){}
+      try{ preGain.disconnect(); }catch(e){}
+      try{ eqLow.disconnect(); }catch(e){}
+      try{ eqMid.disconnect(); }catch(e){}
+      try{ eqHigh.disconnect(); }catch(e){}
+      try{ driveWS.disconnect(); }catch(e){}
+      try{ driveGain.disconnect(); }catch(e){}
+      try{ filter.disconnect(); }catch(e){}
+      try{ ringMult.disconnect(); }catch(e){}
+      try{ ringGain.disconnect(); }catch(e){}
+      // close
+      await audioCtx.close().catch(()=>{});
+    }
+  }catch(e){}
+
+  // null out everything so ensureAudio() recreates clean graph
+  audioCtx = null;
+  analyser = null;
+  timeData = null;
+  masterGain = null;
+  preGain = null;
+  eqLow = eqMid = eqHigh = null;
+  driveWS = driveGain = null;
+  filter = null;
+  ringOsc = null;
+  ringGain = null;
+  ringMult = null;
+  splitter = null;
+  dL = dR = null;
+  merger = null;
+  comp = null;
+  monitorDest = null;
+
+  // UI state
+  setStartButtons(false);
+  updateTopPill(1);
+
+  // go start screen
+  showStartScreen(`START로 복귀 (reason: ${reason})`);
+}
+
+/* RESET button = FULL REBOOT (원하는 동작) */
+document.getElementById("btnReset").addEventListener("click", ()=> fullReboot("manual reset"));
 
 /* ==========================================================
    START
@@ -1358,6 +1706,7 @@ document.getElementById('btnStopMic').addEventListener('click', ()=> stopMic());
 document.getElementById('btnMicOn').addEventListener('click', async ()=>{
   if(currentSource!=="mic") return;
   await startMic(currentMicDeviceId);
+  document.getElementById('hint').style.display='none';
 });
 document.getElementById('btnMicOff').addEventListener('click', ()=> stopMic());
 
@@ -1369,22 +1718,41 @@ addEventListener('pointerdown', async ()=>{
 },{passive:true});
 
 /* ==========================================================
-   AUTO REBOOT ON LAG
+   AUTO REBOOT ON LAG / FREEZE (핵심!)
+   - 프레임이 느리게 계속 쌓이면: START로 복귀
+   - requestAnimationFrame 자체가 멈추면(프리즈): watchdog가 START로 복귀
 ========================================================== */
+const selAutoReboot = document.getElementById('selAutoReboot');
+function autoRebootEnabled(){ return (selAutoReboot.value === "1"); }
+
 let lastFrameT = performance.now();
 let frameMsSmooth = 16.7;
 let lagTimer = 0;
 
+// freeze watchdog
+let lastAnimTick = performance.now();
+setInterval(()=>{
+  const now = performance.now();
+  if(!autoRebootEnabled()) return;
+  // 1.6초 이상 애니메이션 tick이 안 갱신되면 "프리즈"로 간주
+  if(now - lastAnimTick > 1600){
+    fullReboot("freeze watchdog");
+    lastAnimTick = now;
+  }
+}, 400);
+
 function checkLag(dt){
-  // 45ms 넘는 프레임이 누적 3초면 자동 리부트
+  if(!autoRebootEnabled()) return;
+
+  // 45ms 넘는 프레임이 누적 2.2초면 자동 리부트 (좀 더 공격적으로)
   if(dt > 45){
     lagTimer += dt;
-    if(lagTimer > 3000){
-      hardReset("auto lag reboot");
+    if(lagTimer > 2200){
+      fullReboot("lag reboot");
       lagTimer = 0;
     }
   }else{
-    lagTimer = Math.max(0, lagTimer - 40);
+    lagTimer = Math.max(0, lagTimer - 50);
   }
 }
 
@@ -1395,6 +1763,8 @@ let lastUiT = 0;
 
 function loop(){
   const now = performance.now();
+  lastAnimTick = now;
+
   const dt = now - lastFrameT;
   lastFrameT = now;
   frameMsSmooth += (dt - frameMsSmooth) * 0.08;
@@ -1560,7 +1930,7 @@ function loop(){
               const onGain = 0.34 + amp*1.5*visSens + burstEnergy*1.6*visSens;
               const punch = Math.min(1, alpha * (quietGain*(1-energy) + onGain*energy));
 
-              ctx.globalAlpha = punch * getGlow(); // glow에도 영향 (덜 번쩍)
+              ctx.globalAlpha = punch * getGlow();
               ctx.strokeStyle = "rgba(255,255,255,0.9)";
               ctx.lineWidth = 1;
               ctx.beginPath();
@@ -1577,16 +1947,15 @@ function loop(){
     }
   }
 
-  // points: 작게 + 덜 빛나게 (슬라이더로 조절)
+  // points
   const glow = getGlow();
   const pSize = getPointSize();
+  const pCol = getPointColor();
 
   for(let i=0;i<N;i++){
     const p = pr[i];
 
-    // ✅ 기존 대비: 반으로 줄인 베이스
     const baseR = (0.6 + p.k*0.3) * pSize;
-
     const rQuiet = Math.max(0.9, baseR * (1.05 + idleDrama*0.15));
     const rActive = baseR * (1.15 + amp*2.2*visSens + touchSmooth*0.9 + burstEnergy*0.7);
     const r = rQuiet*(1-energy) + rActive*energy;
@@ -1595,8 +1964,8 @@ function loop(){
     const aActive = Math.min(1, 0.40 + amp*0.95*visSens + touchSmooth*0.45 + burstEnergy*0.55);
     const a = aQuiet*(1-energy) + aActive*energy;
 
-    ctx.globalAlpha = a * glow; // ✅ 덜 빛나게
-    ctx.fillStyle = "#fff";
+    ctx.globalAlpha = a * glow;
+    ctx.fillStyle = pCol;
     ctx.beginPath();
     ctx.arc(p.x, p.y, r, 0, Math.PI*2);
     ctx.fill();
@@ -1608,40 +1977,35 @@ function loop(){
 loop();
 
 /* ==========================================================
-   START / SOURCE / RESET
+   SYSTEM / RESTORE
 ========================================================== */
-document.getElementById('btnFSQuick').addEventListener('click', toggleFullscreen);
-
-/* ==========================================================
-   SYSTEM / GEAR / TABS / RESTORE
-========================================================== */
-// restore tab
 if(S.activeTab){
   const tabEl = document.querySelector(`.tab[data-tab="${S.activeTab}"]`);
   if(tabEl) tabEl.click();
 }
 
-// system mic control
-document.getElementById('btnMicOn').addEventListener('click', async ()=> {
-  if(currentSource!=="mic") return;
-  await startMic(currentMicDeviceId);
-});
-document.getElementById('btnMicOff').addEventListener('click', ()=> stopMic());
+// restore ui visible state already handled
+// restore select saves already hooked
 
-// resume / unlock
-document.getElementById('btnResume').addEventListener('click', async ()=>{
-  ensureAudio();
-  await audioCtx.resume();
-  await listDevices();
-  setStartButtons(!!micStream);
-  updateTopPill(1);
-});
+// system mic control buttons already wired above
+// fullscreen quick already wired above
 
 /* ==========================================================
-   INIT UI RESTORE
+   STARTUP: restore N and init points
 ========================================================== */
 N = parseInt(document.getElementById('selN').value,10);
 initPoints();
+updateTopPill(1);
+startStatus("Start Audio를 눌러 오디오를 먼저 잠금 해제하세요.");
+
+// if user wants: gear open on load
+// (kept via S.uiVisible)
+
+// prevent accidental leaving causing stuck audio on some devices
+window.addEventListener('pagehide', ()=>{
+  try{ stopMic(); }catch(e){}
+  try{ if(fileAudioEl) fileAudioEl.pause(); }catch(e){}
+});
 </script>
 </body>
 </html>
