@@ -3,12 +3,11 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-<title>LIMEN WORKSHOP – Monitorable Sound/Touch Reactive Field</title>
+<title>LIMEN WORKSHOP – Monitorable Sound/Touch Reactive Field (Perf-Safe)</title>
 <style>
   html,body{margin:0;height:100%;background:#000;overflow:hidden;touch-action:none;}
   canvas{display:block;width:100vw;height:100vh;}
 
-  /* Hint / Entry */
   #hint{
     position:fixed; inset:0;
     display:flex; align-items:center; justify-content:center;
@@ -26,17 +25,9 @@
     text-align:left;
   }
 
-  /* Top-left / Top-right buttons */
-  #topLeft{
-    position:fixed; left:12px; top:12px;
-    display:flex; gap:8px;
-    z-index:40;
-  }
-  #topRight{
-    position:fixed; right:12px; top:12px;
-    display:flex; gap:8px;
-    z-index:40;
-  }
+  #topLeft{position:fixed; left:12px; top:12px; display:flex; gap:8px; z-index:40;}
+  #topRight{position:fixed; right:12px; top:12px; display:flex; gap:8px; z-index:40;}
+
   .iconBtn{
     width:42px; height:42px;
     display:grid; place-items:center;
@@ -51,13 +42,9 @@
   }
   .iconBtn:hover{border-color:rgba(255,255,255,.30)}
   .iconBtn:active{transform:translateY(1px)}
-  .iconBtn.danger{
-    border-color:rgba(255,80,80,.55);
-    color:#ffb9b9;
-  }
+  .iconBtn.danger{border-color:rgba(255,80,80,.55);color:#ffb9b9;}
   .iconBtn.danger:hover{border-color:rgba(255,120,120,.75)}
 
-  /* Settings panel (toggle) */
   #ui{
     position:fixed; right:12px; top:62px;
     width:min(560px, calc(100vw - 24px));
@@ -73,11 +60,7 @@
     transform-origin: top right;
   }
   #ui.hidden{display:none;}
-  #bar{
-    display:flex; align-items:center; gap:8px;
-    padding:10px 10px;
-    border-bottom:1px solid rgba(255,255,255,.08);
-  }
+  #bar{display:flex; align-items:center; gap:8px; padding:10px 10px; border-bottom:1px solid rgba(255,255,255,.08);}
   #bar .title{font-weight:750; font-size:13px; color:#eee;}
   #bar .pill{
     margin-left:auto;
@@ -102,25 +85,13 @@
   button:hover, select:hover{border-color:rgba(255,255,255,.32)}
   button:disabled, select:disabled{opacity:.5; cursor:not-allowed}
 
-  #tabs{
-    display:flex; gap:6px; padding:10px;
-    border-bottom:1px solid rgba(255,255,255,.08);
-  }
+  #tabs{display:flex; gap:6px; padding:10px; border-bottom:1px solid rgba(255,255,255,.08);}
   .tab{
-    flex:1;
-    padding:8px 10px;
-    font-size:12px;
-    border-radius:10px;
-    border:1px solid rgba(255,255,255,.12);
-    background:rgba(0,0,0,.22);
-    cursor:pointer;
-    text-align:center;
-    user-select:none;
+    flex:1; padding:8px 10px; font-size:12px;
+    border-radius:10px; border:1px solid rgba(255,255,255,.12);
+    background:rgba(0,0,0,.22); cursor:pointer; text-align:center; user-select:none;
   }
-  .tab.active{
-    border-color:rgba(255,255,255,.34);
-    background:rgba(255,255,255,.06);
-  }
+  .tab.active{border-color:rgba(255,255,255,.34); background:rgba(255,255,255,.06);}
   #panels{padding:10px;}
   .panel{display:none;}
   .panel.active{display:block;}
@@ -135,11 +106,7 @@
     border:1px solid rgba(255,255,255,.10);
     overflow:hidden;
   }
-  .meter > i{
-    display:block; height:100%;
-    width:0%;
-    background:rgba(255,255,255,.85);
-  }
+  .meter > i{display:block; height:100%; width:0%; background:rgba(255,255,255,.85);}
 
   .small{font-size:11px; color:#9aa; line-height:1.45;}
   .mono{
@@ -165,9 +132,7 @@
     color:#ddd;
   }
 
-  .two{
-    display:flex; gap:10px; flex-wrap:wrap;
-  }
+  .two{display:flex; gap:10px; flex-wrap:wrap;}
   .two > .box{
     flex:1; min-width:240px;
     border:1px solid rgba(255,255,255,.10);
@@ -184,12 +149,8 @@
     background:rgba(255,255,255,.06);
     cursor:pointer;
   }
-  .pillBtn.on{
-    border-color:rgba(255,255,255,.34);
-    background:rgba(255,255,255,.10);
-  }
+  .pillBtn.on{border-color:rgba(255,255,255,.34); background:rgba(255,255,255,.10);}
 
-  /* tiny HUD for touch */
   #touchHUD{
     position:fixed; left:12px; bottom:12px;
     z-index:39;
@@ -206,16 +167,9 @@
   #touchHUD .bar{height:8px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden;border:1px solid rgba(255,255,255,.10);margin-top:6px;}
   #touchHUD .bar i{display:block;height:100%;width:0%;background:rgba(255,80,80,.90);}
 
-  /* Entry header */
   .entryTitle{font-weight:900; font-size:16px; margin-bottom:10px;}
-  .entryGrid{
-    display:grid;
-    grid-template-columns: 1fr;
-    gap:10px;
-  }
-  @media (min-width:720px){
-    .entryGrid{grid-template-columns: 1fr 1fr;}
-  }
+  .entryGrid{display:grid; grid-template-columns: 1fr; gap:10px;}
+  @media (min-width:720px){ .entryGrid{grid-template-columns: 1fr 1fr;} }
   .entryCard{
     border:1px solid rgba(255,255,255,.10);
     border-radius:12px;
@@ -226,14 +180,13 @@
 </head>
 <body>
 
-<!-- ENTRY (렉 시 여기로 되돌아옴) -->
 <div id="hint">
   <div class="box">
     <div class="entryTitle">LIMEN WORKSHOP – Entry</div>
     <div class="small" style="margin-bottom:12px;">
       1) <b>Start Audio</b>로 오디오 잠금 해제<br/>
-      2) 여기서 <b>Mic / File</b> 선택 후 <b>Mic ON</b> 또는 <b>File Play</b>로 입장<br/>
-      3) TouchMe는 입장 후(또는 지금도) ⚙️ → MIDI 탭에서 <b>LEARN</b>
+      2) <b>Mic / File</b> 선택 후 <b>Mic ON</b> 또는 <b>File Play</b>로 입장<br/>
+      3) TouchMe는 입장 후 ⚙️ → MIDI 탭에서 <b>LEARN</b>
     </div>
 
     <div class="row" style="justify-content:space-between;">
@@ -245,7 +198,6 @@
     </div>
 
     <div class="entryGrid">
-      <!-- MIC ENTRY -->
       <div class="entryCard">
         <div class="row" style="margin-top:0;">
           <div class="label">Input</div>
@@ -266,7 +218,7 @@
             <button id="entryMicOn" class="grow" disabled>Mic ON (Enter)</button>
             <button id="entryMicOff" class="grow" disabled>Mic OFF</button>
           </div>
-          <div class="small">Mic ON을 누르면 Entry 화면이 닫히고(입장) 비주얼이 시작됩니다.</div>
+          <div class="small">Mic ON을 누르면 Entry 화면이 닫히고 비주얼이 시작됩니다.</div>
         </div>
 
         <div id="entryFileBox" style="display:none;">
@@ -287,15 +239,13 @@
         </div>
       </div>
 
-      <!-- QUICK INFO -->
       <div class="entryCard">
         <div class="small" style="margin-bottom:8px;">
-          ✅ 렉(프리즈/과부하) 감지 시 <b>자동으로 이 Entry 화면으로 되돌아옵니다</b>.<br/>
-          (페이지 새로고침이 아니라 “입장 단계로 복귀”)
+          ✅ 렉(프리즈/과부하) 감지 시 <b>자동으로 Entry 화면으로 복귀</b><br/>
+          (새로고침 ❌ / “입장 단계로 복귀”)
         </div>
         <div class="small" style="margin-bottom:8px;">
-          ✅ TouchMe는 iOS Safari에서 제한될 수 있어요. (Chrome 권장)<br/>
-          그래도 지금은 잘된다고 했으니 그대로 유지!
+          ✅ 점/라인 폭주로 멈추는 현상 방지: <b>하드 캡 + 어댑티브 품질</b> 내장
         </div>
         <div class="small">
           ✅ Entry에서 Mic/File 선택만 추가했고, 나머지 설정(⚙️) 구조는 그대로입니다.
@@ -313,19 +263,16 @@
   <div class="bar"><i id="hudTouchBar"></i></div>
 </div>
 
-<!-- Left top quick -->
 <div id="topLeft">
   <div class="iconBtn danger" id="btnReset" title="RESET (Back to Entry)">⟲</div>
 </div>
 
-<!-- Top right quick -->
 <div id="topRight">
   <div class="iconBtn" id="btnGear" title="Settings">⚙️</div>
   <div class="iconBtn" id="btnMuteQuick" title="Mute">🔈</div>
   <div class="iconBtn" id="btnFSQuick" title="Fullscreen">⛶</div>
 </div>
 
-<!-- Settings UI (toggle) -->
 <div id="ui" class="hidden">
   <div id="bar">
     <div class="title">Settings</div>
@@ -341,7 +288,6 @@
   </div>
 
   <div id="panels">
-    <!-- VISUAL -->
     <div class="panel active" id="panel-visual">
       <div class="row">
         <div class="label">Mode</div>
@@ -445,11 +391,10 @@
 
       <div class="small">
         ✅ 렉/멈춤 오면 <b>Perf limit↓</b> → <b>Line density↓</b> → <b>Particles↓</b><br/>
-        ✅ 심하게 멈추면 시스템이 <b>자동으로 Entry</b>로 복귀합니다.
+        ✅ 폭주 방지: 점/라인 상한이 있어 피드백이 터져도 멈추지 않게 설계됨
       </div>
     </div>
 
-    <!-- AUDIO -->
     <div class="panel" id="panel-audio">
       <div class="row">
         <div class="label">Input level</div>
@@ -488,7 +433,6 @@
         </div>
       </div>
 
-      <!-- EQ -->
       <div class="row">
         <div class="label">EQ Low</div>
         <div class="grow">
@@ -525,7 +469,6 @@
       </div>
     </div>
 
-    <!-- MIDI -->
     <div class="panel" id="panel-midi">
       <div class="row" style="justify-content:space-between;">
         <div class="small" id="txtMIDISupport" style="opacity:.95"></div>
@@ -646,7 +589,6 @@
       </div>
     </div>
 
-    <!-- SYSTEM -->
     <div class="panel" id="panel-system">
       <div class="row">
         <div class="label">Audio context</div>
@@ -714,7 +656,7 @@
 /* ==========================================================
    SETTINGS PERSISTENCE (localStorage)
 ========================================================== */
-const STORE_KEY = "limen_workshop_settings_v3_entry";
+const STORE_KEY = "limen_workshop_settings_v4_perf_safe";
 function loadSettings(){ try{ return JSON.parse(localStorage.getItem(STORE_KEY)||"{}"); }catch(e){ return {}; } }
 function saveSettings(obj){ localStorage.setItem(STORE_KEY, JSON.stringify(obj)); }
 const S = loadSettings();
@@ -750,7 +692,7 @@ const ctx = canvas.getContext('2d', { alpha:false });
 let W=0,H=0,DPR=1;
 
 function resize(){
-  DPR = Math.max(1, Math.min(2, devicePixelRatio||1));
+  DPR = Math.max(1, Math.min(2, devicePixelRatio||1)); // cap DPR (perf)
   W = innerWidth|0; H = innerHeight|0;
   canvas.width  = (W*DPR)|0;
   canvas.height = (H*DPR)|0;
@@ -953,7 +895,6 @@ function applyEQ(){
 
 function updateAmp(){
   if(!analyser) return;
-
   analyser.getByteTimeDomainData(timeData);
   let sum=0;
   for(let i=0;i<timeData.length;i++){
@@ -1003,7 +944,6 @@ async function listDevices(){
   const mics = devices.filter(d=>d.kind==="audioinput");
   const spks = devices.filter(d=>d.kind==="audiooutput");
 
-  // SYSTEM mic select
   selMic.innerHTML = "";
   if(mics.length===0){
     selMic.disabled = true;
@@ -1019,7 +959,6 @@ async function listDevices(){
     }
   }
 
-  // ENTRY mic select (mirror)
   const entrySelMic = document.getElementById('entrySelMic');
   entrySelMic.innerHTML = "";
   if(mics.length===0){
@@ -1072,7 +1011,6 @@ selMic.addEventListener('change', async ()=>{
   currentMicDeviceId = selMic.value;
   S.currentMicDeviceId = currentMicDeviceId;
   saveSettings(S);
-  // mirror to entry
   const entrySelMic = document.getElementById('entrySelMic');
   if(entrySelMic) entrySelMic.value = currentMicDeviceId;
 
@@ -1197,13 +1135,10 @@ function connectFileToChain(){
   updateTopPill(1);
 }
 
-/* ENTRY <-> SYSTEM 버튼 상태를 동시에 관리 */
 function setMicButtons(micOn){
-  // system
   document.getElementById('btnMicOn').disabled  = !audioCtx || micOn || (currentSource!=="mic");
   document.getElementById('btnMicOff').disabled = !micOn;
 
-  // entry
   document.getElementById('entryMicOn').disabled  = !audioCtx || micOn || (currentSource!=="mic");
   document.getElementById('entryMicOff').disabled = !micOn;
 }
@@ -1213,9 +1148,6 @@ function startStatus(msg){
   if(el) el.textContent = msg;
 }
 
-/* ==========================================================
-   OUTPUT ROUTING SETUP + DEVICE LIST ONCE AUDIO UNLOCKED
-========================================================== */
 async function afterAudioUnlocked(){
   await listDevices();
   setMicButtons(!!micStream);
@@ -1223,7 +1155,7 @@ async function afterAudioUnlocked(){
 }
 
 /* ==========================================================
-   MIDI (TouchMe) : (기존 그대로)
+   MIDI (TouchMe)
 ========================================================== */
 let midiAccess = null;
 let midiInput = null;
@@ -1440,22 +1372,14 @@ function attachMIDIInput(id){
         selMIDIType.value = "cc";
         numMIDINum.value = r.d1;
         selMIDICh.value = String(r.ch);
-        saveSettings(Object.assign(S, {
-          selMIDIType:"cc",
-          numMIDINum: r.d1,
-          selMIDICh: String(r.ch)
-        }));
+        saveSettings(Object.assign(S, { selMIDIType:"cc", numMIDINum:r.d1, selMIDICh:String(r.ch) }));
         pushMidiLog(`LEARN OK: CC #${r.d1} ch:${r.ch+1}`);
         setLearn(false);
       }else if(r.st===0x90 || r.st===0x80){
         selMIDIType.value = "note";
         numMIDINum.value = r.d1;
         selMIDICh.value = String(r.ch);
-        saveSettings(Object.assign(S, {
-          selMIDIType:"note",
-          numMIDINum: r.d1,
-          selMIDICh: String(r.ch)
-        }));
+        saveSettings(Object.assign(S, { selMIDIType:"note", numMIDINum:r.d1, selMIDICh:String(r.ch) }));
         pushMidiLog(`LEARN OK: NOTE #${r.d1} ch:${r.ch+1}`);
         setLearn(false);
       }
@@ -1483,7 +1407,6 @@ selMIDIIn.addEventListener('change', ()=> attachMIDIInput(selMIDIIn.value));
 document.getElementById('btnMIDIInit').addEventListener('click', initMIDI);
 document.getElementById('btnMIDILearn').addEventListener('click', ()=> setLearn(!midiLearn));
 
-/* restore midi controls */
 applySelectValue('selMIDIType', 'cc');
 applySelectValue('selMIDICh', '-1');
 applySelectValue('selMIDIInvert', '0');
@@ -1499,7 +1422,7 @@ rngSimTouch.addEventListener('input', ()=>{
 });
 
 /* ==========================================================
-   FX MAPPING (Touch) (기존 그대로)
+   FX MAPPING (Touch)
 ========================================================== */
 function applyFX(){
   if(!audioCtx) return;
@@ -1531,7 +1454,7 @@ function applyFX(){
 }
 
 /* ==========================================================
-   VISUAL UI + PARAMS (기존 그대로)
+   VISUAL UI + PARAMS
 ========================================================== */
 hookRangeSave('rngIdleDrama', 0.55);
 hookRangeSave('rngVisSens', 1.55);
@@ -1567,9 +1490,7 @@ function getPerfLim(){ return Math.max(0.25, Math.min(1.0, parseFloat(rngPerf.va
 function getFade(){ return Math.max(0.02, Math.min(0.20, parseFloat(rngFade.value)||0.03)); }
 function getPointSize(){ return Math.max(0.4, Math.min(1.2, parseFloat(rngPointSize.value)||0.6)); }
 function getGlow(){ return Math.max(0.10, Math.min(1.0, parseFloat(rngGlow.value)||0.45)); }
-function getPointColor(){
-  return (document.getElementById('selPointColor').value === "red") ? "#ff3b3b" : "#ffffff";
-}
+function getPointColor(){ return (document.getElementById('selPointColor').value === "red") ? "#ff3b3b" : "#ffffff"; }
 
 function refreshVisualLabels(){
   txtIdleDrama.textContent = `idle drama: ${getIdleDrama().toFixed(2)}`;
@@ -1588,7 +1509,10 @@ function refreshVisualLabels(){
 refreshVisualLabels();
 
 /* ==========================================================
-   VISUAL FIELD (기존 그대로)
+   VISUAL FIELD (PERF-SAFE)
+   - 폭주 방지 하드캡
+   - 동적 품질(라인/stride/포인트) 조절
+   - 프레임당 할당 최소화
 ========================================================== */
 let N = 220;
 let pts = [];
@@ -1602,25 +1526,36 @@ let energy = 0;
 let burstEnergy = 0;
 
 function initPoints(){
-  pts = [];
+  pts = new Array(N);
   for(let i=0;i<N;i++){
-    pts.push({
-      x:(Math.random()*2-1)*(W*0.34),
-      y:(Math.random()*2-1)*(H*0.34),
-      z:(Math.random()*2-1)*340,
-      vx:0,vy:0,vz:0
-    });
+    pts[i] = { x:(Math.random()*2-1)*(W*0.34), y:(Math.random()*2-1)*(H*0.34), z:(Math.random()*2-1)*340, vx:0,vy:0,vz:0 };
   }
+  ensureProjBuffers();
 }
 initPoints();
 
-function project(p){
+/* projection buffers (no per-frame map allocations) */
+let prX=null, prY=null, prK=null, prZ=null;
+function ensureProjBuffers(){
+  prX = new Float32Array(N);
+  prY = new Float32Array(N);
+  prK = new Float32Array(N);
+  prZ = new Float32Array(N);
+}
+
+function projectAll(){
   const s=Math.sin(rot), c=Math.cos(rot);
-  const x = p.x*c - p.z*s;
-  const z = p.x*s + p.z*c;
   const depth = 900;
-  const k = depth/(depth+z);
-  return { x:x*k + W/2, y:p.y*k + H/2, k, z };
+  for(let i=0;i<N;i++){
+    const p = pts[i];
+    const x = p.x*c - p.z*s;
+    const z = p.x*s + p.z*c;
+    const k = depth/(depth+z);
+    prX[i] = x*k + W/2;
+    prY[i] = p.y*k + H/2;
+    prK[i] = k;
+    prZ[i] = z;
+  }
 }
 
 function applyBounds(p, mode){
@@ -1665,7 +1600,7 @@ function updateTopPill(q=1){
   const src = (currentSource==="mic")
     ? (micStream ? "mic:on" : "mic:off")
     : (fileAudioEl && fileAudioEl.src ? (fileAudioEl.paused ? "file:loaded" : "file:play") : "file:empty");
-  pill.textContent = `audio:${a} | src:${src} | q:${q.toFixed(2)}`;
+  pill.textContent = `audio:${a} | src:${src} | q:${q.toFixed(2)} | N:${N}`;
 }
 
 const ui = document.getElementById('ui');
@@ -1732,7 +1667,6 @@ function applySourceUI(){
   rowMic.style.display = (currentSource==="mic") ? "" : "none";
   rowFile.style.display = (currentSource==="file") ? "" : "none";
 
-  // entry mirror
   entrySelSrc.value = currentSource;
   entryMicBox.style.display = (currentSource==="mic") ? "" : "none";
   entryFileBox.style.display = (currentSource==="file") ? "" : "none";
@@ -1826,7 +1760,6 @@ async function loadFileFromInput(file){
 fileAudio.addEventListener('change', async ()=>{
   const f = fileAudio.files && fileAudio.files[0];
   if(!f) return;
-  // mirror to entry input is not possible programmatically; just load
   await loadFileFromInput(f);
 });
 entryFileAudio.addEventListener('change', async ()=>{
@@ -1838,13 +1771,8 @@ entryFileAudio.addEventListener('change', async ()=>{
 /* ==========================================================
    ENTRY ENTER: Mic ON / File Play -> hide entry
 ========================================================== */
-function hideEntryAndEnter(){
-  document.getElementById('hint').style.display='none';
-}
-function showEntry(msg=""){
-  document.getElementById('hint').style.display='flex';
-  if(msg) startStatus(msg);
-}
+function hideEntryAndEnter(){ document.getElementById('hint').style.display='none'; }
+function showEntry(msg=""){ document.getElementById('hint').style.display='flex'; if(msg) startStatus(msg); }
 
 entryFilePlay.addEventListener('click', async ()=>{
   if(!fileAudioEl || !fileAudioEl.src) return;
@@ -1897,7 +1825,6 @@ document.getElementById('btnMicOn').addEventListener('click', async ()=>{
 });
 document.getElementById('btnMicOff').addEventListener('click', ()=> stopMic());
 
-/* ENTRY mic buttons */
 document.getElementById('entryMicOn').addEventListener('click', async ()=>{
   if(currentSource!=="mic") return;
   await startMic(currentMicDeviceId, true);
@@ -1905,7 +1832,7 @@ document.getElementById('entryMicOn').addEventListener('click', async ()=>{
 document.getElementById('entryMicOff').addEventListener('click', ()=> stopMic());
 
 /* ==========================================================
-   ENTRY: Start Audio (unlock) + device list + MIDI init
+   ENTRY: Start Audio
 ========================================================== */
 document.getElementById('btnStartAudio').addEventListener('click', async ()=>{
   ensureAudio();
@@ -1916,9 +1843,7 @@ document.getElementById('btnStartAudio').addEventListener('click', async ()=>{
 });
 
 addEventListener('pointerdown', async ()=>{
-  if(audioCtx && audioCtx.state==='suspended'){
-    await audioCtx.resume();
-  }
+  if(audioCtx && audioCtx.state==='suspended'){ await audioCtx.resume(); }
 },{passive:true});
 
 /* ==========================================================
@@ -1929,23 +1854,22 @@ applySelectValue('selN', '220');
 applySelectValue('selBounds', 'soft');
 applySelectValue('selQuietLines', '1');
 applySelectValue('selAutoReboot', '1');
-
 ['selMode','selN','selBounds','selQuietLines','selAutoReboot'].forEach(hookSelectSave);
 
 document.getElementById('selN').addEventListener('change', (e)=>{
-  N = parseInt(e.target.value,10);
+  const newN = parseInt(e.target.value,10);
+  N = newN;
   initPoints();
 });
 
 /* ==========================================================
-   ENTRY REBOOT (핵심 변경!)
-   - "완전 처음"이 아니라 Entry로 복귀
-   - 오디오/입력 멈추고 Entry에서 다시 Start Audio + Enter하도록
+   ENTRY REBOOT
 ========================================================== */
 function clearRuntime(){
   amp = 0; ampSmooth = 0; ampDelta = 0; prevAmp = 0;
   touchRaw = 0; touch = 0; touchSmooth = 0; lastMidiAt = 0;
   energy = 0; burstEnergy = 0; rot = 0;
+
   initPoints();
 
   document.getElementById('hudMidi').textContent = "midi: -";
@@ -1961,26 +1885,17 @@ function clearRuntime(){
 async function entryReboot(reason="lag"){
   console.warn("ENTRY REBOOT:", reason);
 
-  // stop inputs
   try{ stopMic(); }catch(e){}
-  try{
-    if(fileAudioEl){
-      try{ fileAudioEl.pause(); }catch(e){}
-      // keep file selected (so Entry Play can work again) — but audio chain will be reattached on play
-      // do not clear src
-    }
-  }catch(e){}
+  try{ if(fileAudioEl){ try{ fileAudioEl.pause(); }catch(e){} } }catch(e){}
 
   try{ disconnectInputs(); }catch(e){}
   fileNode = null;
   inputNode = null;
 
-  // close audio context to truly clear overload (user wants "Start Audio" stage again)
   try{
-    if(audioCtx){
-      try{ await audioCtx.close(); }catch(e){}
-    }
+    if(audioCtx){ try{ await audioCtx.close(); }catch(e){} }
   }catch(e){}
+
   audioCtx = null;
   analyser = null;
   timeData = null;
@@ -2000,11 +1915,9 @@ async function entryReboot(reason="lag"){
 
   clearRuntime();
 
-  // buttons back to "locked"
   setMicButtons(false);
   updateTopPill(1);
 
-  // Entry UI states (enable/disable) — Start Audio must be pressed again
   document.getElementById('entrySelMic').disabled = true;
   document.getElementById('entrySelMic').innerHTML = `<option>Start Audio 후 목록 로드</option>`;
   document.getElementById('entryMicOn').disabled = true;
@@ -2012,7 +1925,6 @@ async function entryReboot(reason="lag"){
 
   showEntry(`렉 감지 → Entry로 복귀 (reason: ${reason})`);
 }
-
 document.getElementById("btnReset").addEventListener("click", ()=> entryReboot("manual reset"));
 
 /* ==========================================================
@@ -2049,7 +1961,41 @@ function checkLag(dt){
 }
 
 /* ==========================================================
-   MAIN LOOP (기존 그대로)
+   PERF-SAFE ADAPTIVE QUALITY (핵심)
+========================================================== */
+const HARD_MAX_POINT_R = 18;     // 점 크기 폭주 방지 (절대 상한)
+const HARD_MAX_LINKDIST = 170;   // 연결거리 상한
+const HARD_MAX_LINES = 1400;     // 라인 수 상한
+const HARD_MAX_ALPHA = 0.75;     // 알파 상한
+
+let perfMode = 0; // 0=full,1=mid,2=low
+let perfHold = 0;
+
+function adaptQuality(){
+  // frameMsSmooth: 16~60+
+  // 단계식으로 안정화 (히스테리시스)
+  const ms = frameMsSmooth;
+
+  if(ms > 42) perfHold += 1;
+  else perfHold = Math.max(0, perfHold-1);
+
+  if(perfHold > 12) perfMode = Math.min(2, perfMode+1);
+  if(ms < 24) perfMode = Math.max(0, perfMode-1);
+
+  // 소프트하게 N 줄이기(갑자기 깎지 않음)
+  const selN = parseInt(document.getElementById('selN').value,10);
+  let targetN = selN;
+  if(perfMode===1) targetN = Math.min(selN, 220);
+  if(perfMode===2) targetN = Math.min(selN, 160);
+
+  if(targetN !== N){
+    N = targetN;
+    initPoints();
+  }
+}
+
+/* ==========================================================
+   MAIN LOOP
 ========================================================== */
 const meterIn = document.getElementById('meterIn');
 const meterTouch = document.getElementById('meterTouch');
@@ -2064,10 +2010,16 @@ function loop(){
   frameMsSmooth += (dt - frameMsSmooth) * 0.08;
 
   checkLag(dt);
+  adaptQuality();
 
+  // 기본 품질 q
   let qAuto = 1 - Math.max(0, (frameMsSmooth - 16) / 45);
   qAuto = Math.max(0.28, Math.min(1, qAuto));
-  const q = Math.min(qAuto, getPerfLim());
+  let q = Math.min(qAuto, getPerfLim());
+
+  // perfMode에 따른 추가 제한
+  if(perfMode===1) q *= 0.85;
+  if(perfMode===2) q *= 0.70;
 
   ctx.fillStyle = `rgba(0,0,0,${getFade().toFixed(3)})`;
   ctx.fillRect(0,0,W,H);
@@ -2076,7 +2028,6 @@ function loop(){
     applyEQ();
     updateAmp();
   }else{
-    // audio locked 상태에서도 visuals가 돌아가되 amp=0로 유지
     amp = 0; ampDelta = 0;
   }
 
@@ -2087,8 +2038,9 @@ function loop(){
     lastUiT = now;
     const inPct = Math.max(0, Math.min(1, amp*6.0));
     meterIn.style.width = (inPct*100).toFixed(1)+"%";
+
     document.getElementById('txtAmp').textContent =
-      `amp: ${amp.toFixed(4)} | dAmp: ${ampDelta.toFixed(4)} | frame:${frameMsSmooth.toFixed(1)}ms | q:${q.toFixed(2)}`;
+      `amp: ${amp.toFixed(4)} | dAmp: ${ampDelta.toFixed(4)} | frame:${frameMsSmooth.toFixed(1)}ms | q:${q.toFixed(2)} | perf:${perfMode}`;
 
     const sim = Math.max(0, Math.min(1, parseFloat(rngSimTouch.value)||0));
     const tv = Math.max(touchSmooth, sim);
@@ -2134,13 +2086,7 @@ function loop(){
   const baseChaosQuiet = 0.55 + idleDrama*1.10;
 
   const baseSpeedActive = (0.12 + Math.min(0.30, amp*2.6)) * visSens;
-
-  const baseChaosActive =
-    Math.min(30,
-      (ampDelta*110) +
-      (touchV*120) +
-      burstEnergy*55
-    ) * visSens;
+  const baseChaosActive = Math.min(30, (ampDelta*110) + (touchV*120) + burstEnergy*55) * visSens;
 
   let speed = baseSpeedQuiet*(1-energy) + baseSpeedActive*energy;
   let chaos = baseChaosQuiet*(1-energy) + baseChaosActive*energy;
@@ -2150,9 +2096,15 @@ function loop(){
 
   const lineMul = getLineMul();
   const linkDistQuiet = 26 + idleDrama*10;
+
+  // ✅ 폭주 방지: linkDist 상한
   const linkDistActiveRaw = (64 + amp*240 + touchV*520 + burstEnergy*110) * lineMul * visSens;
-  const linkDistActive = Math.min(180, linkDistActiveRaw);
-  const linkDist = linkDistQuiet*(1-energy) + linkDistActive*energy;
+  const linkDistActive = Math.min(HARD_MAX_LINKDIST, linkDistActiveRaw);
+  let linkDist = linkDistQuiet*(1-energy) + linkDistActive*energy;
+
+  // perfMode에서 링크 더 줄이기
+  if(perfMode===1) linkDist *= 0.90;
+  if(perfMode===2) linkDist *= 0.78;
 
   const centerPull = (0.008 + touchV*0.028) * (1.0 - Math.min(1, amp*1.2)) * (0.75 + idleDrama*0.6);
   const burst = (amp*0.017 + ampDelta*0.060 + touchV*0.020 + burstEnergy*0.020) * visSens;
@@ -2164,7 +2116,8 @@ function loop(){
 
   const scale = 1.0 + energy*(breathe-0.5)*0.25;
 
-  for(const p of pts){
+  for(let i=0;i<N;i++){
+    const p = pts[i];
     p.vx += (Math.random()-0.5)*chaos;
     p.vy += (Math.random()-0.5)*chaos;
     p.vz += (Math.random()-0.5)*chaos*0.55;
@@ -2188,34 +2141,65 @@ function loop(){
     applyBounds(p, boundsMode);
   }
 
-  const pr = pts.map(project);
+  projectAll();
 
-  if(energy > 0.05 || quietLines>0){
+  /* ---------------------------
+     Lines (spatial grid) – perf safe
+  --------------------------- */
+  const wantLines = (energy > 0.05 || quietLines>0);
+  const allowLines = wantLines && (perfMode !== 2); // perf low에선 라인 거의 꺼버림
+
+  if(allowLines){
     const cell = Math.max(22, Math.floor(linkDist));
     const inv = 1 / cell;
-    const grid = new Map();
+
+    // ✅ Map reuse + key list로 clear
+    if(!window.__grid){ window.__grid = new Map(); window.__gridKeys = []; }
+    const grid = window.__grid;
+    const keys = window.__gridKeys;
+
+    // clear only used keys
+    for(let k=0;k<keys.length;k++) grid.delete(keys[k]);
+    keys.length = 0;
 
     for(let i=0;i<N;i++){
-      const a = pr[i];
-      const cx = (a.x*inv)|0;
-      const cy = (a.y*inv)|0;
+      const cx = (prX[i]*inv)|0;
+      const cy = (prY[i]*inv)|0;
       const key = (cx<<16) ^ (cy & 0xffff);
       let arr = grid.get(key);
-      if(!arr){ arr=[]; grid.set(key, arr); }
+      if(!arr){
+        arr = [];
+        grid.set(key, arr);
+        keys.push(key);
+      }
       arr.push(i);
     }
 
+    // ✅ 폭주 방지: maxLines 상한 + q + perfMode
     const baseMax = (1100 + energy*850 + burstEnergy*750 + touchV*700) * lineMul;
-    const maxLines = Math.floor(baseMax * q);
+    let maxLines = Math.floor(baseMax * q);
+    maxLines = Math.min(HARD_MAX_LINES, maxLines);
+    if(perfMode===1) maxLines = Math.floor(maxLines*0.75);
 
     let linesDrawn = 0;
-    const stride = (q < 0.45) ? 2 : 1;
+
+    // ✅ stride 증가로 비용 줄이기
+    let stride = 1;
+    if(q < 0.50) stride = 2;
+    if(perfMode===1) stride = Math.max(stride, 2);
+
+    const glow = getGlow();
+    const quietGain = (quietLines===0) ? 0 : (quietLines===1 ? 0.12 : 0.24);
+
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = "rgba(255,255,255,0.9)";
 
     for(let i=0;i<N;i+=stride){
       if(linesDrawn >= maxLines) break;
-      const a = pr[i];
-      const cx = (a.x*inv)|0;
-      const cy = (a.y*inv)|0;
+
+      const ax = prX[i], ay = prY[i];
+      const cx = (ax*inv)|0;
+      const cy = (ay*inv)|0;
 
       for(let oy=-1; oy<=1; oy++){
         for(let ox=-1; ox<=1; ox++){
@@ -2229,22 +2213,24 @@ function loop(){
             const j = bucket[bi];
             if(j<=i) continue;
 
-            const b = pr[j];
-            const dx=a.x-b.x, dy=a.y-b.y;
+            const dx = ax - prX[j];
+            const dy = ay - prY[j];
             const d = Math.hypot(dx,dy);
+
             if(d<linkDist){
               const alpha = 1 - d/linkDist;
 
-              const quietGain = (quietLines===0) ? 0 : (quietLines===1 ? 0.12 : 0.24);
               const onGain = 0.34 + amp*1.5*visSens + burstEnergy*1.6*visSens + touchV*1.4;
-              const punch = Math.min(1, alpha * (quietGain*(1-energy) + onGain*energy));
+              let punch = alpha * (quietGain*(1-energy) + onGain*energy);
 
-              ctx.globalAlpha = punch * getGlow();
-              ctx.strokeStyle = "rgba(255,255,255,0.9)";
-              ctx.lineWidth = 1;
+              // ✅ 알파/글로우 폭주 하드 캡
+              punch = Math.min(HARD_MAX_ALPHA, Math.max(0, punch));
+              const a = punch * glow;
+
+              ctx.globalAlpha = a;
               ctx.beginPath();
-              ctx.moveTo(a.x,a.y);
-              ctx.lineTo(b.x,b.y);
+              ctx.moveTo(ax,ay);
+              ctx.lineTo(prX[j],prY[j]);
               ctx.stroke();
 
               linesDrawn++;
@@ -2254,28 +2240,39 @@ function loop(){
         }
       }
     }
+    ctx.globalAlpha = 1;
   }
 
-  const glow = getGlow();
+  /* ---------------------------
+     Points – perf safe
+  --------------------------- */
+  const glowP = getGlow();
   const pSize = getPointSize();
   const pCol = getPointColor();
 
   for(let i=0;i<N;i++){
-    const p = pr[i];
+    const k = prK[i];
 
-    const baseR = (0.6 + p.k*0.3) * pSize;
+    const baseR = (0.6 + k*0.3) * pSize;
     const rQuiet = Math.max(0.9, baseR * (1.05 + idleDrama*0.15));
     const rActive = baseR * (1.15 + amp*2.2*visSens + touchV*1.6 + burstEnergy*0.9);
-    const r = rQuiet*(1-energy) + rActive*energy;
+
+    // ✅ 점 크기 폭주 하드 캡
+    let r = rQuiet*(1-energy) + rActive*energy;
+    r = Math.min(HARD_MAX_POINT_R, Math.max(0.6, r));
+    if(perfMode===2) r *= 0.85;
 
     const aQuiet = 0.32 + idleDrama*0.12;
     const aActive = Math.min(1, 0.40 + amp*0.95*visSens + touchV*0.65 + burstEnergy*0.60);
-    const a = aQuiet*(1-energy) + aActive*energy;
+    let a = aQuiet*(1-energy) + aActive*energy;
 
-    ctx.globalAlpha = a * glow;
+    // ✅ 알파도 하드 캡
+    a = Math.min(1, Math.max(0, a));
+
+    ctx.globalAlpha = a * glowP;
     ctx.fillStyle = pCol;
     ctx.beginPath();
-    ctx.arc(p.x, p.y, r, 0, Math.PI*2);
+    ctx.arc(prX[i], prY[i], r, 0, Math.PI*2);
     ctx.fill();
   }
   ctx.globalAlpha = 1;
@@ -2295,10 +2292,11 @@ if(S.activeTab){
 /* ==========================================================
    STARTUP
 ========================================================== */
-N = parseInt(document.getElementById('selN').value,10);
-initPoints();
-updateTopPill(1);
-startStatus("Start Audio → Mic/File 선택 → Enter");
+function initUI(){
+  updateTopPill(1);
+  startStatus("Start Audio → Mic/File 선택 → Enter");
+}
+initUI();
 
 window.addEventListener('pagehide', ()=>{
   try{ stopMic(); }catch(e){}
