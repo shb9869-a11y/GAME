@@ -1,563 +1,1859 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>BIN.BANG — Documentary Auto Editor</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <style>
-    * { box-sizing: border-box; }
+<title>BIN.BANG — Documentary Auto Editor</title>
 
-    body {
-      margin: 0;
-      background: #080909;
-      color: #eee;
-      font-family: Arial, Helvetica, sans-serif;
-    }
+<!--
+  ============================================================
+  BIN.BANG DOCUMENTARY AUTO EDITOR
+  Single-file GitHub Pages version
 
-    .wrap {
-      max-width: 1050px;
-      margin: auto;
-      padding: 42px 24px 100px;
-    }
+  기능
+  - 영상 여러 개 업로드
+  - 화면 움직임 분석
+  - 밝기 / 디테일 분석
+  - 오디오 에너지 분석
+  - 좋은 구간 자동 선별
+  - Documentary / Observational / Rhythmic
+  - 60초 자동 구성
+  - BIN.BANG 컬러그레이딩
+  - FFmpeg.wasm 최종 렌더
+  - MP4 다운로드
+  ============================================================
+-->
 
-    header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: 55px;
-    }
+<style>
 
-    h1 {
-      margin: 0;
-      font-size: 28px;
-      font-weight: 500;
-      letter-spacing: -.8px;
-    }
+* {
+  box-sizing: border-box;
+}
 
-    .small {
-      font-size: 12px;
-      color: #888;
-      line-height: 1.5;
-    }
+:root {
+  --bg: #071112;
+  --panel: #0c1919;
+  --panel2: #102120;
 
-    .drop {
-      border: 1px solid #555;
-      min-height: 220px;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      text-align: center;
-      cursor: pointer;
-      transition: .2s;
-    }
+  --line: #334b47;
+  --line2: #58706a;
 
-    .drop:hover,
-    .drop.drag {
-      background: #111;
-      border-color: #aaa;
-    }
+  --text: #e8e5d8;
+  --muted: #8fa49e;
 
-    input[type=file] {
-      display: none;
-    }
+  --warm: #d6b275;
+}
 
-    .files {
-      margin-top: 30px;
-    }
+html,
+body {
+  margin: 0;
+  padding: 0;
 
-    .file {
-      display: grid;
-      grid-template-columns: 1fr 100px;
-      padding: 14px 0;
-      border-bottom: 1px solid #222;
-      font-size: 13px;
-    }
+  background:
+    radial-gradient(
+      circle at 30% 0%,
+      #112c2b,
+      #071112 38%
+    );
 
-    .controls {
-      margin-top: 50px;
-      border-top: 1px solid #333;
-      padding-top: 25px;
-    }
+  color: var(--text);
 
-    .row {
-      display: grid;
-      grid-template-columns: 180px 1fr 60px;
-      gap: 15px;
-      align-items: center;
-      margin: 16px 0;
-    }
+  font-family:
+    Arial,
+    Helvetica,
+    "Apple SD Gothic Neo",
+    sans-serif;
 
-    input[type=range] {
-      width: 100%;
-    }
+  min-height: 100%;
+}
 
-    select {
-      background: #111;
-      color: white;
-      border: 1px solid #444;
-      padding: 8px;
-    }
+body {
+  min-height: 100vh;
+}
 
-    button {
-      background: white;
-      color: black;
-      border: 0;
-      padding: 16px 22px;
-      font-size: 13px;
-      cursor: pointer;
-      margin-top: 25px;
-      margin-right: 8px;
-    }
+main {
+  max-width: 1100px;
 
-    button.secondary {
-      background: #151515;
-      color: white;
-      border: 1px solid #444;
-    }
+  margin: 0 auto;
 
-    button:disabled {
-      opacity: .3;
-      cursor: default;
-    }
+  padding:
+    52px
+    26px
+    120px;
+}
 
-    .progressWrap {
-      margin-top: 35px;
-      display: none;
-    }
+/* -------------------------------------------------------
+   HEADER
+------------------------------------------------------- */
 
-    .progress {
-      height: 2px;
-      background: #222;
-      margin-top: 10px;
-    }
+header {
+  display: flex;
 
-    .bar {
-      height: 100%;
-      width: 0%;
-      background: white;
-      transition: width .15s;
-    }
+  justify-content: space-between;
+  align-items: flex-start;
 
-    #status {
-      font-size: 12px;
-      color: #aaa;
-    }
+  gap: 30px;
 
-    .timeline {
-      margin-top: 55px;
-      display: none;
-    }
+  margin-bottom: 50px;
+}
 
-    .clip {
-      border-top: 1px solid #333;
-      padding: 12px 0;
-      display: grid;
-      grid-template-columns: 50px 1fr 120px 80px;
-      gap: 12px;
-      font-size: 12px;
-    }
+.eyebrow {
+  margin: 0;
 
-    video {
-      width: 100%;
-      margin-top: 40px;
-      background: black;
-      max-height: 650px;
-    }
+  font-size: 11px;
 
-    .note {
-      margin-top: 60px;
-      color: #555;
-      font-size: 11px;
-      line-height: 1.7;
-    }
+  letter-spacing: 2px;
 
-    @media(max-width:600px) {
-      .row {
-        grid-template-columns: 1fr;
-      }
+  color: var(--muted);
+}
 
-      .clip {
-        grid-template-columns: 40px 1fr;
-      }
-    }
-  </style>
+h1 {
+  margin:
+    18px
+    0
+    16px;
+
+  font-size:
+    clamp(
+      42px,
+      7vw,
+      78px
+    );
+
+  line-height: .98;
+
+  letter-spacing: -4px;
+
+  font-weight: 400;
+}
+
+.subtitle {
+  color: var(--muted);
+
+  font-size: 11px;
+
+  letter-spacing: 1px;
+}
+
+.badge {
+  padding:
+    9px
+    11px;
+
+  border:
+    1px solid
+    var(--line2);
+
+  font-size: 9px;
+
+  letter-spacing: 1.5px;
+
+  color: #afc2bc;
+}
+
+/* -------------------------------------------------------
+   DROP
+------------------------------------------------------- */
+
+.drop {
+  display: flex;
+
+  min-height: 240px;
+
+  flex-direction: column;
+
+  align-items: center;
+  justify-content: center;
+
+  gap: 17px;
+
+  border:
+    1px solid
+    var(--line2);
+
+  cursor: pointer;
+
+  text-align: center;
+
+  transition: .2s;
+}
+
+.drop:hover,
+.drop.drag {
+  background: #122625;
+
+  border-color: #9aafa8;
+}
+
+.drop strong {
+  font-size: 20px;
+
+  font-weight: 400;
+}
+
+.drop span {
+  color: var(--muted);
+
+  font-size: 12px;
+
+  line-height: 1.7;
+}
+
+#fileInput {
+  display: none;
+}
+
+/* -------------------------------------------------------
+   FILES
+------------------------------------------------------- */
+
+#fileList {
+  margin-top: 18px;
+}
+
+.file {
+  display: grid;
+
+  grid-template-columns:
+    36px
+    1fr
+    auto;
+
+  gap: 14px;
+
+  padding:
+    13px
+    0;
+
+  border-bottom:
+    1px solid
+    #213532;
+
+  font-size: 11px;
+}
+
+.file-number {
+  color: var(--warm);
+}
+
+.file-size {
+  color: var(--muted);
+}
+
+/* -------------------------------------------------------
+   SECTIONS
+------------------------------------------------------- */
+
+section {
+  margin-top: 55px;
+}
+
+.section-title {
+  padding-top: 18px;
+
+  border-top:
+    1px solid
+    var(--line);
+
+  margin-bottom: 25px;
+
+  font-size: 12px;
+
+  letter-spacing: 1px;
+}
+
+/* -------------------------------------------------------
+   SETTINGS
+------------------------------------------------------- */
+
+.settings {
+  display: grid;
+
+  grid-template-columns:
+    repeat(
+      3,
+      minmax(0, 1fr)
+    );
+
+  gap:
+    25px
+    22px;
+}
+
+.setting {
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 10px;
+
+  font-size: 11px;
+}
+
+.setting.wide {
+  grid-column:
+    1 / -1;
+}
+
+.setting-head {
+  display: flex;
+
+  justify-content: space-between;
+}
+
+.setting output {
+  color: var(--warm);
+}
+
+select {
+  width: 100%;
+
+  padding: 12px;
+
+  border:
+    1px solid
+    var(--line);
+
+  background: var(--panel);
+
+  color: var(--text);
+
+  outline: none;
+}
+
+input[type="range"] {
+  width: 100%;
+
+  accent-color:
+    var(--warm);
+}
+
+small {
+  color: var(--muted);
+
+  line-height: 1.7;
+}
+
+/* -------------------------------------------------------
+   BUTTONS
+------------------------------------------------------- */
+
+.actions {
+  display: flex;
+
+  flex-wrap: wrap;
+
+  gap: 9px;
+
+  margin-top: 30px;
+}
+
+button,
+.download {
+  padding:
+    14px
+    18px;
+
+  border: none;
+
+  background: #e7e2d1;
+
+  color: #081211;
+
+  font-size: 11px;
+
+  cursor: pointer;
+
+  text-decoration: none;
+
+  transition: .15s;
+}
+
+button:hover,
+.download:hover {
+  background:
+    var(--warm);
+}
+
+button:disabled {
+  opacity: .28;
+
+  cursor: default;
+}
+
+button.secondary {
+  border:
+    1px solid
+    var(--line2);
+
+  background: transparent;
+
+  color: var(--text);
+}
+
+/* -------------------------------------------------------
+   STATUS
+------------------------------------------------------- */
+
+.status-box {
+  margin-top: 28px;
+
+  padding:
+    18px;
+
+  background:
+    rgba(
+      10,
+      25,
+      24,
+      .7
+    );
+
+  border:
+    1px solid
+    #253c38;
+}
+
+#status {
+  min-height: 18px;
+
+  margin-bottom: 12px;
+
+  color: #b6c6c1;
+
+  font-size: 11px;
+
+  line-height: 1.6;
+}
+
+progress {
+  width: 100%;
+
+  height: 4px;
+
+  border: none;
+
+  accent-color:
+    var(--warm);
+}
+
+/* -------------------------------------------------------
+   TIMELINE
+------------------------------------------------------- */
+
+#timeline {
+  display: none;
+}
+
+.clip {
+  display: grid;
+
+  grid-template-columns:
+    42px
+    1fr
+    110px
+    90px;
+
+  gap: 12px;
+
+  align-items: center;
+
+  padding:
+    13px
+    0;
+
+  border-bottom:
+    1px solid
+    #253834;
+
+  font-size: 11px;
+}
+
+.clip-index {
+  color: var(--warm);
+}
+
+.clip-time {
+  color: #9fb2ac;
+}
+
+.clip-score {
+  text-align: right;
+
+  color: #7f9891;
+}
+
+/* -------------------------------------------------------
+   RESULT
+------------------------------------------------------- */
+
+#result {
+  display: none;
+}
+
+#result video {
+  width: 100%;
+
+  max-height: 70vh;
+
+  margin-bottom: 20px;
+
+  background: black;
+}
+
+.result-meta {
+  margin:
+    16px
+    0
+    25px;
+
+  color: var(--muted);
+
+  font-size: 11px;
+
+  line-height: 1.7;
+}
+
+/* -------------------------------------------------------
+   INFO
+------------------------------------------------------- */
+
+.info {
+  margin-top: 60px;
+
+  padding-top: 22px;
+
+  border-top:
+    1px solid
+    var(--line);
+
+  color: #718b84;
+
+  font-size: 10px;
+
+  line-height: 1.9;
+}
+
+/* -------------------------------------------------------
+   MOBILE
+------------------------------------------------------- */
+
+@media(max-width: 700px) {
+
+  main {
+    padding:
+      30px
+      17px
+      90px;
+  }
+
+  h1 {
+    letter-spacing: -2px;
+  }
+
+  .badge {
+    display: none;
+  }
+
+  .settings {
+    grid-template-columns:
+      1fr;
+  }
+
+  .setting.wide {
+    grid-column:
+      auto;
+  }
+
+  .clip {
+    grid-template-columns:
+      34px
+      1fr;
+  }
+
+  .clip-time,
+  .clip-score {
+    grid-column: 2;
+  }
+
+}
+
+</style>
 </head>
 
+
 <body>
-<div class="wrap">
+
+<main>
 
 <header>
-  <div>
-    <h1>DOCUMENTARY<br>AUTO EDITOR</h1>
-  </div>
 
-  <div class="small">
-    BIN.BANG<br>
-    ROUGH CUT SYSTEM<br>
-    v0.1
-  </div>
+<div>
+
+<p class="eyebrow">
+BIN.BANG / DOCUMENTARY SYSTEM
+</p>
+
+<h1>
+AUTO<br>
+EDITOR
+</h1>
+
+<div class="subtitle">
+FOOTAGE → MOMENTS → 60 SEC FILM
+</div>
+
+</div>
+
+<div class="badge">
+LOCAL PROCESSING
+</div>
+
 </header>
 
-<label class="drop" id="drop">
-  <input id="files" type="file" accept="video/*" multiple>
 
-  <div>
-    DROP FOOTAGE HERE<br><br>
-    <span class="small">
-      여러 개의 영상을 넣으면<br>
-      움직임과 소리를 분석하여 60초 러프컷을 만듭니다.
-    </span>
-  </div>
+<!-- ======================================================
+     UPLOAD
+====================================================== -->
+
+<label
+  class="drop"
+  id="drop"
+>
+
+<input
+  id="fileInput"
+  type="file"
+  multiple
+  accept="video/*,.mp4,.mov,.m4v,.webm"
+/>
+
+<strong>
+DROP FOOTAGE HERE ↗
+</strong>
+
+<span>
+여러 영상을 넣으면 화면과 소리를 분석해<br>
+다큐멘터리 러프컷을 자동으로 만듭니다.
+</span>
+
 </label>
 
-<div class="files" id="fileList"></div>
+<div id="fileList"></div>
 
-<div class="controls">
 
-  <div class="row">
-    <label>EDIT STYLE</label>
+<!-- ======================================================
+     SETTINGS
+====================================================== -->
 
-    <select id="style">
-      <option value="documentary">Documentary</option>
-      <option value="observational">Observational</option>
-      <option value="rhythmic">Rhythmic</option>
-    </select>
+<section>
 
-    <span></span>
-  </div>
+<div class="section-title">
+01 / EDIT SETTINGS
+</div>
 
-  <div class="row">
-    <label>TARGET LENGTH</label>
-    <input id="target" type="range" min="20" max="90" value="60">
-    <span id="targetValue">60s</span>
-  </div>
+<div class="settings">
 
-  <div class="row">
-    <label>MOTION IMPORTANCE</label>
-    <input id="motionWeight" type="range" min="0" max="100" value="60">
-    <span id="motionValue">60</span>
-  </div>
 
-  <div class="row">
-    <label>AUDIO IMPORTANCE</label>
-    <input id="audioWeight" type="range" min="0" max="100" value="75">
-    <span id="audioValue">75</span>
-  </div>
+<div class="setting">
 
-  <div class="row">
-    <label>COLOR INTENSITY</label>
-    <input id="colorStrength" type="range" min="0" max="100" value="70">
-    <span id="colorValue">70</span>
-  </div>
+<span>
+EDIT STYLE
+</span>
 
-  <button id="analyze">ANALYZE FOOTAGE</button>
-  <button id="make" class="secondary" disabled>MAKE ROUGH CUT</button>
+<select id="style">
+
+<option value="documentary">
+Documentary
+</option>
+
+<option value="observational">
+Observational
+</option>
+
+<option value="rhythmic">
+Rhythmic
+</option>
+
+</select>
 
 </div>
 
-<div class="progressWrap" id="progressWrap">
-  <div id="status">READY</div>
-  <div class="progress">
-    <div class="bar" id="bar"></div>
-  </div>
+
+<div class="setting">
+
+<span>
+TARGET LENGTH
+</span>
+
+<select id="target">
+
+<option value="60">
+60 SEC
+</option>
+
+<option value="30">
+30 SEC
+</option>
+
+<option value="90">
+90 SEC
+</option>
+
+</select>
+
 </div>
 
-<div class="timeline" id="timeline">
-  <div class="small">SELECTED MOMENTS</div>
-  <div id="clips"></div>
+
+<div class="setting">
+
+<span>
+OUTPUT RATIO
+</span>
+
+<select id="ratio">
+
+<option value="16:9">
+16:9
+</option>
+
+<option value="9:16">
+9:16
+</option>
+
+<option value="1:1">
+1:1
+</option>
+
+</select>
+
 </div>
 
-<div id="preview"></div>
 
-<div class="note">
-  Processing happens locally in your browser.<br>
-  No footage is uploaded to a server.
+<div class="setting">
+
+<div class="setting-head">
+
+<span>
+MOTION
+</span>
+
+<output id="motionValue">
+60
+</output>
+
 </div>
 
+<input
+  id="motion"
+  type="range"
+  min="0"
+  max="100"
+  value="60"
+/>
+
 </div>
 
-<script type="module">
 
-const fileInput = document.querySelector("#files");
-const drop = document.querySelector("#drop");
-const fileList = document.querySelector("#fileList");
+<div class="setting">
 
-const analyzeBtn = document.querySelector("#analyze");
-const makeBtn = document.querySelector("#make");
+<div class="setting-head">
 
-const progressWrap = document.querySelector("#progressWrap");
-const statusEl = document.querySelector("#status");
-const bar = document.querySelector("#bar");
+<span>
+AUDIO
+</span>
 
-const timeline = document.querySelector("#timeline");
-const clipsEl = document.querySelector("#clips");
+<output id="audioValue">
+75
+</output>
+
+</div>
+
+<input
+  id="audio"
+  type="range"
+  min="0"
+  max="100"
+  value="75"
+/>
+
+</div>
+
+
+<div class="setting">
+
+<div class="setting-head">
+
+<span>
+CUT PACE
+</span>
+
+<output id="paceValue">
+50
+</output>
+
+</div>
+
+<input
+  id="pace"
+  type="range"
+  min="0"
+  max="100"
+  value="50"
+/>
+
+</div>
+
+
+<div class="setting wide">
+
+<div class="setting-head">
+
+<span>
+BIN.BANG COLOR
+</span>
+
+<output id="colorValue">
+70%
+</output>
+
+</div>
+
+<input
+  id="color"
+  type="range"
+  min="0"
+  max="100"
+  value="70"
+/>
+
+<small>
+Deep black / cyan-green shadow /
+warm highlight / restrained saturation
+</small>
+
+</div>
+
+
+</div>
+
+
+<div class="actions">
+
+<button id="analyze">
+ANALYZE FOOTAGE
+</button>
+
+<button
+  id="make"
+  disabled
+>
+MAKE 60 SEC CUT
+</button>
+
+<button
+  id="render"
+  disabled
+>
+RENDER MP4
+</button>
+
+</div>
+
+
+<div class="status-box">
+
+<div id="status">
+영상을 넣어주세요.
+</div>
+
+<progress
+  id="progress"
+  max="100"
+  value="0"
+></progress>
+
+</div>
+
+</section>
+
+
+<!-- ======================================================
+     TIMELINE
+====================================================== -->
+
+<section id="timeline">
+
+<div class="section-title">
+02 / SELECTED MOMENTS
+</div>
+
+<div id="summary"></div>
+
+<div id="clips"></div>
+
+</section>
+
+
+<!-- ======================================================
+     RESULT
+====================================================== -->
+
+<section id="result">
+
+<div class="section-title">
+03 / FINAL FILM
+</div>
+
+<video
+  id="resultVideo"
+  controls
+  playsinline
+></video>
+
+<div
+  class="result-meta"
+  id="resultMeta"
+></div>
+
+<a
+  id="download"
+  class="download"
+  download="BINBANG_FILM.mp4"
+>
+DOWNLOAD MP4 ↓
+</a>
+
+</section>
+
+
+<div class="info">
+
+영상은 브라우저 안에서 처리됩니다.<br>
+서버 업로드 없이 로컬에서 분석 및 렌더링합니다.<br><br>
+
+자동 편집은 화면 움직임, 밝기, 디테일,
+오디오 에너지, 장면 다양성을 기준으로 합니다.<br>
+
+대사의 의미 자체를 이해하는 AI는 아닙니다.<br><br>
+
+PC Chrome / Edge 권장.<br>
+고해상도 MOV 여러 개는 브라우저 메모리 한계로
+렌더링 시간이 오래 걸릴 수 있습니다.
+
+</div>
+
+</main>
+
+
+<!-- ======================================================
+     FFMPEG.WASM
+====================================================== -->
+
+<script
+src="https://unpkg.com/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js">
+</script>
+
+
+<script>
+
+/* =========================================================
+   BASIC
+========================================================= */
+
+const $ =
+  id =>
+    document.getElementById(id);
+
 
 let files = [];
+
 let analyses = [];
+
 let selected = [];
 
+let ffmpeg = null;
 
-// ----------------------------------------------------
-// UI
-// ----------------------------------------------------
-
-function bindRange(id, output, suffix="") {
-  const input = document.querySelector(id);
-  const out = document.querySelector(output);
-
-  input.oninput = () => {
-    out.textContent = input.value + suffix;
-  };
-}
-
-bindRange("#target","#targetValue","s");
-bindRange("#motionWeight","#motionValue");
-bindRange("#audioWeight","#audioValue");
-bindRange("#colorStrength","#colorValue");
+let outputURL = null;
 
 
-fileInput.onchange = () => {
-  files = [...fileInput.files];
-  showFiles();
-};
-
-drop.ondragover = e => {
-  e.preventDefault();
-  drop.classList.add("drag");
-};
-
-drop.ondragleave = () => {
-  drop.classList.remove("drag");
-};
-
-drop.ondrop = e => {
-  e.preventDefault();
-
-  drop.classList.remove("drag");
-
-  files = [...e.dataTransfer.files]
-    .filter(f => f.type.startsWith("video/"));
-
-  showFiles();
-};
+const FPS = 30;
 
 
-function showFiles() {
+/* =========================================================
+   CONTROLS
+========================================================= */
 
-  fileList.innerHTML = "";
+function bindRange(
+  id,
+  output,
+  suffix = ""
+) {
 
-  files.forEach((file,i) => {
+  const input =
+    $(id);
 
-    const div = document.createElement("div");
+  const out =
+    $(output);
 
-    div.className = "file";
+  input.addEventListener(
+    "input",
+    () => {
 
-    div.innerHTML = `
-      <span>${String(i+1).padStart(2,"0")} — ${file.name}</span>
-      <span>${(file.size/1024/1024).toFixed(1)} MB</span>
-    `;
-
-    fileList.appendChild(div);
-
-  });
-
-}
-
-
-// ----------------------------------------------------
-// VIDEO METADATA
-// ----------------------------------------------------
-
-function metadata(file) {
-
-  return new Promise(resolve => {
-
-    const video = document.createElement("video");
-
-    video.preload = "metadata";
-    video.src = URL.createObjectURL(file);
-
-    video.onloadedmetadata = () => {
-
-      resolve({
-        duration: video.duration,
-        width: video.videoWidth,
-        height: video.videoHeight
-      });
-
-      URL.revokeObjectURL(video.src);
-
-    };
-
-  });
-
-}
-
-
-// ----------------------------------------------------
-// MOTION ANALYSIS
-// ----------------------------------------------------
-
-async function analyzeMotion(file, duration) {
-
-  const video = document.createElement("video");
-
-  video.muted = true;
-  video.playsInline = true;
-  video.src = URL.createObjectURL(file);
-
-  await new Promise(r => video.onloadedmetadata = r);
-
-  const canvas = document.createElement("canvas");
-
-  canvas.width = 160;
-  canvas.height = 90;
-
-  const ctx = canvas.getContext("2d", {
-    willReadFrequently:true
-  });
-
-  const sampleInterval = 1;
-
-  let previous = null;
-  let results = [];
-
-  for(let t=0; t<duration; t+=sampleInterval) {
-
-    video.currentTime = t;
-
-    await new Promise(resolve => {
-
-      const done = () => {
-        video.removeEventListener("seeked",done);
-        resolve();
-      };
-
-      video.addEventListener("seeked",done);
-
-    });
-
-    ctx.drawImage(video,0,0,160,90);
-
-    const image =
-      ctx.getImageData(0,0,160,90).data;
-
-    if(previous) {
-
-      let diff = 0;
-
-      for(let i=0;i<image.length;i+=16) {
-
-        diff +=
-          Math.abs(image[i]-previous[i]) +
-          Math.abs(image[i+1]-previous[i+1]) +
-          Math.abs(image[i+2]-previous[i+2]);
-
-      }
-
-      results.push({
-        time:t,
-        motion:diff
-      });
+      out.textContent =
+        input.value +
+        suffix;
 
     }
+  );
 
-    previous = new Uint8ClampedArray(image);
+}
+
+
+bindRange(
+  "motion",
+  "motionValue"
+);
+
+bindRange(
+  "audio",
+  "audioValue"
+);
+
+bindRange(
+  "pace",
+  "paceValue"
+);
+
+bindRange(
+  "color",
+  "colorValue",
+  "%"
+);
+
+
+/* =========================================================
+   STATUS
+========================================================= */
+
+function setStatus(
+  text,
+  progress
+) {
+
+  $("status").textContent =
+    text;
+
+  if (
+    progress !== undefined
+  ) {
+
+    $("progress").value =
+      Math.max(
+        0,
+        Math.min(
+          100,
+          progress
+        )
+      );
 
   }
 
-  URL.revokeObjectURL(video.src);
+}
 
-  const max =
-    Math.max(...results.map(x=>x.motion),1);
 
-  results.forEach(x=>{
-    x.motion /= max;
-  });
+/* =========================================================
+   FILE INPUT
+========================================================= */
 
-  return results;
+const drop =
+  $("drop");
+
+
+$("fileInput")
+  .addEventListener(
+    "change",
+    e => {
+
+      setFiles(
+        e.target.files
+      );
+
+    }
+  );
+
+
+drop.addEventListener(
+  "dragover",
+  e => {
+
+    e.preventDefault();
+
+    drop.classList.add(
+      "drag"
+    );
+
+  }
+);
+
+
+drop.addEventListener(
+  "dragleave",
+  () => {
+
+    drop.classList.remove(
+      "drag"
+    );
+
+  }
+);
+
+
+drop.addEventListener(
+  "drop",
+  e => {
+
+    e.preventDefault();
+
+    drop.classList.remove(
+      "drag"
+    );
+
+    setFiles(
+      e.dataTransfer.files
+    );
+
+  }
+);
+
+
+function setFiles(
+  list
+) {
+
+  files =
+    [...list].filter(
+      file =>
+        file.type.startsWith(
+          "video/"
+        ) ||
+        /\.(mp4|mov|m4v|webm)$/i
+          .test(
+            file.name
+          )
+    );
+
+
+  analyses = [];
+
+  selected = [];
+
+
+  $("fileList").innerHTML =
+    "";
+
+
+  $("timeline").style.display =
+    "none";
+
+
+  $("result").style.display =
+    "none";
+
+
+  files.forEach(
+    (
+      file,
+      index
+    ) => {
+
+      const row =
+        document.createElement(
+          "div"
+        );
+
+
+      row.className =
+        "file";
+
+
+      row.innerHTML = `
+
+        <span class="file-number">
+          ${String(
+            index + 1
+          ).padStart(
+            2,
+            "0"
+          )}
+        </span>
+
+        <span>
+          ${escapeHTML(
+            file.name
+          )}
+        </span>
+
+        <span class="file-size">
+          ${(
+            file.size /
+            1024 /
+            1024
+          ).toFixed(1)}
+          MB
+        </span>
+
+      `;
+
+
+      $("fileList")
+        .appendChild(
+          row
+        );
+
+    }
+  );
+
+
+  $("make").disabled =
+    true;
+
+
+  $("render").disabled =
+    true;
+
+
+  setStatus(
+    `${files.length}개 영상 선택됨. ANALYZE FOOTAGE를 눌러주세요.`,
+    0
+  );
 
 }
 
 
-// ----------------------------------------------------
-// AUDIO ANALYSIS
-// ----------------------------------------------------
+/* =========================================================
+   VIDEO HELPER
+========================================================= */
 
-async function analyzeAudio(file,duration) {
+function loadVideo(
+  file
+) {
+
+  return new Promise(
+    (
+      resolve,
+      reject
+    ) => {
+
+      const video =
+        document.createElement(
+          "video"
+        );
+
+
+      video.preload =
+        "auto";
+
+      video.muted =
+        true;
+
+      video.playsInline =
+        true;
+
+
+      const url =
+        URL.createObjectURL(
+          file
+        );
+
+
+      video.src =
+        url;
+
+
+      video.onloadedmetadata =
+        () => {
+
+          resolve({
+            video,
+            url
+          });
+
+        };
+
+
+      video.onerror =
+        () => {
+
+          URL.revokeObjectURL(
+            url
+          );
+
+          reject(
+            new Error(
+              `영상을 읽을 수 없습니다: ${file.name}`
+            )
+          );
+
+        };
+
+    }
+  );
+
+}
+
+
+function seekVideo(
+  video,
+  time
+) {
+
+  return new Promise(
+    resolve => {
+
+      const done =
+        () => {
+
+          video.removeEventListener(
+            "seeked",
+            done
+          );
+
+          resolve();
+
+        };
+
+
+      video.addEventListener(
+        "seeked",
+        done
+      );
+
+
+      video.currentTime =
+        Math.max(
+          0,
+          Math.min(
+            time,
+            video.duration -
+            .05
+          )
+        );
+
+    }
+  );
+
+}
+
+
+/* =========================================================
+   VISUAL ANALYSIS
+========================================================= */
+
+async function analyzeVisual(
+  file,
+  fileIndex
+) {
+
+  const {
+    video,
+    url
+  } =
+    await loadVideo(
+      file
+    );
+
+
+  const canvas =
+    document.createElement(
+      "canvas"
+    );
+
+
+  /*
+    분석용 저해상도.
+    실제 최종 영상 화질과는 관계 없음.
+  */
+
+  canvas.width =
+    128;
+
+  canvas.height =
+    72;
+
+
+  const ctx =
+    canvas.getContext(
+      "2d",
+      {
+        willReadFrequently:
+          true
+      }
+    );
+
+
+  const duration =
+    video.duration;
+
+
+  /*
+    영상이 길어도 분석 프레임이
+    너무 많아지지 않도록 샘플링.
+  */
+
+  const step =
+    Math.max(
+      .75,
+      duration /
+      400
+    );
+
+
+  let previous =
+    null;
+
+
+  const samples =
+    [];
+
+
+  for (
+    let time = 0;
+    time < duration;
+    time += step
+  ) {
+
+    await seekVideo(
+      video,
+      time
+    );
+
+
+    ctx.drawImage(
+      video,
+      0,
+      0,
+      canvas.width,
+      canvas.height
+    );
+
+
+    const image =
+      ctx.getImageData(
+        0,
+        0,
+        canvas.width,
+        canvas.height
+      );
+
+
+    const data =
+      image.data;
+
+
+    const gray =
+      new Float32Array(
+        canvas.width *
+        canvas.height
+      );
+
+
+    let brightness =
+      0;
+
+    let detail =
+      0;
+
+    let motion =
+      0;
+
+
+    for (
+      let i = 0;
+      i < gray.length;
+      i++
+    ) {
+
+      const p =
+        i * 4;
+
+
+      const g =
+
+        (
+          data[p] *
+          .2126 +
+
+          data[p + 1] *
+          .7152 +
+
+          data[p + 2] *
+          .0722
+
+        ) / 255;
+
+
+      gray[i] =
+        g;
+
+
+      brightness +=
+        g;
+
+
+      if (
+        previous
+      ) {
+
+        motion +=
+          Math.abs(
+            g -
+            previous[i]
+          );
+
+      }
+
+
+      if (
+        i % canvas.width !==
+        0
+      ) {
+
+        detail +=
+          Math.abs(
+            g -
+            gray[i - 1]
+          );
+
+      }
+
+    }
+
+
+    samples.push({
+
+      time,
+
+      brightness:
+        brightness /
+        gray.length,
+
+      motion:
+        previous
+          ?
+          motion /
+          gray.length
+          :
+          0,
+
+      detail:
+        detail /
+        gray.length,
+
+      audio: 0
+
+    });
+
+
+    previous =
+      gray;
+
+
+    setStatus(
+
+      `화면 분석 ${fileIndex + 1}/${files.length} — ${file.name}`,
+
+      (
+        fileIndex +
+        time /
+        duration
+      ) /
+      files.length *
+      65
+
+    );
+
+  }
+
+
+  /*
+    motion normalization
+  */
+
+  const motionValues =
+    samples
+
+      .map(
+        s =>
+          s.motion
+      )
+
+      .sort(
+        (
+          a,
+          b
+        ) =>
+          a - b
+      );
+
+
+  const p90 =
+
+    motionValues[
+      Math.floor(
+        motionValues.length *
+        .9
+      )
+    ] ||
+
+    .03;
+
+
+  samples.forEach(
+    sample => {
+
+      sample.motion =
+        Math.min(
+          1,
+          sample.motion /
+          Math.max(
+            .02,
+            p90
+          )
+        );
+
+    }
+  );
+
+
+  URL.revokeObjectURL(
+    url
+  );
+
+
+  return {
+
+    duration,
+
+    width:
+      video.videoWidth,
+
+    height:
+      video.videoHeight,
+
+    samples
+
+  };
+
+}
+
+
+/* =========================================================
+   AUDIO ANALYSIS
+========================================================= */
+
+async function analyzeAudio(
+  file,
+  duration
+) {
+
+  /*
+    브라우저 Web Audio가 MP4/MOV 오디오를
+    읽을 수 있으면 분석.
+
+    못 읽는 형식이면 화면 분석만 사용.
+  */
 
   try {
+
+    const AudioContextClass =
+
+      window.AudioContext ||
+
+      window.webkitAudioContext;
+
+
+    if (
+      !AudioContextClass
+    ) {
+
+      return [];
+
+    }
+
+
+    const context =
+      new AudioContextClass();
+
 
     const arrayBuffer =
       await file.arrayBuffer();
 
-    const AudioCtx =
-      window.AudioContext ||
-      window.webkitAudioContext;
-
-    const audioContext =
-      new AudioCtx();
 
     const buffer =
-      await audioContext.decodeAudioData(
+      await context.decodeAudioData(
         arrayBuffer.slice(0)
       );
 
+
     const channel =
-      buffer.getChannelData(0);
+      buffer.getChannelData(
+        0
+      );
+
 
     const rate =
       buffer.sampleRate;
 
-    const results = [];
 
-    const step = rate;
+    /*
+      0.25초 단위 에너지
+    */
 
-    for(let start=0; start<channel.length; start+=step) {
+    const windowSize =
+      Math.max(
+        1,
+        Math.floor(
+          rate *
+          .25
+        )
+      );
 
-      let sum = 0;
-      let count = 0;
+
+    const result =
+      [];
+
+
+    for (
+      let start = 0;
+      start < channel.length;
+      start += windowSize
+    ) {
+
+      let sum =
+        0;
+
+      let count =
+        0;
+
 
       const end =
-        Math.min(start+step,channel.length);
+        Math.min(
+          channel.length,
+          start +
+          windowSize
+        );
 
-      for(let i=start;i<end;i+=20) {
 
-        sum += channel[i]*channel[i];
+      /*
+        모든 샘플을 읽지 않고
+        조금 건너뛰며 계산
+      */
+
+      for (
+        let i = start;
+        i < end;
+        i += 8
+      ) {
+
+        const v =
+          channel[i];
+
+        sum +=
+          v * v;
+
         count++;
 
       }
 
-      const rms =
-        Math.sqrt(sum/Math.max(count,1));
 
-      results.push({
-        time:start/rate,
-        audio:rms
+      const rms =
+        Math.sqrt(
+          sum /
+          Math.max(
+            1,
+            count
+          )
+        );
+
+
+      result.push({
+
+        time:
+          start /
+          rate,
+
+        energy:
+          rms
+
       });
 
     }
 
-    const max =
-      Math.max(...results.map(x=>x.audio),0.0001);
 
-    results.forEach(x=>{
-      x.audio /= max;
-    });
+    const sorted =
+      result
 
-    await audioContext.close();
+        .map(
+          x =>
+            x.energy
+        )
 
-    return results;
+        .sort(
+          (
+            a,
+            b
+          ) =>
+            a - b
+        );
+
+
+    const p90 =
+
+      sorted[
+        Math.floor(
+          sorted.length *
+          .9
+        )
+      ] ||
+
+      .01;
+
+
+    result.forEach(
+      item => {
+
+        item.normalized =
+          Math.min(
+            1,
+            item.energy /
+            Math.max(
+              p90,
+              .005
+            )
+          );
+
+      }
+    );
+
+
+    await context.close();
+
+
+    return result;
 
   }
 
-  catch(e) {
+  catch (
+    error
+  ) {
 
     console.warn(
-      "Audio analysis failed:",
-      e
+      "Audio analysis skipped:",
+      error
     );
+
 
     return [];
 
@@ -566,284 +1862,850 @@ async function analyzeAudio(file,duration) {
 }
 
 
-// ----------------------------------------------------
-// SCORE MOMENTS
-// ----------------------------------------------------
+/* =========================================================
+   COMBINE AUDIO + VISUAL
+========================================================= */
 
-function scoreMoments(motion,audio,duration) {
+function attachAudio(
+  samples,
+  audio
+) {
 
-  const motionWeight =
-    Number(document.querySelector("#motionWeight").value)/100;
+  if (
+    !audio.length
+  ) {
 
-  const audioWeight =
-    Number(document.querySelector("#audioWeight").value)/100;
-
-  const moments = [];
-
-  for(let t=1;t<duration-2;t++) {
-
-    const m =
-      motion.find(x=>Math.abs(x.time-t)<0.6);
-
-    const a =
-      audio.find(x=>Math.abs(x.time-t)<0.6);
-
-    const motionScore =
-      m ? m.motion : 0;
-
-    const audioScore =
-      a ? a.audio : 0;
-
-    // 너무 극단적인 움직임은 흔들림일 가능성이 있음
-    const stableMotion =
-      motionScore > .92
-      ? motionScore*.45
-      : motionScore;
-
-    const score =
-      stableMotion*motionWeight +
-      audioScore*audioWeight;
-
-    moments.push({
-      time:t,
-      motion:motionScore,
-      audio:audioScore,
-      score
-    });
-
-  }
-
-  return moments;
-
-}
-
-
-// ----------------------------------------------------
-// ANALYZE ALL FOOTAGE
-// ----------------------------------------------------
-
-analyzeBtn.onclick = async () => {
-
-  if(!files.length) {
-
-    alert("영상을 먼저 넣어줘.");
     return;
 
   }
 
-  analyses = [];
 
-  progressWrap.style.display="block";
+  samples.forEach(
+    sample => {
 
-  for(let i=0;i<files.length;i++) {
-
-    const file = files[i];
-
-    statusEl.textContent =
-      `ANALYZING ${i+1}/${files.length} — ${file.name}`;
-
-    bar.style.width =
-      `${(i/files.length)*100}%`;
-
-    const meta =
-      await metadata(file);
-
-    const motion =
-      await analyzeMotion(
-        file,
-        meta.duration
-      );
-
-    const audio =
-      await analyzeAudio(
-        file,
-        meta.duration
-      );
-
-    const moments =
-      scoreMoments(
-        motion,
-        audio,
-        meta.duration
-      );
-
-    analyses.push({
-      file,
-      ...meta,
-      moments
-    });
-
-  }
-
-  bar.style.width="100%";
-
-  statusEl.textContent =
-    "ANALYSIS COMPLETE";
-
-  makeBtn.disabled=false;
-
-};
+      let nearest =
+        audio[0];
 
 
-// ----------------------------------------------------
-// DOCUMENTARY EDIT LOGIC
-// ----------------------------------------------------
+      let distance =
+        Infinity;
 
-function makeDocumentarySelection() {
 
-  const target =
-    Number(document.querySelector("#target").value);
+      for (
+        const item of audio
+      ) {
 
-  const style =
-    document.querySelector("#style").value;
+        const d =
+          Math.abs(
+            item.time -
+            sample.time
+          );
 
-  let candidates = [];
 
-  analyses.forEach((analysis,fileIndex)=>{
+        if (
+          d <
+          distance
+        ) {
 
-    analysis.moments.forEach(m=>{
+          distance =
+            d;
 
-      let duration;
+          nearest =
+            item;
 
-      if(style==="observational") {
+        }
 
-        duration =
-          5 + m.audio*5;
+
+        if (
+          item.time >
+          sample.time +
+          .5
+        ) {
+
+          break;
+
+        }
 
       }
 
-      else if(style==="rhythmic") {
 
-        duration =
-          1.8 + Math.random()*2.5;
+      sample.audio =
+        nearest.normalized ||
+        0;
+
+    }
+  );
+
+}
+
+
+/* =========================================================
+   ANALYZE ALL
+========================================================= */
+
+$("analyze")
+  .addEventListener(
+    "click",
+    async () => {
+
+      if (
+        !files.length
+      ) {
+
+        alert(
+          "영상을 먼저 넣어주세요."
+        );
+
+        return;
 
       }
 
-      else {
 
-        // Documentary
-        duration =
-          m.audio > .45
-          ? 6 + m.audio*4
-          : 2.5 + m.motion*3;
+      $("analyze").disabled =
+        true;
+
+      $("make").disabled =
+        true;
+
+      $("render").disabled =
+        true;
+
+
+      analyses =
+        [];
+
+
+      try {
+
+        for (
+          let i = 0;
+          i < files.length;
+          i++
+        ) {
+
+          const file =
+            files[i];
+
+
+          const visual =
+            await analyzeVisual(
+              file,
+              i
+            );
+
+
+          setStatus(
+
+            `소리 분석 ${i + 1}/${files.length} — ${file.name}`,
+
+            65 +
+            (
+              i /
+              files.length
+            ) *
+            25
+
+          );
+
+
+          const audio =
+            await analyzeAudio(
+              file,
+              visual.duration
+            );
+
+
+          attachAudio(
+            visual.samples,
+            audio
+          );
+
+
+          analyses.push({
+
+            file,
+
+            ...visual,
+
+            audio
+
+          });
+
+        }
+
+
+        setStatus(
+          "분석 완료. MAKE 60 SEC CUT을 눌러주세요.",
+          100
+        );
+
+
+        $("make").disabled =
+          false;
 
       }
 
-      candidates.push({
+      catch (
+        error
+      ) {
 
-        fileIndex,
-
-        start:
-          Math.max(
-            0,
-            m.time-duration*.3
-          ),
-
-        duration,
-
-        score:m.score,
-
-        motion:m.motion,
-
-        audio:m.audio
-
-      });
-
-    });
-
-  });
+        console.error(
+          error
+        );
 
 
-  // Best moments first
-  candidates.sort(
-    (a,b)=>b.score-a.score
+        setStatus(
+          "분석 실패: " +
+          error.message
+        );
+
+      }
+
+      finally {
+
+        $("analyze").disabled =
+          false;
+
+      }
+
+    }
   );
 
 
-  let chosen = [];
-  let total = 0;
+/* =========================================================
+   SCORING
+========================================================= */
 
-  const usedPerFile =
-    new Map();
+function calculateScore(
+  sample
+) {
+
+  const motionWeight =
+    Number(
+      $("motion").value
+    ) /
+    100;
 
 
-  for(const c of candidates) {
+  const audioWeight =
+    Number(
+      $("audio").value
+    ) /
+    100;
 
-    if(total >= target)
+
+  /*
+    카메라가 지나치게 흔들리는 구간은 감점.
+  */
+
+  let motion =
+    sample.motion;
+
+
+  if (
+    motion >
+    .88
+  ) {
+
+    motion *=
+      .38;
+
+  }
+
+
+  /*
+    너무 어둡거나
+    완전히 날아간 장면 감점.
+  */
+
+  const exposure =
+
+    1 -
+
+    Math.min(
+      1,
+
+      Math.abs(
+        sample.brightness -
+        .45
+      ) *
+      2
+    );
+
+
+  /*
+    디테일이 어느 정도 있는 화면 보너스.
+  */
+
+  const detail =
+    Math.min(
+      1,
+      sample.detail *
+      7
+    );
+
+
+  /*
+    적당히 정적인 장면도
+    다큐에서 완전히 버리지 않기 위한
+    base score.
+  */
+
+  return (
+
+    .08 +
+
+    motion *
+    motionWeight *
+    .42 +
+
+    sample.audio *
+    audioWeight *
+    .42 +
+
+    exposure *
+    .08 +
+
+    detail *
+    .08
+
+  );
+
+}
+
+
+/* =========================================================
+   CLIP LENGTH
+========================================================= */
+
+function desiredDuration(
+  sample
+) {
+
+  const style =
+    $("style").value;
+
+
+  const pace =
+    Number(
+      $("pace").value
+    ) /
+    100;
+
+
+  let duration;
+
+
+  if (
+    style ===
+    "observational"
+  ) {
+
+    duration =
+      6 +
+      sample.audio *
+      5;
+
+  }
+
+  else if (
+    style ===
+    "rhythmic"
+  ) {
+
+    duration =
+      1.8 +
+      sample.motion *
+      2.2;
+
+  }
+
+  else {
+
+    /*
+      DOCUMENTARY
+
+      소리가 살아 있으면
+      대화/행동일 가능성이 있으므로
+      조금 길게 유지.
+    */
+
+    duration =
+
+      sample.audio >
+      .42
+
+        ?
+
+        5 +
+        sample.audio *
+        5
+
+        :
+
+        3 +
+        sample.motion *
+        3;
+
+  }
+
+
+  /*
+    pace가 높을수록
+    컷을 짧게.
+  */
+
+  const paceScale =
+
+    1.35 -
+    pace *
+    .7;
+
+
+  return Math.max(
+    1.5,
+    duration *
+    paceScale
+  );
+
+}
+
+
+/* =========================================================
+   OVERLAP
+========================================================= */
+
+function overlaps(
+  candidate,
+  chosen
+) {
+
+  return chosen.some(
+    clip => {
+
+      if (
+        clip.fileIndex !==
+        candidate.fileIndex
+      ) {
+
+        return false;
+
+      }
+
+
+      const a1 =
+        candidate.start;
+
+      const a2 =
+        candidate.start +
+        candidate.duration;
+
+
+      const b1 =
+        clip.start;
+
+      const b2 =
+        clip.start +
+        clip.duration;
+
+
+      return (
+        a1 < b2 &&
+        a2 > b1
+      );
+
+    }
+  );
+
+}
+
+
+/* =========================================================
+   AUTO EDIT
+========================================================= */
+
+function makeSelection() {
+
+  const target =
+    Number(
+      $("target").value
+    );
+
+
+  const candidates =
+    [];
+
+
+  analyses.forEach(
+    (
+      analysis,
+      fileIndex
+    ) => {
+
+      analysis.samples
+        .forEach(
+          sample => {
+
+            const duration =
+              Math.min(
+
+                desiredDuration(
+                  sample
+                ),
+
+                analysis.duration
+
+              );
+
+
+            const start =
+              Math.max(
+
+                0,
+
+                Math.min(
+
+                  sample.time -
+                  duration *
+                  .3,
+
+                  analysis.duration -
+                  duration
+
+                )
+
+              );
+
+
+            candidates.push({
+
+              fileIndex,
+
+              start,
+
+              duration,
+
+              score:
+                calculateScore(
+                  sample
+                ),
+
+              motion:
+                sample.motion,
+
+              audio:
+                sample.audio
+
+            });
+
+          }
+        );
+
+    }
+  );
+
+
+  /*
+    높은 점수 우선
+  */
+
+  candidates.sort(
+    (
+      a,
+      b
+    ) =>
+      b.score -
+      a.score
+  );
+
+
+  const chosen =
+    [];
+
+
+  const used =
+    new Array(
+      analyses.length
+    ).fill(0);
+
+
+  let total =
+    0;
+
+
+  /*
+    한 영상이 전체 편집을
+    독점하지 않게 제한.
+  */
+
+  const maxPerFile =
+
+    analyses.length >
+    1
+
+      ?
+
+      Math.max(
+        target *
+        .22,
+        target /
+        analyses.length *
+        1.7
+      )
+
+      :
+
+      target;
+
+
+  for (
+    const candidate of candidates
+  ) {
+
+    if (
+      total >=
+      target -
+      .01
+    ) {
+
       break;
 
+    }
 
-    // 같은 영상에서 너무 많이 가져오지 않음
-    const used =
-      usedPerFile.get(c.fileIndex) || 0;
 
-    if(used > target*.35)
+    if (
+      used[
+        candidate.fileIndex
+      ] >=
+      maxPerFile
+    ) {
+
       continue;
 
+    }
 
-    // 같은 시간대 중복 방지
-    const overlap =
-      chosen.some(x => {
 
-        if(x.fileIndex !== c.fileIndex)
-          return false;
+    if (
+      overlaps(
+        candidate,
+        chosen
+      )
+    ) {
 
-        return Math.abs(
-          x.start-c.start
-        ) < 7;
-
-      });
-
-    if(overlap)
       continue;
+
+    }
 
 
     let duration =
       Math.min(
-        c.duration,
-        target-total
+
+        candidate.duration,
+
+        target -
+        total
+
       );
 
 
-    if(duration < 1)
+    duration =
+      Math.min(
+
+        duration,
+
+        analyses[
+          candidate.fileIndex
+        ].duration -
+        candidate.start
+
+      );
+
+
+    if (
+      duration <
+      .5
+    ) {
+
       continue;
+
+    }
 
 
     chosen.push({
-      ...c,
+
+      ...candidate,
+
       duration
+
     });
 
 
-    total += duration;
+    total +=
+      duration;
 
-    usedPerFile.set(
-      c.fileIndex,
-      used+duration
+
+    used[
+      candidate.fileIndex
+    ] +=
+      duration;
+
+  }
+
+
+  /*
+    아직 목표 길이가 안 찼으면
+    사용하지 않은 구간으로 보충.
+  */
+
+  if (
+    total <
+    target
+  ) {
+
+    analyses.forEach(
+      (
+        analysis,
+        fileIndex
+      ) => {
+
+        if (
+          total >=
+          target
+        ) {
+
+          return;
+
+        }
+
+
+        let cursor =
+          0;
+
+
+        while (
+          cursor <
+          analysis.duration &&
+          total <
+          target
+        ) {
+
+          const duration =
+            Math.min(
+
+              4,
+
+              target -
+              total,
+
+              analysis.duration -
+              cursor
+
+            );
+
+
+          const candidate = {
+
+            fileIndex,
+
+            start:
+              cursor,
+
+            duration,
+
+            score:
+              .05,
+
+            motion:
+              0,
+
+            audio:
+              0
+
+          };
+
+
+          if (
+            !overlaps(
+              candidate,
+              chosen
+            ) &&
+            duration >
+            .5
+          ) {
+
+            chosen.push(
+              candidate
+            );
+
+
+            total +=
+              duration;
+
+          }
+
+
+          cursor +=
+            4;
+
+        }
+
+      }
     );
 
   }
 
 
-  // 영상별로 뭉치지 않도록 순서 재구성
-  const result = [];
+  /*
+    같은 원본이 계속 붙지 않도록
+    재배열.
+  */
 
-  let lastFile = -1;
+  const result =
+    [];
 
-  while(chosen.length) {
+
+  const pool =
+    [...chosen];
+
+
+  let lastFile =
+    -1;
+
+
+  while (
+    pool.length
+  ) {
 
     let index =
-      chosen.findIndex(
-        x=>x.fileIndex!==lastFile
+      pool.findIndex(
+        clip =>
+          clip.fileIndex !==
+          lastFile
       );
 
-    if(index===-1)
-      index=0;
+
+    if (
+      index ===
+      -1
+    ) {
+
+      index =
+        0;
+
+    }
+
 
     const clip =
-      chosen.splice(index,1)[0];
+      pool.splice(
+        index,
+        1
+      )[0];
 
-    result.push(clip);
+
+    result.push(
+      clip
+    );
+
 
     lastFile =
       clip.fileIndex;
@@ -851,239 +2713,1197 @@ function makeDocumentarySelection() {
   }
 
 
-  return result;
+  /*
+    최종 길이 정확히 target에 맞추기.
+  */
+
+  let accumulated =
+    0;
+
+
+  const exact =
+    [];
+
+
+  for (
+    const clip of result
+  ) {
+
+    if (
+      accumulated >=
+      target
+    ) {
+
+      break;
+
+    }
+
+
+    const remaining =
+      target -
+      accumulated;
+
+
+    const duration =
+      Math.min(
+        clip.duration,
+        remaining
+      );
+
+
+    exact.push({
+
+      ...clip,
+
+      duration
+
+    });
+
+
+    accumulated +=
+      duration;
+
+  }
+
+
+  return exact;
 
 }
 
 
-// ----------------------------------------------------
-// DISPLAY ROUGH CUT
-// ----------------------------------------------------
+/* =========================================================
+   SHOW TIMELINE
+========================================================= */
 
-makeBtn.onclick = () => {
+$("make")
+  .addEventListener(
+    "click",
+    () => {
 
-  selected =
-    makeDocumentarySelection();
-
-  clipsEl.innerHTML="";
-
-  timeline.style.display="block";
-
-  let total=0;
-
-  selected.forEach((clip,i)=>{
-
-    total += clip.duration;
-
-    const analysis =
-      analyses[clip.fileIndex];
-
-    const row =
-      document.createElement("div");
-
-    row.className="clip";
-
-    row.innerHTML=`
-
-      <span>
-        ${String(i+1).padStart(2,"0")}
-      </span>
-
-      <span>
-        ${analysis.file.name}
-      </span>
-
-      <span>
-        ${formatTime(clip.start)}
-        →
-        ${formatTime(
-          clip.start+clip.duration
-        )}
-      </span>
-
-      <span>
-        ${(clip.score*100).toFixed(0)}
-      </span>
-
-    `;
-
-    clipsEl.appendChild(row);
-
-  });
-
-  statusEl.textContent =
-    `ROUGH CUT — ${total.toFixed(1)} SEC`;
-
-  createBrowserPreview();
-
-};
+      selected =
+        makeSelection();
 
 
-// ----------------------------------------------------
-// BROWSER PREVIEW
-// ----------------------------------------------------
+      if (
+        !selected.length
+      ) {
 
-async function createBrowserPreview() {
-
-  const preview =
-    document.querySelector("#preview");
-
-  preview.innerHTML="";
-
-  const box =
-    document.createElement("div");
-
-  box.style.marginTop="50px";
-
-  box.innerHTML=`
-
-    <div class="small">
-      ROUGH CUT PLAYBACK
-    </div>
-
-    <video
-      id="player"
-      controls
-      playsinline
-    ></video>
-
-    <br>
-
-    <button id="playCut">
-      PLAY AUTOMATIC CUT
-    </button>
-
-  `;
-
-  preview.appendChild(box);
-
-
-  document.querySelector("#playCut")
-    .onclick = async () => {
-
-      const player =
-        document.querySelector("#player");
-
-      for(const clip of selected) {
-
-        const file =
-          analyses[clip.fileIndex].file;
-
-        const url =
-          URL.createObjectURL(file);
-
-        player.src=url;
-
-        await new Promise(
-          r=>player.onloadedmetadata=r
+        setStatus(
+          "선택할 수 있는 구간이 없습니다."
         );
 
-        player.currentTime =
-          clip.start;
-
-        await player.play();
-
-        await new Promise(resolve=>{
-
-          const end =
-            clip.start +
-            clip.duration;
-
-          const timer =
-            setInterval(()=>{
-
-              if(
-                player.currentTime>=end ||
-                player.ended
-              ){
-
-                clearInterval(timer);
-
-                player.pause();
-
-                URL.revokeObjectURL(url);
-
-                resolve();
-
-              }
-
-            },40);
-
-        });
+        return;
 
       }
 
-    };
+
+      $("clips").innerHTML =
+        "";
+
+
+      let total =
+        0;
+
+
+      selected.forEach(
+        (
+          clip,
+          index
+        ) => {
+
+          total +=
+            clip.duration;
+
+
+          const analysis =
+            analyses[
+              clip.fileIndex
+            ];
+
+
+          const row =
+            document.createElement(
+              "div"
+            );
+
+
+          row.className =
+            "clip";
+
+
+          row.innerHTML = `
+
+            <div class="clip-index">
+              ${String(
+                index + 1
+              ).padStart(
+                2,
+                "0"
+              )}
+            </div>
+
+            <div>
+              ${escapeHTML(
+                analysis.file.name
+              )}
+            </div>
+
+            <div class="clip-time">
+
+              ${formatTime(
+                clip.start
+              )}
+
+              →
+
+              ${formatTime(
+                clip.start +
+                clip.duration
+              )}
+
+            </div>
+
+            <div class="clip-score">
+
+              SCORE
+
+              ${Math.round(
+                clip.score *
+                100
+              )}
+
+            </div>
+
+          `;
+
+
+          $("clips")
+            .appendChild(
+              row
+            );
+
+        }
+      );
+
+
+      $("summary").innerHTML = `
+
+        <p style="
+          color:#8fa49e;
+          font-size:11px;
+          margin-bottom:22px;
+        ">
+
+          ${selected.length} CUTS /
+
+          ${total.toFixed(2)} SEC
+
+        </p>
+
+      `;
+
+
+      $("timeline")
+        .style.display =
+        "block";
+
+
+      $("render")
+        .disabled =
+        false;
+
+
+      setStatus(
+        `러프컷 완성 — ${selected.length}개 장면 / ${total.toFixed(2)}초`,
+        100
+      );
+
+    }
+  );
+
+
+/* =========================================================
+   FFMPEG
+========================================================= */
+
+async function loadFFmpeg() {
+
+  if (
+    ffmpeg
+  ) {
+
+    return;
+
+  }
+
+
+  if (
+    !window.FFmpeg
+  ) {
+
+    throw new Error(
+      "FFmpeg 라이브러리를 불러오지 못했습니다."
+    );
+
+  }
+
+
+  const {
+    createFFmpeg
+  } =
+    FFmpeg;
+
+
+  ffmpeg =
+    createFFmpeg({
+
+      log: true,
+
+      corePath:
+        "https://unpkg.com/@ffmpeg/core@0.11.0/dist/ffmpeg-core.js",
+
+      progress:
+        ({
+          ratio
+        }) => {
+
+          if (
+            Number.isFinite(
+              ratio
+            )
+          ) {
+
+            $("progress").value =
+              Math.min(
+                99,
+                Math.max(
+                  0,
+                  ratio *
+                  100
+                )
+              );
+
+          }
+
+        }
+
+    });
+
+
+  setStatus(
+    "영상 엔진 로딩 중… 처음 실행할 때 시간이 조금 걸립니다.",
+    0
+  );
+
+
+  await ffmpeg.load();
 
 }
 
 
-// ----------------------------------------------------
-// COLOR PRESET INFORMATION
-// ----------------------------------------------------
+/* =========================================================
+   OUTPUT DIMENSIONS
+========================================================= */
 
-function getBinBangColorPreset() {
+function getOutputSize() {
 
-  const strength =
-    Number(
-      document.querySelector(
-        "#colorStrength"
-      ).value
-    )/100;
+  const ratio =
+    $("ratio").value;
+
 
   /*
-    Target look:
+    GitHub Pages + 브라우저 렌더 특성상
+    기본 720 계열.
 
-    deep blacks
-    cyan / green shadows
-    warm highlights
-    restrained highlights
-    increased saturation
-    documentary contrast
+    1080보다 훨씬 안정적.
   */
 
+  if (
+    ratio ===
+    "9:16"
+  ) {
+
+    return {
+      width: 720,
+      height: 1280
+    };
+
+  }
+
+
+  if (
+    ratio ===
+    "1:1"
+  ) {
+
+    return {
+      width: 720,
+      height: 720
+    };
+
+  }
+
+
   return {
-
-    contrast:
-      1 + .28*strength,
-
-    saturation:
-      1 + .30*strength,
-
-    brightness:
-      1 - .05*strength,
-
-    cyanShadow:
-      .14*strength,
-
-    warmHighlight:
-      .08*strength
-
+    width: 1280,
+    height: 720
   };
 
 }
 
 
-// ----------------------------------------------------
-// UTIL
-// ----------------------------------------------------
+/* =========================================================
+   COLOR FILTER
+========================================================= */
 
-function formatTime(sec) {
+function getColorFilter() {
 
-  const m =
-    Math.floor(sec/60);
+  const amount =
+    Number(
+      $("color").value
+    ) /
+    100;
 
-  const s =
-    Math.floor(sec%60);
+
+  if (
+    amount <=
+    .001
+  ) {
+
+    return "";
+
+  }
+
+
+  /*
+    =====================================================
+    BIN.BANG LOOK
+
+    레퍼런스 방향:
+
+    - black 깊게
+    - shadow cyan / green
+    - highlight 약간 warm
+    - saturation은 과도하지 않게
+    - contrast 증가
+
+    이 필터는 미리보기 CSS가 아니라
+    실제 MP4 픽셀에 적용됨.
+    =====================================================
+  */
+
+
+  const contrast =
+    1 +
+    .22 *
+    amount;
+
+
+  const brightness =
+    -.025 *
+    amount;
+
+
+  const saturation =
+    1 +
+    .10 *
+    amount;
+
+
+  const gamma =
+    1 -
+    .025 *
+    amount;
+
+
+  const shadowRed =
+    -.07 *
+    amount;
+
+
+  const shadowGreen =
+    .025 *
+    amount;
+
+
+  const shadowBlue =
+    .055 *
+    amount;
+
+
+  const highlightRed =
+    .045 *
+    amount;
+
+
+  const highlightGreen =
+    .012 *
+    amount;
+
+
+  const highlightBlue =
+    -.035 *
+    amount;
+
 
   return (
-    String(m).padStart(2,"0")
-    + ":" +
-    String(s).padStart(2,"0")
+
+    `eq=` +
+
+    `contrast=${contrast}:` +
+
+    `brightness=${brightness}:` +
+
+    `saturation=${saturation}:` +
+
+    `gamma=${gamma},` +
+
+    `colorbalance=` +
+
+    `rs=${shadowRed}:` +
+
+    `gs=${shadowGreen}:` +
+
+    `bs=${shadowBlue}:` +
+
+    `rh=${highlightRed}:` +
+
+    `gh=${highlightGreen}:` +
+
+    `bh=${highlightBlue}:` +
+
+    `pl=1`
+
   );
 
 }
 
+
+/* =========================================================
+   RENDER
+========================================================= */
+
+$("render")
+  .addEventListener(
+    "click",
+    async () => {
+
+      if (
+        !selected.length
+      ) {
+
+        return;
+
+      }
+
+
+      $("render").disabled =
+        true;
+
+      $("analyze").disabled =
+        true;
+
+      $("make").disabled =
+        true;
+
+
+      $("result")
+        .style.display =
+        "none";
+
+
+      try {
+
+        await loadFFmpeg();
+
+
+        const {
+          fetchFile
+        } =
+          FFmpeg;
+
+
+        const size =
+          getOutputSize();
+
+
+        /*
+          파일을 FFmpeg 메모리에 복사.
+        */
+
+        const inputNames =
+          [];
+
+
+        for (
+          let i = 0;
+          i < analyses.length;
+          i++
+        ) {
+
+          const file =
+            analyses[i].file;
+
+
+          const ext =
+            getExtension(
+              file.name
+            );
+
+
+          const name =
+            `input_${i}.${ext}`;
+
+
+          inputNames.push(
+            name
+          );
+
+
+          setStatus(
+            `원본 준비 ${i + 1}/${analyses.length}`,
+            i /
+            analyses.length *
+            10
+          );
+
+
+          ffmpeg.FS(
+            "writeFile",
+            name,
+            await fetchFile(
+              file
+            )
+          );
+
+        }
+
+
+        /*
+          각 컷을 동일 포맷으로 렌더링.
+        */
+
+        for (
+          let i = 0;
+          i < selected.length;
+          i++
+        ) {
+
+          const clip =
+            selected[i];
+
+
+          const source =
+            inputNames[
+              clip.fileIndex
+            ];
+
+
+          const out =
+            `clip_${i}.mp4`;
+
+
+          const color =
+            getColorFilter();
+
+
+          const visualFilters =
+            [
+
+              `scale=${size.width}:${size.height}:force_original_aspect_ratio=increase`,
+
+              `crop=${size.width}:${size.height}`,
+
+              "setsar=1",
+
+              color,
+
+              "format=yuv420p"
+
+            ]
+
+              .filter(
+                Boolean
+              )
+
+              .join(",");
+
+
+          setStatus(
+
+            `컷 렌더링 ${i + 1}/${selected.length} — 색보정 적용 중`,
+
+            10 +
+            (
+              i /
+              selected.length
+            ) *
+            75
+
+          );
+
+
+          /*
+            오디오가 없는 영상에서도
+            실패하지 않도록 먼저 일반 렌더 시도.
+          */
+
+          try {
+
+            await ffmpeg.run(
+
+              "-ss",
+              String(
+                clip.start
+              ),
+
+              "-t",
+              String(
+                clip.duration
+              ),
+
+              "-i",
+              source,
+
+              "-vf",
+              visualFilters,
+
+              "-r",
+              String(
+                FPS
+              ),
+
+              "-c:v",
+              "libx264",
+
+              "-preset",
+              "ultrafast",
+
+              "-crf",
+              "24",
+
+              "-pix_fmt",
+              "yuv420p",
+
+              "-c:a",
+              "aac",
+
+              "-b:a",
+              "128k",
+
+              "-ar",
+              "44100",
+
+              "-movflags",
+              "+faststart",
+
+              out
+
+            );
+
+          }
+
+          catch (
+            audioError
+          ) {
+
+            /*
+              오디오 관련 문제라면
+              영상만 렌더.
+            */
+
+            console.warn(
+              "Audio render retry:",
+              audioError
+            );
+
+
+            await ffmpeg.run(
+
+              "-ss",
+              String(
+                clip.start
+              ),
+
+              "-t",
+              String(
+                clip.duration
+              ),
+
+              "-i",
+              source,
+
+              "-vf",
+              visualFilters,
+
+              "-r",
+              String(
+                FPS
+              ),
+
+              "-an",
+
+              "-c:v",
+              "libx264",
+
+              "-preset",
+              "ultrafast",
+
+              "-crf",
+              "24",
+
+              "-pix_fmt",
+              "yuv420p",
+
+              out
+
+            );
+
+          }
+
+        }
+
+
+        /*
+          concat list
+        */
+
+        let concatText =
+          "";
+
+
+        selected.forEach(
+          (
+            clip,
+            index
+          ) => {
+
+            concatText +=
+              `file 'clip_${index}.mp4'\n`;
+
+          }
+        );
+
+
+        ffmpeg.FS(
+
+          "writeFile",
+
+          "concat.txt",
+
+          new TextEncoder()
+            .encode(
+              concatText
+            )
+
+        );
+
+
+        setStatus(
+          "최종 60초 영상 합치는 중…",
+          90
+        );
+
+
+        /*
+          먼저 stream copy.
+          실패하면 재인코딩.
+        */
+
+        try {
+
+          await ffmpeg.run(
+
+            "-f",
+            "concat",
+
+            "-safe",
+            "0",
+
+            "-i",
+            "concat.txt",
+
+            "-c",
+            "copy",
+
+            "-movflags",
+            "+faststart",
+
+            "final.mp4"
+
+          );
+
+        }
+
+        catch (
+          error
+        ) {
+
+          console.warn(
+            "Concat copy failed. Re-encoding.",
+            error
+          );
+
+
+          await safeUnlink(
+            "final.mp4"
+          );
+
+
+          await ffmpeg.run(
+
+            "-f",
+            "concat",
+
+            "-safe",
+            "0",
+
+            "-i",
+            "concat.txt",
+
+            "-c:v",
+            "libx264",
+
+            "-preset",
+            "ultrafast",
+
+            "-crf",
+            "24",
+
+            "-pix_fmt",
+            "yuv420p",
+
+            "-c:a",
+            "aac",
+
+            "-movflags",
+            "+faststart",
+
+            "final.mp4"
+
+          );
+
+        }
+
+
+        setStatus(
+          "MP4 만드는 중…",
+          97
+        );
+
+
+        const data =
+          ffmpeg.FS(
+            "readFile",
+            "final.mp4"
+          );
+
+
+        if (
+          outputURL
+        ) {
+
+          URL.revokeObjectURL(
+            outputURL
+          );
+
+        }
+
+
+        const blob =
+          new Blob(
+
+            [
+              data.buffer
+            ],
+
+            {
+              type:
+                "video/mp4"
+            }
+
+          );
+
+
+        outputURL =
+          URL.createObjectURL(
+            blob
+          );
+
+
+        $("resultVideo").src =
+          outputURL;
+
+
+        $("download").href =
+          outputURL;
+
+
+        const now =
+          new Date();
+
+
+        const date =
+
+          now
+            .toISOString()
+            .slice(
+              0,
+              10
+            )
+            .replaceAll(
+              "-",
+              ""
+            );
+
+
+        $("download").download =
+          `BINBANG_${date}.mp4`;
+
+
+        const total =
+          selected.reduce(
+            (
+              sum,
+              clip
+            ) =>
+              sum +
+              clip.duration,
+            0
+          );
+
+
+        $("resultMeta")
+          .textContent =
+
+          `${total.toFixed(2)} SEC / ` +
+
+          `${size.width}×${size.height} / ` +
+
+          `${FPS} FPS / ` +
+
+          `BIN.BANG COLOR ${$("color").value}% / ` +
+
+          `${(
+            blob.size /
+            1024 /
+            1024
+          ).toFixed(1)} MB`;
+
+
+        $("result")
+          .style.display =
+          "block";
+
+
+        $("result")
+          .scrollIntoView({
+            behavior:
+              "smooth"
+          });
+
+
+        setStatus(
+          "완료 — 아래에서 확인하고 DOWNLOAD MP4를 눌러주세요.",
+          100
+        );
+
+
+        /*
+          메모리 정리
+        */
+
+        for (
+          let i = 0;
+          i < selected.length;
+          i++
+        ) {
+
+          await safeUnlink(
+            `clip_${i}.mp4`
+          );
+
+        }
+
+
+        for (
+          const name of inputNames
+        ) {
+
+          await safeUnlink(
+            name
+          );
+
+        }
+
+
+        await safeUnlink(
+          "concat.txt"
+        );
+
+
+        await safeUnlink(
+          "final.mp4"
+        );
+
+      }
+
+      catch (
+        error
+      ) {
+
+        console.error(
+          error
+        );
+
+
+        setStatus(
+
+          "렌더링 실패.\n" +
+
+          "영상이 너무 크면 더 짧거나 낮은 해상도의 원본으로 다시 시도해주세요.\n\n" +
+
+          error.message
+
+        );
+
+      }
+
+      finally {
+
+        $("render").disabled =
+          false;
+
+        $("analyze").disabled =
+          false;
+
+        $("make").disabled =
+          false;
+
+      }
+
+    }
+  );
+
+
+/* =========================================================
+   HELPERS
+========================================================= */
+
+async function safeUnlink(
+  name
+) {
+
+  try {
+
+    ffmpeg.FS(
+      "unlink",
+      name
+    );
+
+  }
+
+  catch (
+    error
+  ) {
+
+    // already deleted
+
+  }
+
+}
+
+
+function getExtension(
+  name
+) {
+
+  const match =
+    name.match(
+      /\.([a-z0-9]+)$/i
+    );
+
+
+  return match
+    ?
+    match[1]
+    :
+    "mp4";
+
+}
+
+
+function formatTime(
+  seconds
+) {
+
+  seconds =
+    Math.max(
+      0,
+      seconds
+    );
+
+
+  const minutes =
+    Math.floor(
+      seconds /
+      60
+    );
+
+
+  const secs =
+    Math.floor(
+      seconds %
+      60
+    );
+
+
+  return (
+
+    String(
+      minutes
+    ).padStart(
+      2,
+      "0"
+    )
+
+    +
+
+    ":"
+
+    +
+
+    String(
+      secs
+    ).padStart(
+      2,
+      "0"
+    )
+
+  );
+
+}
+
+
+function escapeHTML(
+  text
+) {
+
+  const div =
+    document.createElement(
+      "div"
+    );
+
+
+  div.textContent =
+    text;
+
+
+  return div.innerHTML;
+
+}
+
 </script>
+
 </body>
 </html>
